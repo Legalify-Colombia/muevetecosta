@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { UniversityManagement } from "@/components/admin/UniversityManagement";
-import { ContentManagement } from "@/components/admin/ContentManagement";
+import ContentManagement from "@/components/admin/ContentManagement";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();

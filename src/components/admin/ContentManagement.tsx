@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,12 +27,16 @@ const ContentManagement = () => {
       
       if (error) throw error;
       return data;
-    },
-    onSuccess: (data) => {
-      setTitle(data.title);
-      setContent(data.content);
     }
   });
+
+  // Use useEffect to handle successful data loading
+  useEffect(() => {
+    if (termsData) {
+      setTitle(termsData.title);
+      setContent(termsData.content);
+    }
+  }, [termsData]);
 
   const updateTermsMutation = useMutation({
     mutationFn: async ({ title, content }: { title: string; content: string }) => {
