@@ -19,12 +19,26 @@ interface CourseManagementProps {
   onBack: () => void;
 }
 
+interface Course {
+  id: string;
+  name: string;
+  code?: string;
+  credits?: number;
+  semester?: number;
+  description?: string;
+  syllabus_url?: string;
+  is_active?: boolean;
+  program_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const CourseManagement = ({ program, onBack }: CourseManagementProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedSemester, setSelectedSemester] = useState(1);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -45,7 +59,7 @@ export const CourseManagement = ({ program, onBack }: CourseManagementProps) => 
         .order('name');
       
       if (error) throw error;
-      return data;
+      return data as Course[];
     },
     enabled: !!program.id
   });
@@ -143,7 +157,7 @@ export const CourseManagement = ({ program, onBack }: CourseManagementProps) => 
     });
   };
 
-  const handleEdit = (course: any) => {
+  const handleEdit = (course: Course) => {
     setEditingCourse(course);
     setFormData({
       name: course.name,
