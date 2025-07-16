@@ -1,7 +1,23 @@
 
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const Footer = () => {
+  const { data: pages = [] } = useQuery({
+    queryKey: ['public-pages'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pages_content')
+        .select('title, slug')
+        .eq('is_published', true)
+        .order('sort_order', { ascending: true });
+      
+      if (error) return [];
+      return data;
+    }
+  });
+
   return (
     <footer className="bg-white border-t py-8 mt-auto">
       <div className="container mx-auto px-4">
@@ -21,12 +37,15 @@ const Footer = () => {
           {/* Enlaces importantes */}
           <div className="flex flex-col items-center space-y-2">
             <h4 className="font-semibold text-gray-900 mb-2">Enlaces importantes</h4>
-            <Link 
-              to="/terms" 
-              className="text-gray-600 hover:text-blue-600 transition-colors text-sm"
-            >
-              Términos y Condiciones
-            </Link>
+            {pages.map((page) => (
+              <Link 
+                key={page.slug}
+                to={`/page/${page.slug}`}
+                className="text-gray-600 hover:text-blue-600 transition-colors text-sm"
+              >
+                {page.title}
+              </Link>
+            ))}
             <Link 
               to="/universities" 
               className="text-gray-600 hover:text-blue-600 transition-colors text-sm"

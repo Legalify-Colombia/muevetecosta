@@ -10,8 +10,10 @@ const TermsAndConditions = () => {
     queryKey: ['terms-content'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('terms_content')
+        .from('pages_content')
         .select('*')
+        .eq('slug', 'terms')
+        .eq('is_published', true)
         .single();
       
       if (error) throw error;

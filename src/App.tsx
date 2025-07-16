@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,7 +16,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Universities from "./pages/Universities";
 import UniversityDetail from "./pages/UniversityDetail";
 import MobilityApplication from "./pages/MobilityApplication";
-import TermsAndConditions from "./pages/TermsAndConditions";
+import DynamicPage from "./pages/DynamicPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,7 +35,12 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/universities" element={<Universities />} />
               <Route path="/universities/:id" element={<UniversityDetail />} />
-              <Route path="/terms" element={<TermsAndConditions />} />
+              
+              {/* Dynamic pages route */}
+              <Route path="/page/:slug" element={<DynamicPage />} />
+              
+              {/* Keep legacy terms route for compatibility */}
+              <Route path="/terms" element={<DynamicPage />} />
               
               {/* Protected Routes */}
               <Route path="/dashboard/student" element={
