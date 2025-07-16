@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +33,6 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         .select(`
           *,
           profiles!mobility_applications_student_id_fkey(*),
-          student_info!mobility_applications_student_id_fkey(*),
           academic_programs(*),
           universities(*)
         `)
@@ -42,6 +42,23 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
       if (error) throw error;
       return data;
     }
+  });
+
+  // Separate query for student info
+  const { data: studentInfo } = useQuery({
+    queryKey: ['student-info', application?.student_id],
+    queryFn: async () => {
+      if (!application?.student_id) return null;
+      const { data, error } = await supabase
+        .from('student_info')
+        .select('*')
+        .eq('id', application.student_id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!application?.student_id
   });
 
   const { data: notes = [] } = useQuery({
@@ -250,33 +267,33 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-gray-500">Nombre Completo</p>
-              <p className="text-lg">{application.profiles?.full_name}</p>
+              <p className="text-lg">{application.profiles?.full_name || 'No disponible'}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">Documento</p>
-              <p>{application.profiles?.document_type.toUpperCase()} {application.profiles?.document_number}</p>
+              <p>{application.profiles?.document_type?.toUpperCase()} {application.profiles?.document_number}</p>
             </div>
           </div>
           
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-gray-500">Universidad de Origen</p>
-              <p>{application.student_info?.origin_university}</p>
+              <p>{studentInfo?.origin_university || 'No disponible'}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">Programa Actual</p>
-              <p>{application.student_info?.academic_program}</p>
+              <p>{studentInfo?.academic_program || 'No disponible'}</p>
             </div>
           </div>
 
           <div>
             <p className="text-sm font-medium text-gray-500">Semestre Actual</p>
-            <p>{application.student_info?.current_semester}</p>
+            <p>{studentInfo?.current_semester || 'No disponible'}</p>
           </div>
 
           <div>
             <p className="text-sm font-medium text-gray-500">Programa de Destino</p>
-            <p>{application.academic_programs?.name}</p>
+            <p>{application.academic_programs?.name || 'No disponible'}</p>
           </div>
         </CardContent>
       </Card>

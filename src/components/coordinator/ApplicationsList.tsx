@@ -45,14 +45,13 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
         .select(`
           *,
           profiles!mobility_applications_student_id_fkey(full_name, document_number),
-          student_info!mobility_applications_student_id_fkey(origin_university),
           academic_programs(name)
         `)
         .eq('destination_university_id', myUniversity.id)
         .order('created_at', { ascending: false });
       
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        query = query.eq('status', statusFilter as 'pending' | 'in_review' | 'approved' | 'rejected' | 'completed');
       }
       
       const { data, error } = await query;
@@ -71,6 +70,33 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
       return data;
     },
     enabled: !!myUniversity?.id
+  });
+
+  // Separate query to get student info for applications
+  const { data: studentInfoMap = {} } = useQuery({
+    queryKey: ['student-info-map', applications.map(app => app.student_id)],
+    queryFn: async () => {
+      if (applications.length === 0) return {};
+      
+      const studentIds = applications.map(app => app.student_id).filter(Boolean);
+      if (studentIds.length === 0) return {};
+      
+      const { data, error } = await supabase
+        .from('student_info')
+        .select('*')
+        .in('id', studentIds);
+      
+      if (error) throw error;
+      
+      // Convert to map for easy lookup
+      const infoMap: Record<string, any> = {};
+      data.forEach(info => {
+        infoMap[info.id] = info;
+      });
+      
+      return infoMap;
+    },
+    enabled: applications.length > 0
   });
 
   const getStatusColor = (status: string) => {
@@ -193,49 +219,53 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
         {/* Applications List */}
         {applications.length > 0 ? (
           <div className="space-y-4">
-            {applications.map((app) => (
-              <div key={app.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
+            {applications.map((app) => {
+              const studentInfo = studentInfoMap[app.student_id || ''];
+              
+              return (
+                <div key={app.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-3">
+                      <div>
+                        <p className="font-medium text-lg">{app.application_number}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(app.created_at).toLocaleDateString('es-ES')}
+                        </p>
+                      </div>
+                      <Badge className={getStatusColor(app.status)} variant="secondary">
+                        {getStatusText(app.status)}
+                      </Badge>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => onViewApplication(app.id)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Ver Detalles
+                    </Button>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="font-medium text-lg">{app.application_number}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(app.created_at).toLocaleDateString('es-ES')}
+                      <p className="text-gray-600">
+                        <strong>Estudiante:</strong> {app.profiles?.full_name || 'No disponible'}
+                      </p>
+                      <p className="text-gray-600">
+                        <strong>Documento:</strong> {app.profiles?.document_number || 'No disponible'}
                       </p>
                     </div>
-                    <Badge className={getStatusColor(app.status)} variant="secondary">
-                      {getStatusText(app.status)}
-                    </Badge>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => onViewApplication(app.id)}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Ver Detalles
-                  </Button>
-                </div>
-                
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-600">
-                      <strong>Estudiante:</strong> {app.profiles?.full_name}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Documento:</strong> {app.profiles?.document_number}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-600">
-                      <strong>Universidad de Origen:</strong> {app.student_info?.origin_university}
-                    </p>
-                    <p className="text-gray-600">
-                      <strong>Programa de Destino:</strong> {app.academic_programs?.name}
-                    </p>
+                    <div>
+                      <p className="text-gray-600">
+                        <strong>Universidad de Origen:</strong> {studentInfo?.origin_university || 'No disponible'}
+                      </p>
+                      <p className="text-gray-600">
+                        <strong>Programa de Destino:</strong> {app.academic_programs?.name || 'No disponible'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-8">
