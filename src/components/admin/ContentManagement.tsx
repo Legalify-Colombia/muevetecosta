@@ -177,6 +177,12 @@ const ContentManagement = () => {
     }
   };
 
+  const handleDelete = (pageId: string) => {
+    if (confirm("¿Estás seguro de que quieres eliminar esta página?")) {
+      deletePageMutation.mutate(pageId);
+    }
+  };
+
   const generateSlug = (title: string) => {
     return title
       .toLowerCase()
@@ -266,11 +272,7 @@ const ContentManagement = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => {
-                      if (confirm("¿Estás seguro de que quieres eliminar esta página?")) {
-                        deletePageMutation.mutate(page.id);
-                      }
-                    }}
+                    onClick={() => handleDelete(page.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
