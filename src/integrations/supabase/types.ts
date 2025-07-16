@@ -93,6 +93,51 @@ export type Database = {
           },
         ]
       }
+      application_notes: {
+        Row: {
+          application_id: string
+          coordinator_id: string
+          created_at: string
+          id: string
+          is_internal: boolean | null
+          note: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          coordinator_id: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean | null
+          note: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          coordinator_id?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean | null
+          note?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_notes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "mobility_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_notes_coordinator_id_fkey"
+            columns: ["coordinator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_equivalences: {
         Row: {
           application_id: string | null
@@ -231,6 +276,54 @@ export type Database = {
           {
             foreignKeyName: "mobility_applications_student_id_fkey"
             columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          related_application_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          related_application_id?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          related_application_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_related_application_id_fkey"
+            columns: ["related_application_id"]
+            isOneToOne: false
+            referencedRelation: "mobility_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

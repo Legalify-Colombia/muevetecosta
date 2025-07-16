@@ -4,15 +4,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, Users, Building, BookOpen, FileText, Settings, LogOut, GraduationCap, Calendar } from "lucide-react";
+import { Globe, Users, Building, BookOpen, FileText, Settings, LogOut, GraduationCap, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { UniversityProfile } from "@/components/coordinator/UniversityProfile";
+import { ProgramManagement } from "@/components/coordinator/ProgramManagement";
+import { ApplicationsList } from "@/components/coordinator/ApplicationsList";
+import { ApplicationDetail } from "@/components/coordinator/ApplicationDetail";
 
 const CoordinatorDashboard = () => {
   const navigate = useNavigate();
   const { signOut, profile, user } = useAuth();
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
 
   const { data: myUniversity } = useQuery({
     queryKey: ['coordinator-university', user?.id],
@@ -59,12 +64,32 @@ const CoordinatorDashboard = () => {
     enabled: !!myUniversity?.id
   });
 
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['coordinator-notifications', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id
+  });
+
   const stats = {
     totalPrograms: myUniversity?.academic_programs?.length || 0,
     activePrograms: myUniversity?.academic_programs?.filter(p => p.is_active).length || 0,
     totalApplications: applications.length,
     pendingApplications: applications.filter(app => app.status === 'pending').length,
     approvedApplications: applications.filter(app => app.status === 'approved').length,
+    inReviewApplications: applications.filter(app => app.status === 'in_review').length,
+    unreadNotifications: notifications.length,
   };
 
   const handleLogout = async () => {
@@ -72,39 +97,47 @@ const CoordinatorDashboard = () => {
     navigate("/");
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'in_review':
-        return "bg-yellow-100 text-yellow-800";
-      case 'approved':
-        return "bg-green-100 text-green-800";
-      case 'pending':
-        return "bg-blue-100 text-blue-800";
-      case 'rejected':
-        return "bg-red-100 text-red-800";
-      case 'completed':
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
+  const handleViewApplication = (applicationId: string) => {
+    setSelectedApplicationId(applicationId);
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'in_review':
-        return "En Revisión";
-      case 'approved':
-        return "Aprobado";
-      case 'pending':
-        return "Pendiente";
-      case 'rejected':
-        return "Rechazado";
-      case 'completed':
-        return "Completado";
-      default:
-        return status;
-    }
+  const handleBackToList = () => {
+    setSelectedApplicationId(null);
   };
+
+  // If viewing application detail, show that component
+  if (selectedApplicationId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-16 items-center">
+              <div className="flex items-center space-x-2">
+                <Globe className="h-8 w-8 text-blue-600" />
+                <span className="text-xl font-bold text-gray-900">MobiCaribe</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-600">
+                  Coordinador: {profile?.full_name}
+                </span>
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Cerrar Sesión
+                </Button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <ApplicationDetail 
+            applicationId={selectedApplicationId} 
+            onBack={handleBackToList}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -117,6 +150,14 @@ const CoordinatorDashboard = () => {
               <span className="text-xl font-bold text-gray-900">MobiCaribe</span>
             </div>
             <div className="flex items-center space-x-4">
+              {stats.unreadNotifications > 0 && (
+                <div className="relative">
+                  <Bell className="h-5 w-5 text-gray-600" />
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs">
+                    {stats.unreadNotifications}
+                  </Badge>
+                </div>
+              )}
               <span className="text-sm text-gray-600">
                 Coordinador: {profile?.full_name}
               </span>
@@ -154,7 +195,7 @@ const CoordinatorDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-4 gap-4">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-blue-600">{stats.totalPrograms}</p>
                   <p className="text-sm text-gray-600">Programas Totales</p>
@@ -165,7 +206,11 @@ const CoordinatorDashboard = () => {
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-purple-600">{stats.totalApplications}</p>
-                  <p className="text-sm text-gray-600">Solicitudes Recibidas</p>
+                  <p className="text-sm text-gray-600">Postulaciones Totales</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-orange-600">{stats.pendingApplications}</p>
+                  <p className="text-sm text-gray-600">Pendientes</p>
                 </div>
               </div>
             </CardContent>
@@ -173,7 +218,7 @@ const CoordinatorDashboard = () => {
         )}
 
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
@@ -183,6 +228,20 @@ const CoordinatorDashboard = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Pendientes</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.pendingApplications}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <FileText className="h-6 w-6 text-yellow-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">En Revisión</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.inReviewApplications}</p>
                 </div>
               </div>
             </CardContent>
@@ -219,141 +278,60 @@ const CoordinatorDashboard = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="applications" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="applications">Postulaciones</TabsTrigger>
             <TabsTrigger value="programs">Programas</TabsTrigger>
-            <TabsTrigger value="settings">Configuración</TabsTrigger>
+            <TabsTrigger value="university">Universidad</TabsTrigger>
+            <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
           </TabsList>
 
           <TabsContent value="applications">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2" />
-                  Postulaciones Recibidas
-                </CardTitle>
-                <CardDescription>
-                  Solicitudes de movilidad estudiantil a tu universidad
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {applications.length > 0 ? (
-                  <div className="space-y-4">
-                    {applications.map((app) => (
-                      <div key={app.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="font-medium">{app.application_number}</p>
-                            <Badge className={getStatusColor(app.status)} variant="secondary">
-                              {getStatusText(app.status)}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Estudiante:</strong> {app.profiles?.full_name} 
-                            ({app.profiles?.document_number})
-                          </p>
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Programa:</strong> {app.academic_programs?.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Solicitud enviada: {new Date(app.created_at).toLocaleDateString('es-ES')}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2 ml-4">
-                          <Button size="sm" variant="outline">
-                            Ver Detalles
-                          </Button>
-                          {app.status === 'pending' && (
-                            <Button size="sm">
-                              Revisar
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">
-                      No hay postulaciones recibidas aún
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <ApplicationsList onViewApplication={handleViewApplication} />
           </TabsContent>
 
           <TabsContent value="programs">
+            <ProgramManagement />
+          </TabsContent>
+
+          <TabsContent value="university">
+            <UniversityProfile />
+          </TabsContent>
+
+          <TabsContent value="notifications">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <BookOpen className="h-5 w-5 mr-2" />
-                  Programas Académicos
+                  <Bell className="h-5 w-5 mr-2" />
+                  Notificaciones
                 </CardTitle>
                 <CardDescription>
-                  Gestiona los programas disponibles para movilidad estudiantil
+                  Alertas y comunicaciones del sistema
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {myUniversity?.academic_programs && myUniversity.academic_programs.length > 0 ? (
+                {notifications.length > 0 ? (
                   <div className="space-y-4">
-                    {myUniversity.academic_programs.map((program) => (
-                      <div key={program.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div>
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h3 className="font-medium">{program.name}</h3>
-                            <Badge variant={program.is_active ? "default" : "secondary"}>
-                              {program.is_active ? "Activo" : "Inactivo"}
-                            </Badge>
-                          </div>
-                          {program.description && (
-                            <p className="text-sm text-gray-600 mb-1">{program.description}</p>
-                          )}
-                          {program.duration_semesters && (
-                            <p className="text-xs text-gray-500">
-                              Duración: {program.duration_semesters} semestres
+                    {notifications.map((notification) => (
+                      <div key={notification.id} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-medium">{notification.title}</h4>
+                            <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                            <p className="text-xs text-gray-500 mt-2">
+                              {new Date(notification.created_at).toLocaleDateString('es-ES')}
                             </p>
-                          )}
+                          </div>
+                          <Badge variant="secondary">{notification.type}</Badge>
                         </div>
-                        <Button size="sm" variant="outline">
-                          Editar
-                        </Button>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 mb-4">
-                      No hay programas configurados
-                    </p>
-                    <Button>Agregar Programa</Button>
+                    <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No hay notificaciones pendientes</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Settings className="h-5 w-5 mr-2" />
-                  Configuración de Universidad
-                </CardTitle>
-                <CardDescription>
-                  Actualiza la información de tu institución
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">
-                    Panel de configuración en desarrollo
-                  </p>
-                  <Button>Próximamente</Button>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
