@@ -1,13 +1,17 @@
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Building, BookOpen, FileText } from "lucide-react";
+import { CalendarDays, Building, BookOpen, FileText, Eye } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { ApplicationDetail } from "./ApplicationDetail";
 
 export const MyApplications = () => {
   const { user } = useAuth();
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
 
   const { data: applications, isLoading } = useQuery({
     queryKey: ['student-applications', user?.id],
@@ -39,6 +43,24 @@ export const MyApplications = () => {
     
     return statusMap[status as keyof typeof statusMap] || { label: status, variant: 'secondary' as const };
   };
+
+  const handleViewApplication = (applicationId: string) => {
+    setSelectedApplicationId(applicationId);
+  };
+
+  const handleBackToList = () => {
+    setSelectedApplicationId(null);
+  };
+
+  // If viewing application detail, show that component
+  if (selectedApplicationId) {
+    return (
+      <ApplicationDetail 
+        applicationId={selectedApplicationId} 
+        onBack={handleBackToList}
+      />
+    );
+  }
 
   if (isLoading) {
     return (
@@ -84,9 +106,18 @@ export const MyApplications = () => {
                         })}
                       </div>
                     </div>
-                    <Badge variant={getStatusBadge(application.status).variant}>
-                      {getStatusBadge(application.status).label}
-                    </Badge>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={getStatusBadge(application.status).variant}>
+                        {getStatusBadge(application.status).label}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        onClick={() => handleViewApplication(application.id)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalles
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">

@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, User, MessageSquare, Send, ArrowLeft } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FileText, User, MessageSquare, Send, ArrowLeft, BookOpen, Download, GraduationCap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -44,7 +45,6 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
     }
   });
 
-  // Separate query for student info
   const { data: studentInfo } = useQuery({
     queryKey: ['student-info', application?.student_id],
     queryFn: async () => {
@@ -59,6 +59,22 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
       return data;
     },
     enabled: !!application?.student_id
+  });
+
+  const { data: courseEquivalences = [] } = useQuery({
+    queryKey: ['course-equivalences', applicationId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('course_equivalences')
+        .select(`
+          *,
+          courses!course_equivalences_destination_course_id_fkey(name, code, credits)
+        `)
+        .eq('application_id', applicationId);
+      
+      if (error) throw error;
+      return data;
+    }
   });
 
   const { data: notes = [] } = useQuery({
@@ -94,13 +110,6 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         title: "Estado actualizado",
         description: "El estado de la postulación se ha actualizado correctamente.",
       });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado de la postulación.",
-        variant: "destructive",
-      });
     }
   });
 
@@ -117,7 +126,6 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
       
       if (error) throw error;
 
-      // If it's a public note, also create a notification for the student
       if (isPublic && application?.student_id) {
         await supabase
           .from('notifications')
@@ -138,47 +146,57 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         title: "Comentario agregado",
         description: "El comentario se ha agregado correctamente.",
       });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "No se pudo agregar el comentario.",
-        variant: "destructive",
-      });
     }
   });
 
+  const exportToCsv = () => {
+    if (!application || !studentInfo) return;
+
+    const csvData = [
+      ['Campo', 'Valor'],
+      ['Número de Postulación', application.application_number || ''],
+      ['Estado', getStatusText(application.status)],
+      ['Fecha de Postulación', new Date(application.created_at).toLocaleDateString('es-ES')],
+      ['Nombre del Estudiante', application.profiles?.full_name || ''],
+      ['Documento', `${application.profiles?.document_type?.toUpperCase()} ${application.profiles?.document_number}`],
+      ['Universidad de Origen', studentInfo.origin_university || ''],
+      ['Programa Actual', studentInfo.academic_program || ''],
+      ['Semestre Actual', studentInfo.current_semester?.toString() || ''],
+      ['GPA Acumulado', studentInfo.cumulative_gpa?.toString() || ''],
+      ['Programa de Destino', application.academic_programs?.name || ''],
+      ['Universidad de Destino', application.universities?.name || ''],
+      ['Director Académico', studentInfo.academic_director_name || ''],
+      ['Email Director', studentInfo.academic_director_email || ''],
+      ['Teléfono Director', studentInfo.academic_director_phone || '']
+    ];
+
+    const csvContent = csvData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `postulacion_${application.application_number}.csv`;
+    link.click();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'in_review':
-        return "bg-yellow-100 text-yellow-800";
-      case 'approved':
-        return "bg-green-100 text-green-800";
-      case 'pending':
-        return "bg-blue-100 text-blue-800";
-      case 'rejected':
-        return "bg-red-100 text-red-800";
-      case 'completed':
-        return "bg-purple-100 text-purple-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      case 'in_review': return "bg-yellow-100 text-yellow-800";
+      case 'approved': return "bg-green-100 text-green-800";
+      case 'pending': return "bg-blue-100 text-blue-800";
+      case 'rejected': return "bg-red-100 text-red-800";
+      case 'completed': return "bg-purple-100 text-purple-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'in_review':
-        return "En Revisión";
-      case 'approved':
-        return "Aprobado";
-      case 'pending':
-        return "Pendiente";
-      case 'rejected':
-        return "Rechazado";
-      case 'completed':
-        return "Completado";
-      default:
-        return status;
+      case 'in_review': return "En Revisión";
+      case 'approved': return "Aprobado";
+      case 'pending': return "Pendiente";
+      case 'rejected': return "Rechazado";
+      case 'completed': return "Completado";
+      default: return status;
     }
   };
 
@@ -232,10 +250,16 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
 
   return (
     <div className="space-y-6">
-      <Button onClick={onBack} variant="outline">
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Volver
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button onClick={onBack} variant="outline">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver
+        </Button>
+        <Button onClick={exportToCsv} variant="outline">
+          <Download className="h-4 w-4 mr-2" />
+          Exportar CSV
+        </Button>
+      </div>
 
       {/* Application Header */}
       <Card>
@@ -250,7 +274,11 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
             </Badge>
           </div>
           <CardDescription>
-            Recibida el {new Date(application.created_at).toLocaleDateString('es-ES')}
+            Recibida el {new Date(application.created_at).toLocaleDateString('es-ES', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -263,38 +291,126 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
             Información del Estudiante
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Nombre Completo</p>
-              <p className="text-lg">{application.profiles?.full_name || 'No disponible'}</p>
+        <CardContent className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Nombre Completo</p>
+                <p className="text-lg font-semibold">{application.profiles?.full_name || 'No disponible'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Documento</p>
+                <p>{application.profiles?.document_type?.toUpperCase()} {application.profiles?.document_number}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Teléfono</p>
+                <p>{application.profiles?.phone || 'No disponible'}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Documento</p>
-              <p>{application.profiles?.document_type?.toUpperCase()} {application.profiles?.document_number}</p>
-            </div>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-gray-500">Universidad de Origen</p>
-              <p>{studentInfo?.origin_university || 'No disponible'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Programa Actual</p>
-              <p>{studentInfo?.academic_program || 'No disponible'}</p>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Género</p>
+                <p>{studentInfo?.gender || 'No disponible'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Fecha de Nacimiento</p>
+                <p>{studentInfo?.birth_date ? new Date(studentInfo.birth_date).toLocaleDateString('es-ES') : 'No disponible'}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Lugar de Nacimiento</p>
+                <p>{studentInfo?.birth_place || 'No disponible'}, {studentInfo?.birth_country || ''}</p>
+              </div>
             </div>
           </div>
 
-          <div>
-            <p className="text-sm font-medium text-gray-500">Semestre Actual</p>
-            <p>{studentInfo?.current_semester || 'No disponible'}</p>
+          <div className="border-t pt-6">
+            <h4 className="text-lg font-semibold mb-4">Información Académica</h4>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Universidad de Origen</p>
+                  <p className="font-semibold">{studentInfo?.origin_university || 'No disponible'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Programa Actual</p>
+                  <p>{studentInfo?.academic_program || 'No disponible'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Código Estudiantil</p>
+                  <p>{studentInfo?.student_code || 'No disponible'}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Semestre Actual</p>
+                  <p>{studentInfo?.current_semester || 'No disponible'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">GPA Acumulado</p>
+                  <p>{studentInfo?.cumulative_gpa || 'No disponible'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Director Académico</p>
+                  <p>{studentInfo?.academic_director_name || 'No disponible'}</p>
+                  {studentInfo?.academic_director_email && (
+                    <p className="text-sm text-gray-600">{studentInfo.academic_director_email}</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <p className="text-sm font-medium text-gray-500">Programa de Destino</p>
-            <p>{application.academic_programs?.name || 'No disponible'}</p>
+          <div className="border-t pt-6">
+            <h4 className="text-lg font-semibold mb-4">Programa de Destino</h4>
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex items-center mb-2">
+                <GraduationCap className="h-5 w-5 text-blue-600 mr-2" />
+                <p className="font-semibold text-blue-900">{application.academic_programs?.name || 'No disponible'}</p>
+              </div>
+              <p className="text-sm text-blue-700">{application.universities?.name}</p>
+              <p className="text-sm text-blue-600">{application.academic_programs?.description}</p>
+            </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Course Homologation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <BookOpen className="h-5 w-5 mr-2" />
+            Cursos a Homologar
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {courseEquivalences.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Curso de Origen</TableHead>
+                  <TableHead>Código Origen</TableHead>
+                  <TableHead>Curso de Destino</TableHead>
+                  <TableHead>Código Destino</TableHead>
+                  <TableHead>Créditos</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {courseEquivalences.map((equivalence) => (
+                  <TableRow key={equivalence.id}>
+                    <TableCell className="font-medium">{equivalence.origin_course_name}</TableCell>
+                    <TableCell>{equivalence.origin_course_code || 'N/A'}</TableCell>
+                    <TableCell>{equivalence.courses?.name || 'No disponible'}</TableCell>
+                    <TableCell>{equivalence.courses?.code || 'N/A'}</TableCell>
+                    <TableCell>{equivalence.courses?.credits || 'N/A'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-gray-500 text-center py-8">No hay cursos para homologar registrados</p>
+          )}
         </CardContent>
       </Card>
 
@@ -336,7 +452,6 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Add New Note */}
           <div className="space-y-4">
             <div>
               <Label htmlFor="newNote">Agregar Comentario</Label>
@@ -371,7 +486,6 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
             </div>
           </div>
 
-          {/* Existing Notes */}
           <div className="space-y-4">
             {notes.map((note) => (
               <div key={note.id} className="border rounded-lg p-4">
@@ -383,7 +497,13 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-500">
-                    {new Date(note.created_at).toLocaleDateString('es-ES')}
+                    {new Date(note.created_at).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </p>
                 </div>
                 <p className="text-gray-700">{note.note}</p>

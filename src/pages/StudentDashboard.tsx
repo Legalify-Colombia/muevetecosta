@@ -2,10 +2,20 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe, BookOpen, Users, GraduationCap } from "lucide-react";
+import { Globe, BookOpen, Users, GraduationCap, LogOut } from "lucide-react";
 import { MyApplications } from "@/components/student/MyApplications";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const StudentDashboard = () => {
+  const { signOut, profile } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
@@ -16,14 +26,18 @@ const StudentDashboard = () => {
               <Globe className="h-8 w-8 text-blue-600" />
               <span className="text-xl font-bold text-gray-900">MobiCaribe</span>
             </div>
-            <nav className="flex space-x-4">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">
+                Estudiante: {profile?.full_name}
+              </span>
               <Link to="/universities" className="text-gray-600 hover:text-blue-600">
                 Universidades
               </Link>
-              <Button variant="outline" size="sm">
-                Mi Perfil
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Cerrar Sesión
               </Button>
-            </nav>
+            </div>
           </div>
         </div>
       </header>
@@ -70,17 +84,23 @@ const StudentDashboard = () => {
             {/* Stats Card */}
             <Card className="mt-6">
               <CardHeader>
-                <CardTitle>Estadísticas</CardTitle>
+                <CardTitle>Mi Perfil</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Postulaciones</span>
-                    <span className="font-semibold">-</span>
+                    <span className="text-sm text-muted-foreground">Nombre</span>
+                    <span className="font-semibold text-sm">{profile?.full_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Documento</span>
+                    <span className="font-semibold text-sm">
+                      {profile?.document_type?.toUpperCase()} {profile?.document_number}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Estado</span>
-                    <span className="font-semibold">Activo</span>
+                    <span className="font-semibold text-sm">Activo</span>
                   </div>
                 </div>
               </CardContent>

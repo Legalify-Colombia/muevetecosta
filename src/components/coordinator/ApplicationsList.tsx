@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Search, Filter, Eye } from "lucide-react";
+import { FileText, Search, Filter, Eye, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -99,6 +98,53 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
     enabled: applications.length > 0
   });
 
+  const exportApplicationsToCSV = () => {
+    if (applications.length === 0) return;
+
+    const csvData = [
+      [
+        'Número de Postulación',
+        'Fecha de Postulación',
+        'Estado',
+        'Nombre del Estudiante',
+        'Documento',
+        'Universidad de Origen',
+        'Programa Actual',
+        'Programa de Destino',
+        'Semestre Actual',
+        'Director Académico',
+        'Email Director'
+      ]
+    ];
+
+    applications.forEach(app => {
+      const studentInfo = studentInfoMap[app.student_id || ''];
+      csvData.push([
+        app.application_number || '',
+        new Date(app.created_at).toLocaleDateString('es-ES'),
+        getStatusText(app.status),
+        app.profiles?.full_name || '',
+        `${app.profiles?.document_type?.toUpperCase()} ${app.profiles?.document_number}`,
+        studentInfo?.origin_university || '',
+        studentInfo?.academic_program || '',
+        app.academic_programs?.name || '',
+        studentInfo?.current_semester?.toString() || '',
+        studentInfo?.academic_director_name || '',
+        studentInfo?.academic_director_email || ''
+      ]);
+    });
+
+    const csvContent = csvData.map(row => 
+      row.map(field => `"${field.toString().replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `postulaciones_movilidad_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'in_review':
@@ -156,13 +202,21 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <FileText className="h-5 w-5 mr-2" />
-          Postulaciones de Movilidad
-        </CardTitle>
-        <CardDescription>
-          Gestiona las solicitudes de movilidad estudiantil a tu universidad
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center">
+              <FileText className="h-5 w-5 mr-2" />
+              Postulaciones de Movilidad
+            </CardTitle>
+            <CardDescription>
+              Gestiona las solicitudes de movilidad estudiantil a tu universidad
+            </CardDescription>
+          </div>
+          <Button onClick={exportApplicationsToCSV} variant="outline" disabled={applications.length === 0}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar CSV
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Quick Stats */}
