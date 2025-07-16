@@ -4,11 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, Users, Building, BookOpen, FileText, Settings, LogOut, BarChart3, TrendingUp } from "lucide-react";
+import { Globe, Users, Building, FileText, Settings, LogOut, BarChart3, TrendingUp, UserCog, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { UserManagement } from "@/components/admin/UserManagement";
+import { UniversityManagement } from "@/components/admin/UniversityManagement";
+import { ContentManagement } from "@/components/admin/ContentManagement";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -115,7 +118,7 @@ const AdminDashboard = () => {
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center space-x-2">
               <Globe className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">MobiCaribe</span>
+              <span className="text-xl font-bold text-gray-900">MobiCaribe Admin</span>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
@@ -134,10 +137,10 @@ const AdminDashboard = () => {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Dashboard de Administración
+            Panel de Administración
           </h1>
           <p className="text-lg text-gray-600">
-            Panel de control para gestionar el programa MobiCaribe
+            Centro de control para gestionar el programa MobiCaribe
           </p>
         </div>
 
@@ -189,11 +192,11 @@ const AdminDashboard = () => {
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="p-2 bg-orange-100 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-orange-600" />
+                  <UserCog className="h-6 w-6 text-orange-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Pendientes</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats?.pendingApplications || 0}</p>
+                  <p className="text-sm font-medium text-gray-600">Coordinadores</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats?.coordinators || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -202,11 +205,12 @@ const AdminDashboard = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Resumen</TabsTrigger>
+            <TabsTrigger value="users">Usuarios</TabsTrigger>
             <TabsTrigger value="universities">Universidades</TabsTrigger>
             <TabsTrigger value="applications">Postulaciones</TabsTrigger>
-            <TabsTrigger value="users">Usuarios</TabsTrigger>
+            <TabsTrigger value="content">Contenidos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
@@ -256,7 +260,7 @@ const AdminDashboard = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button className="w-full justify-start">
+                  <Button className="w-full justify-start" variant="outline">
                     <Building className="h-4 w-4 mr-2" />
                     Gestionar Universidades
                   </Button>
@@ -266,7 +270,7 @@ const AdminDashboard = () => {
                   </Button>
                   <Button className="w-full justify-start" variant="outline">
                     <BookOpen className="h-4 w-4 mr-2" />
-                    Configurar Programas
+                    Configurar Contenidos
                   </Button>
                   <Button className="w-full justify-start" variant="outline">
                     <BarChart3 className="h-4 w-4 mr-2" />
@@ -277,24 +281,12 @@ const AdminDashboard = () => {
             </div>
           </TabsContent>
 
+          <TabsContent value="users">
+            <UserManagement />
+          </TabsContent>
+
           <TabsContent value="universities">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestión de Universidades</CardTitle>
-                <CardDescription>
-                  Administrar las instituciones participantes en el programa
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Building className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">
-                    Funcionalidad de gestión de universidades en desarrollo
-                  </p>
-                  <Button>Próximamente</Button>
-                </div>
-              </CardContent>
-            </Card>
+            <UniversityManagement />
           </TabsContent>
 
           <TabsContent value="applications">
@@ -317,24 +309,8 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="users">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestión de Usuarios</CardTitle>
-                <CardDescription>
-                  Administrar estudiantes, coordinadores y perfiles
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">
-                    Panel de gestión de usuarios en desarrollo
-                  </p>
-                  <Button>Próximamente</Button>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="content">
+            <ContentManagement />
           </TabsContent>
         </Tabs>
       </div>
