@@ -232,7 +232,7 @@ export type Database = {
       }
       mobility_applications: {
         Row: {
-          application_number: string
+          application_number: string | null
           created_at: string | null
           destination_program_id: string | null
           destination_university_id: string | null
@@ -242,7 +242,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          application_number: string
+          application_number?: string | null
           created_at?: string | null
           destination_program_id?: string | null
           destination_university_id?: string | null
@@ -252,7 +252,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          application_number?: string
+          application_number?: string | null
           created_at?: string | null
           destination_program_id?: string | null
           destination_university_id?: string | null
@@ -368,27 +368,66 @@ export type Database = {
       }
       student_info: {
         Row: {
+          academic_director_email: string | null
+          academic_director_name: string | null
+          academic_director_phone: string | null
           academic_program: string
+          birth_country: string | null
+          birth_date: string | null
+          birth_place: string | null
+          blood_type: string | null
           created_at: string | null
+          cumulative_gpa: number | null
           current_semester: number
+          gender: string | null
+          health_insurance: string | null
           id: string
+          origin_faculty: string | null
+          origin_institution_campus: string | null
           origin_university: string
+          student_code: string | null
           updated_at: string | null
         }
         Insert: {
+          academic_director_email?: string | null
+          academic_director_name?: string | null
+          academic_director_phone?: string | null
           academic_program: string
+          birth_country?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          blood_type?: string | null
           created_at?: string | null
+          cumulative_gpa?: number | null
           current_semester: number
+          gender?: string | null
+          health_insurance?: string | null
           id: string
+          origin_faculty?: string | null
+          origin_institution_campus?: string | null
           origin_university: string
+          student_code?: string | null
           updated_at?: string | null
         }
         Update: {
+          academic_director_email?: string | null
+          academic_director_name?: string | null
+          academic_director_phone?: string | null
           academic_program?: string
+          birth_country?: string | null
+          birth_date?: string | null
+          birth_place?: string | null
+          blood_type?: string | null
           created_at?: string | null
+          cumulative_gpa?: number | null
           current_semester?: number
+          gender?: string | null
+          health_insurance?: string | null
           id?: string
+          origin_faculty?: string | null
+          origin_institution_campus?: string | null
           origin_university?: string
+          student_code?: string | null
           updated_at?: string | null
         }
         Relationships: [

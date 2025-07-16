@@ -185,7 +185,7 @@ export default function MobilityApplication() {
           student_id: user?.id,
           destination_university_id: universityId,
           destination_program_id: formData.destinationProgramId,
-          status: 'pending'
+          status: 'pending' as const
         })
         .select()
         .single();
