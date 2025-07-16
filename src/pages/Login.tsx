@@ -4,22 +4,43 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Globe, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Globe } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userType, setUserType] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { signIn, user, profile } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user && profile) {
+      // Redirect based on user role
+      switch (profile.role) {
+        case "student":
+          navigate("/dashboard/student");
+          break;
+        case "coordinator":
+          navigate("/dashboard/coordinator");
+          break;
+        case "admin":
+          navigate("/dashboard/admin");
+          break;
+        default:
+          navigate("/");
+      }
+    }
+  }, [user, profile, navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password || !userType) {
+    if (!email || !password) {
       toast({
         title: "Error",
         description: "Por favor completa todos los campos",
@@ -28,29 +49,24 @@ const Login = () => {
       return;
     }
 
-    // Simulate login logic
-    localStorage.setItem("userType", userType);
-    localStorage.setItem("userEmail", email);
+    setLoading(true);
     
-    toast({
-      title: "¡Bienvenido!",
-      description: "Has iniciado sesión correctamente",
-    });
-
-    // Redirect based on user type
-    switch (userType) {
-      case "student":
-        navigate("/dashboard/student");
-        break;
-      case "coordinator":
-        navigate("/dashboard/coordinator");
-        break;
-      case "admin":
-        navigate("/dashboard/admin");
-        break;
-      default:
-        navigate("/");
+    const { error } = await signIn(email, password);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al iniciar sesión",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "¡Bienvenido!",
+        description: "Has iniciado sesión correctamente",
+      });
     }
+    
+    setLoading(false);
   };
 
   return (
@@ -73,20 +89,6 @@ const Login = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="userType">Tipo de Usuario</Label>
-                <Select value={userType} onValueChange={setUserType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona tu rol" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="student">Estudiante</SelectItem>
-                    <SelectItem value="coordinator">Coordinador de Relaciones Internacionales</SelectItem>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="email">Correo Electrónico</Label>
                 <Input
@@ -126,8 +128,8 @@ const Login = () => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
-                Iniciar Sesión
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
               </Button>
             </form>
 

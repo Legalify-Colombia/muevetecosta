@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Globe, Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -24,13 +25,21 @@ const Register = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { signUp, user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard/student");
+    }
+  }, [user, navigate]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
@@ -61,16 +70,36 @@ const Register = () => {
       return;
     }
 
-    // Simulate registration
-    localStorage.setItem("userType", "student");
-    localStorage.setItem("userEmail", formData.email);
-    
-    toast({
-      title: "¡Registro exitoso!",
-      description: "Tu cuenta ha sido creada correctamente",
-    });
+    setLoading(true);
 
-    navigate("/dashboard/student");
+    // Prepare user metadata
+    const userData = {
+      full_name: formData.fullName,
+      document_type: formData.documentType,
+      document_number: formData.documentNumber,
+      phone: formData.phone,
+      role: 'student',
+      origin_university: formData.originUniversity,
+      academic_program: formData.academicProgram,
+      current_semester: parseInt(formData.currentSemester)
+    };
+
+    const { error } = await signUp(formData.email, formData.password, userData);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al registrarse",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "¡Registro exitoso!",
+        description: "Revisa tu email para confirmar tu cuenta",
+      });
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -245,8 +274,8 @@ const Register = () => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full">
-                Crear Cuenta
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Creando cuenta..." : "Crear Cuenta"}
               </Button>
             </form>
 

@@ -14,16 +14,376 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      academic_programs: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          duration_semesters: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          university_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          duration_semesters?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          university_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          duration_semesters?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          university_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "academic_programs_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_documents: {
+        Row: {
+          application_id: string | null
+          document_type: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          application_id?: string | null
+          document_type: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          application_id?: string | null
+          document_type?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_documents_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "mobility_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_equivalences: {
+        Row: {
+          application_id: string | null
+          created_at: string | null
+          destination_course_id: string | null
+          id: string
+          origin_course_code: string | null
+          origin_course_name: string
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string | null
+          destination_course_id?: string | null
+          id?: string
+          origin_course_code?: string | null
+          origin_course_name: string
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string | null
+          destination_course_id?: string | null
+          id?: string
+          origin_course_code?: string | null
+          origin_course_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_equivalences_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "mobility_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_equivalences_destination_course_id_fkey"
+            columns: ["destination_course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          credits: number | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          program_id: string | null
+          semester: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          credits?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          program_id?: string | null
+          semester?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          credits?: number | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          program_id?: string | null
+          semester?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "academic_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mobility_applications: {
+        Row: {
+          application_number: string
+          created_at: string | null
+          destination_program_id: string | null
+          destination_university_id: string | null
+          id: string
+          status: Database["public"]["Enums"]["application_status"] | null
+          student_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          application_number: string
+          created_at?: string | null
+          destination_program_id?: string | null
+          destination_university_id?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["application_status"] | null
+          student_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          application_number?: string
+          created_at?: string | null
+          destination_program_id?: string | null
+          destination_university_id?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["application_status"] | null
+          student_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mobility_applications_destination_program_id_fkey"
+            columns: ["destination_program_id"]
+            isOneToOne: false
+            referencedRelation: "academic_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobility_applications_destination_university_id_fkey"
+            columns: ["destination_university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobility_applications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          document_number: string
+          document_type: Database["public"]["Enums"]["document_type"]
+          full_name: string
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document_number: string
+          document_type: Database["public"]["Enums"]["document_type"]
+          full_name: string
+          id: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document_number?: string
+          document_type?: Database["public"]["Enums"]["document_type"]
+          full_name?: string
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      student_info: {
+        Row: {
+          academic_program: string
+          created_at: string | null
+          current_semester: number
+          id: string
+          origin_university: string
+          updated_at: string | null
+        }
+        Insert: {
+          academic_program: string
+          created_at?: string | null
+          current_semester: number
+          id: string
+          origin_university: string
+          updated_at?: string | null
+        }
+        Update: {
+          academic_program?: string
+          created_at?: string | null
+          current_semester?: number
+          id?: string
+          origin_university?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_info_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      universities: {
+        Row: {
+          address: string | null
+          city: string | null
+          coordinator_id: string | null
+          created_at: string | null
+          description: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          name: string
+          phone: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          coordinator_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          coordinator_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "universities_coordinator_id_fkey"
+            columns: ["coordinator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_application_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
     }
     Enums: {
-      [_ in never]: never
+      application_status:
+        | "pending"
+        | "in_review"
+        | "approved"
+        | "rejected"
+        | "completed"
+      document_type: "cc" | "ti" | "passport" | "ce"
+      user_role: "admin" | "coordinator" | "professor" | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +510,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      application_status: [
+        "pending",
+        "in_review",
+        "approved",
+        "rejected",
+        "completed",
+      ],
+      document_type: ["cc", "ti", "passport", "ce"],
+      user_role: ["admin", "coordinator", "professor", "student"],
+    },
   },
 } as const
