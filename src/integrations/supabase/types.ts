@@ -191,6 +191,7 @@ export type Database = {
           name: string
           program_id: string | null
           semester: number | null
+          syllabus_url: string | null
           updated_at: string | null
         }
         Insert: {
@@ -203,6 +204,7 @@ export type Database = {
           name: string
           program_id?: string | null
           semester?: number | null
+          syllabus_url?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -215,6 +217,7 @@ export type Database = {
           name?: string
           program_id?: string | null
           semester?: number | null
+          syllabus_url?: string | null
           updated_at?: string | null
         }
         Relationships: [
