@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +11,8 @@ import { AcademicInfoSection } from "@/components/mobility/AcademicInfoSection";
 import { MobilityDetailsSection } from "@/components/mobility/MobilityDetailsSection";
 import { CourseHomologationSection } from "@/components/mobility/CourseHomologationSection";
 import { DocumentUploadSection } from "@/components/mobility/DocumentUploadSection";
+import Header from "@/components/common/Header";
+import Footer from "@/components/common/Footer";
 
 export default function MobilityApplication() {
   const { universityId } = useParams();
@@ -285,8 +286,10 @@ export default function MobilityApplication() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
+      <Header showLogout={true} />
+      
+      <div className="max-w-4xl mx-auto px-4 py-8 flex-1">
         <Card className="mb-8">
           <CardHeader>
             <CardTitle className="text-2xl text-center">
@@ -351,6 +354,8 @@ export default function MobilityApplication() {
           </Card>
         </form>
       </div>
+      
+      <Footer />
     </div>
   );
 }

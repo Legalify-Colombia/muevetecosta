@@ -2,47 +2,28 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Globe, BookOpen, Users, GraduationCap, LogOut } from "lucide-react";
+import { BookOpen, Users, GraduationCap } from "lucide-react";
 import { MyApplications } from "@/components/student/MyApplications";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import Header from "@/components/common/Header";
+import Footer from "@/components/common/Footer";
 
 const StudentDashboard = () => {
-  const { signOut, profile } = useAuth();
-  const navigate = useNavigate();
+  const { profile } = useAuth();
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/");
-  };
+  const navigationLinks = [
+    { label: "Universidades", href: "/universities" }
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center space-x-2">
-              <Globe className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">MobiCaribe</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">
-                Estudiante: {profile?.full_name}
-              </span>
-              <Link to="/universities" className="text-gray-600 hover:text-blue-600">
-                Universidades
-              </Link>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Cerrar Sesión
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
+      <Header 
+        showLogout={true}
+        userInfo={`Estudiante: ${profile?.full_name}`}
+        navigationLinks={navigationLinks}
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -113,6 +94,8 @@ const StudentDashboard = () => {
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 };

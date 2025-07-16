@@ -3,29 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Users, Globe, Award } from "lucide-react";
 import { Link } from "react-router-dom";
+import Header from "@/components/common/Header";
+import Footer from "@/components/common/Footer";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center space-x-2">
-              <Globe className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">MobiCaribe</span>
-            </div>
-            <div className="flex space-x-4">
-              <Link to="/login">
-                <Button variant="outline">Iniciar Sesión</Button>
-              </Link>
-              <Link to="/register">
-                <Button>Registrarme</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
+      <Header showAuthButtons={true} />
 
       {/* Hero Section */}
       <section className="relative py-20 px-4 sm:px-6 lg:px-8">
@@ -137,20 +121,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <Globe className="h-6 w-6" />
-              <span className="text-lg font-semibold">MobiCaribe</span>
-            </div>
-            <p className="text-sm text-gray-400">
-              © 2024 MobiCaribe. Facilitando la movilidad estudiantil en el Caribe Colombiano.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
