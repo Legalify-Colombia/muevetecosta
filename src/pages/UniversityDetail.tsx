@@ -110,14 +110,16 @@ const universityData = {
       }
     ]
   }
-};
+} as const;
 
 const UniversityDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
 
-  const university = universityData[id as keyof typeof universityData];
+  // Convert string id to number and check if it exists in our data
+  const universityId = Number(id);
+  const university = universityData[universityId as keyof typeof universityData];
 
   if (!university) {
     return (
