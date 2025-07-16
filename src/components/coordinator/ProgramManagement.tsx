@@ -8,10 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { BookOpen, Plus, Edit, Trash2, GraduationCap } from "lucide-react";
+import { BookOpen, Plus, Edit, Trash2, GraduationCap, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { CourseManagement } from "./CourseManagement";
 
 export const ProgramManagement = () => {
   const { user } = useAuth();
@@ -19,8 +20,10 @@ export const ProgramManagement = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<any>(null);
+  const [selectedProgram, setSelectedProgram] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: "",
+    code: "",
     description: "",
     duration_semesters: 10,
   });
@@ -67,7 +70,9 @@ export const ProgramManagement = () => {
       const { error } = await supabase
         .from('academic_programs')
         .insert({
-          ...data,
+          name: data.name,
+          description: data.description,
+          duration_semesters: data.duration_semesters,
           university_id: myUniversity.id
         });
       
@@ -95,7 +100,11 @@ export const ProgramManagement = () => {
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
       const { error } = await supabase
         .from('academic_programs')
-        .update(data)
+        .update({
+          name: data.name,
+          description: data.description,
+          duration_semesters: data.duration_semesters,
+        })
         .eq('id', id);
       
       if (error) throw error;
@@ -144,9 +153,35 @@ export const ProgramManagement = () => {
     }
   });
 
+  const deleteProgramMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('academic_programs')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['university-programs'] });
+      toast({
+        title: "Programa eliminado",
+        description: "El programa académico se ha eliminado correctamente.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar el programa académico.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const resetForm = () => {
     setFormData({
       name: "",
+      code: "",
       description: "",
       duration_semesters: 10,
     });
@@ -156,6 +191,7 @@ export const ProgramManagement = () => {
     setEditingProgram(program);
     setFormData({
       name: program.name,
+      code: program.code || "",
       description: program.description || "",
       duration_semesters: program.duration_semesters || 10,
     });
@@ -173,6 +209,30 @@ export const ProgramManagement = () => {
   const handleToggleStatus = (id: string, currentStatus: boolean) => {
     toggleProgramStatusMutation.mutate({ id, isActive: !currentStatus });
   };
+
+  const handleDelete = (id: string) => {
+    if (confirm("¿Está seguro de que desea eliminar este programa? Esta acción también eliminará todos los cursos asociados.")) {
+      deleteProgramMutation.mutate(id);
+    }
+  };
+
+  const handleManageCourses = (program: any) => {
+    setSelectedProgram(program);
+  };
+
+  const handleBackToPrograms = () => {
+    setSelectedProgram(null);
+  };
+
+  // If managing courses for a specific program, show CourseManagement component
+  if (selectedProgram) {
+    return (
+      <CourseManagement 
+        program={selectedProgram} 
+        onBack={handleBackToPrograms}
+      />
+    );
+  }
 
   return (
     <Card>
@@ -205,12 +265,21 @@ export const ProgramManagement = () => {
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="name">Nombre del Programa</Label>
+                  <Label htmlFor="name">Nombre del Programa *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Ej. Ingeniería de Sistemas"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="code">Código del Programa</Label>
+                  <Input
+                    id="code"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    placeholder="Ej. IS2024"
                   />
                 </div>
                 <div>
@@ -272,6 +341,14 @@ export const ProgramManagement = () => {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => handleManageCourses(program)}
+                    >
+                      <Settings className="h-4 w-4 mr-1" />
+                      Gestionar Cursos
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => handleEdit(program)}
                     >
                       <Edit className="h-4 w-4" />
@@ -282,6 +359,13 @@ export const ProgramManagement = () => {
                       onClick={() => handleToggleStatus(program.id, program.is_active)}
                     >
                       {program.is_active ? "Desactivar" : "Activar"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(program.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
