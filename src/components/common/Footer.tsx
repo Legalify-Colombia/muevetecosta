@@ -1,21 +1,46 @@
 
+import { Link } from "react-router-dom";
+
 const Footer = () => {
   return (
-    <footer className="bg-white text-gray-700 py-12 px-4 sm:px-6 lg:px-8 mt-auto border-t">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center space-x-3 mb-4 md:mb-0">
+    <footer className="bg-white border-t py-8 mt-auto">
+      <div className="container mx-auto px-4">
+        <div className="grid md:grid-cols-3 gap-8 items-center">
+          {/* Logo y descripción */}
+          <div className="flex flex-col items-center md:items-start">
             <img 
               src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
-              alt="Muévete por la Costa" 
-              className="h-8 w-auto"
+              alt="RCI Nodo Norte" 
+              className="h-12 w-auto mb-2"
             />
-          </div>
-          <div className="text-center md:text-right">
-            <p className="text-sm text-gray-600 mb-1">
-              Derechos reservados RCI Nodo Norte
+            <p className="text-gray-600 text-sm text-center md:text-left">
+              Plataforma de movilidad estudiantil
             </p>
-            <p className="text-sm text-gray-600">
+          </div>
+
+          {/* Enlaces importantes */}
+          <div className="flex flex-col items-center space-y-2">
+            <h4 className="font-semibold text-gray-900 mb-2">Enlaces importantes</h4>
+            <Link 
+              to="/terms" 
+              className="text-gray-600 hover:text-blue-600 transition-colors text-sm"
+            >
+              Términos y Condiciones
+            </Link>
+            <Link 
+              to="/universities" 
+              className="text-gray-600 hover:text-blue-600 transition-colors text-sm"
+            >
+              Universidades
+            </Link>
+          </div>
+
+          {/* Información de derechos */}
+          <div className="text-center md:text-right">
+            <p className="text-gray-600 text-sm mb-1">
+              © 2024 Derechos reservados RCI Nodo Norte
+            </p>
+            <p className="text-gray-500 text-xs">
               Creado por Legalify Colombia
             </p>
           </div>

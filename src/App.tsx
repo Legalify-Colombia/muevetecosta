@@ -17,6 +17,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Universities from "./pages/Universities";
 import UniversityDetail from "./pages/UniversityDetail";
 import MobilityApplication from "./pages/MobilityApplication";
+import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/universities" element={<Universities />} />
               <Route path="/universities/:id" element={<UniversityDetail />} />
+              <Route path="/terms" element={<TermsAndConditions />} />
               
               {/* Protected Routes */}
               <Route path="/dashboard/student" element={

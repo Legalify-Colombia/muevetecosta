@@ -2,239 +2,195 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, FileText, GraduationCap, Calendar, Plus, Edit, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { BookOpen, Save } from "lucide-react";
 
-export const ContentManagement = () => {
-  const [newDocumentType, setNewDocumentType] = useState("");
-  const [newProgram, setNewProgram] = useState("");
+const ContentManagement = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
 
-  // Mock data - estos datos vendrían de la base de datos
-  const documentTypes = [
-    { id: 'cc', name: 'Cédula de Ciudadanía', active: true },
-    { id: 'ti', name: 'Tarjeta de Identidad', active: true },
-    { id: 'passport', name: 'Pasaporte', active: true },
-    { id: 'ce', name: 'Cédula de Extranjería', active: true },
-  ];
+  const { data: termsData, isLoading } = useQuery({
+    queryKey: ['terms-content-admin'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('terms_content')
+        .select('*')
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      setTitle(data.title);
+      setContent(data.content);
+    }
+  });
 
-  const basePrograms = [
-    { id: 1, name: 'Ingeniería de Sistemas', active: true },
-    { id: 2, name: 'Administración de Empresas', active: true },
-    { id: 3, name: 'Derecho', active: true },
-    { id: 4, name: 'Medicina', active: true },
-    { id: 5, name: 'Psicología', active: true },
-  ];
+  const updateTermsMutation = useMutation({
+    mutationFn: async ({ title, content }: { title: string; content: string }) => {
+      const { error } = await supabase
+        .from('terms_content')
+        .update({ title, content })
+        .eq('id', termsData?.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Términos actualizados",
+        description: "Los términos y condiciones se han actualizado correctamente."
+      });
+      queryClient.invalidateQueries({ queryKey: ['terms-content-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['terms-content'] });
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "No se pudieron actualizar los términos y condiciones.",
+        variant: "destructive"
+      });
+      console.error("Error updating terms:", error);
+    }
+  });
 
-  const semesters = [
-    { id: 1, name: 'Primer Semestre', active: true },
-    { id: 2, name: 'Segundo Semestre', active: true },
-    { id: 3, name: 'Tercer Semestre', active: true },
-    { id: 4, name: 'Cuarto Semestre', active: true },
-    { id: 5, name: 'Quinto Semestre', active: true },
-    { id: 6, name: 'Sexto Semestre', active: true },
-    { id: 7, name: 'Séptimo Semestre', active: true },
-    { id: 8, name: 'Octavo Semestre', active: true },
-    { id: 9, name: 'Noveno Semestre', active: true },
-    { id: 10, name: 'Décimo Semestre', active: true },
-  ];
+  const handleSave = () => {
+    if (!title.trim() || !content.trim()) {
+      toast({
+        title: "Error",
+        description: "El título y contenido son obligatorios.",
+        variant: "destructive"
+      });
+      return;
+    }
+    updateTermsMutation.mutate({ title, content });
+  };
+
+  const handleCancel = () => {
+    if (termsData) {
+      setTitle(termsData.title);
+      setContent(termsData.content);
+    }
+    setIsEditing(false);
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Cargando contenido...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">Configuración de Contenidos</h2>
-        <p className="text-gray-600">Administra catálogos y configuración general del sistema</p>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <BookOpen className="h-5 w-5 mr-2" />
+            Gestión de Términos y Condiciones
+          </CardTitle>
+          <CardDescription>
+            Administra el contenido de la página de términos y condiciones
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="title">Título</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={!isEditing}
+                placeholder="Título de la página"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="content">Contenido (HTML)</Label>
+              <Textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                disabled={!isEditing}
+                rows={15}
+                placeholder="Contenido HTML de los términos y condiciones"
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Puedes usar HTML básico como &lt;h2&gt;, &lt;h3&gt;, &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, etc.
+              </p>
+            </div>
+          </div>
 
-      <Tabs defaultValue="documents" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="documents">Tipos de Documento</TabsTrigger>
-          <TabsTrigger value="programs">Programas Académicos</TabsTrigger>
-          <TabsTrigger value="semesters">Semestres</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="documents">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <FileText className="h-5 w-5 mr-2" />
-                Tipos de Documento de Identidad
-              </CardTitle>
-              <CardDescription>
-                Gestiona los tipos de documentos válidos para el registro
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Nuevo tipo de documento..."
-                  value={newDocumentType}
-                  onChange={(e) => setNewDocumentType(e.target.value)}
-                />
-                <Button onClick={() => setNewDocumentType("")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar
+          <div className="flex gap-2">
+            {!isEditing ? (
+              <Button onClick={() => setIsEditing(true)}>
+                Editar Contenido
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  onClick={handleSave}
+                  disabled={updateTermsMutation.isPending}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {updateTermsMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                 </Button>
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {documentTypes.map((docType) => (
-                    <TableRow key={docType.id}>
-                      <TableCell className="font-mono">{docType.id}</TableCell>
-                      <TableCell>{docType.name}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={docType.active ? "default" : "secondary"}
-                          className={docType.active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
-                        >
-                          {docType.active ? "Activo" : "Inactivo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="programs">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <GraduationCap className="h-5 w-5 mr-2" />
-                Programas Académicos Base
-              </CardTitle>
-              <CardDescription>
-                Catálogo general de programas que pueden asociarse a las universidades
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Nuevo programa académico..."
-                  value={newProgram}
-                  onChange={(e) => setNewProgram(e.target.value)}
-                />
-                <Button onClick={() => setNewProgram("")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancel}
+                  disabled={updateTermsMutation.isPending}
+                >
+                  Cancelar
                 </Button>
-              </div>
+              </>
+            )}
+          </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Nombre del Programa</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {basePrograms.map((program) => (
-                    <TableRow key={program.id}>
-                      <TableCell className="font-mono">#{program.id}</TableCell>
-                      <TableCell>{program.name}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={program.active ? "default" : "secondary"}
-                          className={program.active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
-                        >
-                          {program.active ? "Activo" : "Inactivo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          {termsData?.updated_at && (
+            <div className="text-sm text-gray-500 pt-4 border-t">
+              <p>
+                Última actualización: {new Date(termsData.updated_at).toLocaleDateString('es-ES')} a las {new Date(termsData.updated_at).toLocaleTimeString('es-ES')}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        <TabsContent value="semesters">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Calendar className="h-5 w-5 mr-2" />
-                Configuración de Semestres
-              </CardTitle>
-              <CardDescription>
-                Gestiona los semestres académicos disponibles
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {semesters.map((semester) => (
-                    <TableRow key={semester.id}>
-                      <TableCell className="font-mono">{semester.id}</TableCell>
-                      <TableCell>{semester.name}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={semester.active ? "default" : "secondary"}
-                          className={semester.active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}
-                        >
-                          {semester.active ? "Activo" : "Inactivo"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Card>
+        <CardHeader>
+          <CardTitle>Vista Previa</CardTitle>
+          <CardDescription>
+            Así se verá el contenido en la página pública
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-lg p-4 bg-gray-50">
+            <h1 className="text-2xl font-bold mb-4">{title}</h1>
+            <div 
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
+
+export default ContentManagement;
