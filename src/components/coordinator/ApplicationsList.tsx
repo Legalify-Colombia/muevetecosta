@@ -43,7 +43,7 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
         .from('mobility_applications')
         .select(`
           *,
-          profiles!mobility_applications_student_id_fkey(full_name, document_number),
+          profiles!mobility_applications_student_id_fkey(full_name, document_number, document_type),
           academic_programs(name)
         `)
         .eq('destination_university_id', myUniversity.id)
@@ -71,7 +71,6 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
     enabled: !!myUniversity?.id
   });
 
-  // Separate query to get student info for applications
   const { data: studentInfoMap = {} } = useQuery({
     queryKey: ['student-info-map', applications.map(app => app.student_id)],
     queryFn: async () => {
