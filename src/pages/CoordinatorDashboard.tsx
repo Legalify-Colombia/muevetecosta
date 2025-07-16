@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Globe, Users, Building, BookOpen, FileText, Settings, LogOut, GraduationCap, Bell } from "lucide-react";
+import { Users, Building, BookOpen, FileText, LogOut, GraduationCap, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -112,9 +112,12 @@ const CoordinatorDashboard = () => {
         <header className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16 items-center">
-              <div className="flex items-center space-x-2">
-                <Globe className="h-8 w-8 text-blue-600" />
-                <span className="text-xl font-bold text-gray-900">MobiCaribe</span>
+              <div className="flex items-center space-x-3">
+                <img 
+                  src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+                  alt="Muévete por la Costa" 
+                  className="h-8 w-auto"
+                />
               </div>
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600">
@@ -145,9 +148,12 @@ const CoordinatorDashboard = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center space-x-2">
-              <Globe className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">MobiCaribe</span>
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+                alt="Muévete por la Costa" 
+                className="h-8 w-auto"
+              />
             </div>
             <div className="flex items-center space-x-4">
               {stats.unreadNotifications > 0 && (

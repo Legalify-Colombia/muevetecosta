@@ -1,7 +1,7 @@
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-900 text-gray-300 py-12 px-4 sm:px-6 lg:px-8 mt-auto">
+    <footer className="bg-white text-gray-700 py-12 px-4 sm:px-6 lg:px-8 mt-auto border-t">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center space-x-3 mb-4 md:mb-0">
@@ -12,10 +12,10 @@ const Footer = () => {
             />
           </div>
           <div className="text-center md:text-right">
-            <p className="text-sm text-gray-400 mb-1">
+            <p className="text-sm text-gray-600 mb-1">
               Derechos reservados RCI Nodo Norte
             </p>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-600">
               Creado por Legalify Colombia
             </p>
           </div>

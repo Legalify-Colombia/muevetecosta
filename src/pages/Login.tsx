@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Globe } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -74,9 +74,12 @@ const Login = () => {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700">
-            <Globe className="h-8 w-8" />
-            <span className="text-xl font-bold">MobiCaribe</span>
+          <Link to="/" className="inline-flex items-center space-x-2">
+            <img 
+              src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+              alt="Muévete por la Costa" 
+              className="h-12 w-auto mx-auto"
+            />
           </Link>
         </div>
 
