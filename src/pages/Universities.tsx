@@ -218,7 +218,7 @@ const Universities = () => {
                     <Users className="h-4 w-4 mr-1" />
                     Universidad {university.coordinator_id ? 'con coordinador asignado' : 'disponible'}
                   </div>
-                  <Link to={`/university/${university.id}`}>
+                  <Link to={`/universities/${university.id}`}>
                     <Button size="sm">
                       Ver Detalles
                     </Button>
