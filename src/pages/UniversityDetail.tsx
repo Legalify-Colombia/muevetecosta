@@ -1,125 +1,145 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Globe, ArrowLeft, MapPin, Phone, Mail, BookOpen, Users, FileText } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Globe, ArrowLeft, MapPin, Phone, Mail, BookOpen, Users, FileText, ExternalLink, Download } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data (in a real app, this would come from an API)
-const universityData = {
-  1: {
-    id: 1,
-    name: "Universidad del Norte",
-    city: "Barranquilla",
-    coordinator: "Dr. María González",
-    email: "maria.gonzalez@uninorte.edu.co",
-    phone: "+57 5 350 9509",
-    address: "Km 5 Vía Puerto Colombia",
-    description: "Universidad privada líder en el Caribe colombiano con más de 50 años de experiencia académica. Comprometida con la excelencia educativa y la formación integral de profesionales competitivos a nivel nacional e internacional.",
-    programs: [
-      {
-        id: 1,
-        name: "Ingeniería de Sistemas",
-        duration: "10 semestres",
-        courses: [
-          { name: "Programación I", code: "IS101" },
-          { name: "Estructura de Datos", code: "IS201" },
-          { name: "Base de Datos", code: "IS301" },
-          { name: "Ingeniería de Software", code: "IS401" }
-        ]
-      },
-      {
-        id: 2,
-        name: "Administración de Empresas",
-        duration: "9 semestres",
-        courses: [
-          { name: "Fundamentos de Administración", code: "AE101" },
-          { name: "Marketing", code: "AE201" },
-          { name: "Finanzas Corporativas", code: "AE301" },
-          { name: "Gestión de Talento Humano", code: "AE401" }
-        ]
-      },
-      {
-        id: 3,
-        name: "Psicología",
-        duration: "10 semestres",
-        courses: [
-          { name: "Psicología General", code: "PS101" },
-          { name: "Psicología Cognitiva", code: "PS201" },
-          { name: "Psicología Social", code: "PS301" },
-          { name: "Psicología Clínica", code: "PS401" }
-        ]
-      }
-    ]
-  },
-  2: {
-    id: 2,
-    name: "Universidad del Atlántico",
-    city: "Barranquilla",
-    coordinator: "Dra. Carmen Pérez",
-    email: "carmen.perez@uniatlantico.edu.co",
-    phone: "+57 5 319 8500",
-    address: "Carrera 30 Número 8- 49 Puerto Colombia",
-    description: "Universidad pública del departamento del Atlántico comprometida con la excelencia académica y el desarrollo regional del Caribe colombiano.",
-    programs: [
-      {
-        id: 1,
-        name: "Medicina",
-        duration: "12 semestres",
-        courses: [
-          { name: "Anatomía", code: "MD101" },
-          { name: "Fisiología", code: "MD201" },
-          { name: "Patología", code: "MD301" },
-          { name: "Medicina Interna", code: "MD401" }
-        ]
-      },
-      {
-        id: 2,
-        name: "Ingeniería Civil",
-        duration: "10 semestres",
-        courses: [
-          { name: "Cálculo", code: "IC101" },
-          { name: "Estática", code: "IC201" },
-          { name: "Materiales", code: "IC301" },
-          { name: "Estructuras", code: "IC401" }
-        ]
-      }
-    ]
-  },
-  3: {
-    id: 3,
-    name: "Universidad de Cartagena",
-    city: "Cartagena",
-    coordinator: "Dr. Roberto Silva",
-    email: "roberto.silva@unicartagena.edu.co",
-    phone: "+57 5 669 8400",
-    address: "Campus de Zaragocilla",
-    description: "Institución de educación superior pública con sede en la ciudad amurallada de Cartagena, formando profesionales íntegros desde 1827.",
-    programs: [
-      {
-        id: 1,
-        name: "Arquitectura",
-        duration: "10 semestres",
-        courses: [
-          { name: "Dibujo Arquitectónico", code: "AR101" },
-          { name: "Historia de la Arquitectura", code: "AR201" },
-          { name: "Diseño Arquitectónico", code: "AR301" },
-          { name: "Urbanismo", code: "AR401" }
-        ]
-      }
-    ]
-  }
-} as const;
+interface University {
+  id: string;
+  name: string;
+  description: string;
+  city: string;
+  address: string;
+  phone: string;
+  email: string;
+  website: string;
+  logo_url: string;
+  coordinator_id: string;
+  academic_programs: AcademicProgram[];
+  profiles?: {
+    full_name: string;
+    phone: string;
+  };
+}
+
+interface AcademicProgram {
+  id: string;
+  name: string;
+  description: string;
+  duration_semesters: number;
+  courses: Course[];
+}
+
+interface Course {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  credits: number;
+  semester: number;
+  syllabus_url: string;
+}
 
 const UniversityDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [selectedProgram, setSelectedProgram] = useState<number | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [university, setUniversity] = useState<University | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
+  const [selectedSemester, setSelectedSemester] = useState<number>(1);
 
-  // Convert string id to number and check if it exists in our data
-  const universityId = Number(id);
-  const university = universityData[universityId as keyof typeof universityData];
+  useEffect(() => {
+    const fetchUniversity = async () => {
+      if (!id) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('universities')
+          .select(`
+            *,
+            profiles!universities_coordinator_id_fkey (
+              full_name,
+              phone
+            ),
+            academic_programs (
+              id,
+              name,
+              description,
+              duration_semesters,
+              courses (
+                id,
+                name,
+                code,
+                description,
+                credits,
+                semester,
+                syllabus_url
+              )
+            )
+          `)
+          .eq('id', id)
+          .eq('is_active', true)
+          .single();
+
+        if (error) throw error;
+        setUniversity(data);
+      } catch (error) {
+        console.error('Error fetching university:', error);
+        toast({
+          title: "Error",
+          description: "No se pudo cargar la información de la universidad",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUniversity();
+  }, [id, toast]);
+
+  const handleApply = () => {
+    if (!user) {
+      // Not logged in - redirect to registration
+      toast({
+        title: "Registro requerido",
+        description: "Para postularte, primero debes registrarte o iniciar sesión",
+      });
+      navigate('/register');
+      return;
+    }
+
+    // User is logged in - redirect to application form
+    navigate(`/apply/${university?.id}`);
+  };
+
+  const getCoursesForSemester = (program: AcademicProgram, semester: number) => {
+    return program.courses.filter(course => course.semester === semester);
+  };
+
+  const getSemesterNumbers = (program: AcademicProgram) => {
+    const semesters = [...new Set(program.courses.map(course => course.semester))].sort();
+    return semesters;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando información de la universidad...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!university) {
     return (
@@ -128,10 +148,10 @@ const UniversityDetail = () => {
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold mb-2">Universidad no encontrada</h2>
             <p className="text-gray-600 mb-4">
-              La universidad que buscas no existe o ha sido removida.
+              La universidad que buscas no existe o no está disponible.
             </p>
-            <Link to="/dashboard/student">
-              <Button>Volver al Dashboard</Button>
+            <Link to="/universities">
+              <Button>Ver todas las universidades</Button>
             </Link>
           </CardContent>
         </Card>
@@ -139,24 +159,38 @@ const UniversityDetail = () => {
     );
   }
 
-  const handleApply = () => {
-    navigate(`/apply/${university.id}`);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <Link to="/dashboard/student" className="flex items-center space-x-2 text-blue-600 hover:text-blue-700">
-              <ArrowLeft className="h-5 w-5" />
-              <Globe className="h-8 w-8" />
-              <span className="text-xl font-bold">MobiCaribe</span>
-            </Link>
-            <Button onClick={handleApply}>
-              Postular Movilidad
-            </Button>
+            <div className="flex items-center space-x-4">
+              <Link to="/universities" className="flex items-center text-gray-600 hover:text-gray-900">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver a universidades
+              </Link>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Globe className="h-8 w-8 text-blue-600" />
+              <span className="text-xl font-bold text-gray-900">MobiCaribe</span>
+            </div>
+            <div className="flex items-center space-x-4">
+              {!user ? (
+                <>
+                  <Link to="/login">
+                    <Button variant="outline">Iniciar Sesión</Button>
+                  </Link>
+                  <Link to="/register">
+                    <Button>Registrarse</Button>
+                  </Link>
+                </>
+              ) : (
+                <Link to="/dashboard/student">
+                  <Button variant="outline">Mi Dashboard</Button>
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -164,83 +198,154 @@ const UniversityDetail = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* University Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {university.name}
-              </h1>
-              <div className="flex items-center text-lg text-gray-600">
-                <MapPin className="h-5 w-5 mr-2" />
-                {university.city}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-6">
+              {university.logo_url && (
+                <img 
+                  src={university.logo_url} 
+                  alt={`Logo de ${university.name}`}
+                  className="w-20 h-20 object-contain"
+                />
+              )}
+              <div>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                  {university.name}
+                </h1>
+                <div className="flex items-center text-lg text-gray-600">
+                  <MapPin className="h-5 w-5 mr-2" />
+                  {university.city}
+                </div>
               </div>
             </div>
-            <Badge variant="secondary" className="text-lg px-3 py-1">
-              {university.programs.length} programas disponibles
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              {university.academic_programs?.length || 0} programas disponibles
             </Badge>
           </div>
-          <p className="text-lg text-gray-700 leading-relaxed">
-            {university.description}
-          </p>
+          
+          {university.description && (
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <h2 className="text-xl font-semibold mb-3">Acerca de la Universidad</h2>
+              <p className="text-gray-700 leading-relaxed text-lg">
+                {university.description}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Programs Section */}
-          <div className="lg:col-span-2">
+          {/* Main Content - Academic Programs */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Academic Programs Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BookOpen className="h-5 w-5 mr-2" />
-                  Programas Académicos
+                <CardTitle className="flex items-center text-2xl">
+                  <BookOpen className="h-6 w-6 mr-3" />
+                  Programas Académicos para Movilidad
                 </CardTitle>
-                <CardDescription>
-                  Explora los programas disponibles para movilidad estudiantil
+                <CardDescription className="text-base">
+                  Explora nuestra oferta educativa y los cursos disponibles por programa
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {university.programs.map((program) => (
-                    <Card 
-                      key={program.id} 
-                      className={`border cursor-pointer transition-all ${
-                        selectedProgram === program.id ? 'ring-2 ring-blue-500 border-blue-500' : 'hover:shadow-md'
-                      }`}
-                      onClick={() => setSelectedProgram(selectedProgram === program.id ? null : program.id)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-lg text-gray-900">
-                            {program.name}
-                          </h3>
-                          <Badge variant="outline">
-                            {program.duration}
-                          </Badge>
-                        </div>
-                        
-                        {selectedProgram === program.id && (
-                          <div className="mt-4 pt-4 border-t">
-                            <h4 className="font-medium text-gray-900 mb-3">Plan de Cursos:</h4>
-                            <div className="grid md:grid-cols-2 gap-2">
-                              {program.courses.map((course, index) => (
-                                <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                  <span className="text-sm font-medium">{course.name}</span>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {course.code}
-                                  </Badge>
-                                </div>
-                              ))}
-                            </div>
+                {university.academic_programs && university.academic_programs.length > 0 ? (
+                  <div className="space-y-4">
+                    {university.academic_programs.map((program) => (
+                      <Card 
+                        key={program.id} 
+                        className={`border cursor-pointer transition-all ${
+                          selectedProgram === program.id ? 'ring-2 ring-blue-500 border-blue-500' : 'hover:shadow-md'
+                        }`}
+                        onClick={() => setSelectedProgram(selectedProgram === program.id ? null : program.id)}
+                      >
+                        <CardContent className="p-6">
+                          <div className="flex justify-between items-start mb-3">
+                            <h3 className="font-semibold text-xl text-gray-900">
+                              {program.name}
+                            </h3>
+                            <Badge variant="outline" className="text-sm">
+                              {program.duration_semesters} semestres
+                            </Badge>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                          
+                          {program.description && (
+                            <p className="text-gray-600 mb-4">{program.description}</p>
+                          )}
+                          
+                          {selectedProgram === program.id && program.courses && program.courses.length > 0 && (
+                            <div className="mt-6 pt-6 border-t">
+                              <h4 className="font-medium text-gray-900 mb-4 text-lg">Cursos por Semestre:</h4>
+                              
+                              <Tabs value={selectedSemester.toString()} onValueChange={(value) => setSelectedSemester(parseInt(value))}>
+                                <TabsList className="grid w-full grid-cols-5 mb-4">
+                                  {getSemesterNumbers(program).map((semester) => (
+                                    <TabsTrigger key={semester} value={semester.toString()}>
+                                      Sem {semester}
+                                    </TabsTrigger>
+                                  ))}
+                                </TabsList>
+                                
+                                {getSemesterNumbers(program).map((semester) => (
+                                  <TabsContent key={semester} value={semester.toString()}>
+                                    <div className="space-y-3">
+                                      {getCoursesForSemester(program, semester).map((course) => (
+                                        <div key={course.id} className="bg-gray-50 rounded-lg p-4">
+                                          <div className="flex justify-between items-start mb-2">
+                                            <div className="flex-1">
+                                              <h5 className="font-medium text-gray-900">{course.name}</h5>
+                                              {course.code && (
+                                                <p className="text-sm text-gray-600">Código: {course.code}</p>
+                                              )}
+                                            </div>
+                                            <div className="text-right">
+                                              {course.credits && (
+                                                <Badge variant="secondary" className="text-xs">
+                                                  {course.credits} créditos
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </div>
+                                          
+                                          {course.description && (
+                                            <p className="text-sm text-gray-600 mb-3">{course.description}</p>
+                                          )}
+                                          
+                                          {course.syllabus_url && (
+                                            <div className="flex justify-end">
+                                              <a 
+                                                href={course.syllabus_url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm"
+                                              >
+                                                <Download className="h-4 w-4 mr-1" />
+                                                Ver Sílabo
+                                              </a>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </TabsContent>
+                                ))}
+                              </Tabs>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">
+                    No hay programas académicos disponibles en este momento.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Contact Information */}
+          {/* Sidebar */}
           <div className="space-y-6">
+            {/* Contact Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -250,45 +355,70 @@ const UniversityDetail = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="font-semibold text-gray-900 mb-2">
-                    {university.coordinator}
+                  <p className="font-semibold text-gray-900 mb-3">
+                    {university.profiles?.full_name || 'Coordinador asignado'}
                   </p>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex items-center">
-                      <Mail className="h-4 w-4 mr-2 text-blue-600" />
-                      <a href={`mailto:${university.email}`} className="hover:text-blue-600">
-                        {university.email}
-                      </a>
-                    </div>
-                    <div className="flex items-center">
-                      <Phone className="h-4 w-4 mr-2 text-blue-600" />
-                      <a href={`tel:${university.phone}`} className="hover:text-blue-600">
-                        {university.phone}
-                      </a>
-                    </div>
-                    <div className="flex items-start">
-                      <MapPin className="h-4 w-4 mr-2 text-blue-600 mt-0.5" />
-                      <span>{university.address}</span>
-                    </div>
+                  <div className="space-y-3 text-sm text-gray-600">
+                    {university.email && (
+                      <div className="flex items-center">
+                        <Mail className="h-4 w-4 mr-2 text-blue-600" />
+                        <a href={`mailto:${university.email}`} className="hover:text-blue-600">
+                          {university.email}
+                        </a>
+                      </div>
+                    )}
+                    {(university.phone || university.profiles?.phone) && (
+                      <div className="flex items-center">
+                        <Phone className="h-4 w-4 mr-2 text-blue-600" />
+                        <a href={`tel:${university.phone || university.profiles?.phone}`} className="hover:text-blue-600">
+                          {university.phone || university.profiles?.phone}
+                        </a>
+                      </div>
+                    )}
+                    {university.address && (
+                      <div className="flex items-start">
+                        <MapPin className="h-4 w-4 mr-2 text-blue-600 mt-0.5" />
+                        <span>{university.address}</span>
+                      </div>
+                    )}
+                    {university.website && (
+                      <div className="flex items-center">
+                        <ExternalLink className="h-4 w-4 mr-2 text-blue-600" />
+                        <a 
+                          href={university.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="hover:text-blue-600"
+                        >
+                          Sitio web oficial
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            {/* Application CTA */}
+            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
               <CardHeader>
-                <CardTitle className="flex items-center">
+                <CardTitle className="flex items-center text-blue-900">
                   <FileText className="h-5 w-5 mr-2" />
-                  Siguiente Paso
+                  ¿Interesado en esta universidad?
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  ¿Interesado en esta universidad? Inicia tu proceso de postulación completando el formulario de movilidad.
+                <p className="text-sm text-blue-800 mb-4">
+                  Inicia tu proceso de postulación para realizar movilidad estudiantil en {university.name}.
                 </p>
-                <Button onClick={handleApply} className="w-full">
-                  Postular Movilidad
+                <Button onClick={handleApply} className="w-full" size="lg">
+                  {user ? 'Postularme a esta Universidad' : 'Registrarme y Postular'}
                 </Button>
+                {!user && (
+                  <p className="text-xs text-blue-700 mt-2 text-center">
+                    Si ya tienes cuenta, <Link to="/login" className="underline hover:text-blue-800">inicia sesión</Link>
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
