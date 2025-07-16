@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { Building, Plus, Edit, Eye, ToggleLeft, ToggleRight } from "lucide-react";
+import { Building, Plus, Edit, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const universitySchema = z.object({
@@ -60,13 +59,19 @@ export const UniversityManagement = () => {
   // Create university mutation
   const createUniversityMutation = useMutation({
     mutationFn: async (data: UniversityFormData) => {
+      const universityData = {
+        name: data.name,
+        description: data.description || null,
+        address: data.address || null,
+        city: data.city,
+        phone: data.phone || null,
+        email: data.email || null,
+        website: data.website || null,
+      };
+
       const { data: university, error } = await supabase
         .from('universities')
-        .insert([{
-          ...data,
-          email: data.email || null,
-          website: data.website || null,
-        }])
+        .insert([universityData])
         .select()
         .single();
 
@@ -94,13 +99,19 @@ export const UniversityManagement = () => {
   // Update university mutation
   const updateUniversityMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string, data: UniversityFormData }) => {
+      const universityData = {
+        name: data.name,
+        description: data.description || null,
+        address: data.address || null,
+        city: data.city,
+        phone: data.phone || null,
+        email: data.email || null,
+        website: data.website || null,
+      };
+
       const { data: university, error } = await supabase
         .from('universities')
-        .update({
-          ...data,
-          email: data.email || null,
-          website: data.website || null,
-        })
+        .update(universityData)
         .eq('id', id)
         .select()
         .single();

@@ -49,7 +49,9 @@ export const UserManagement = () => {
         `);
 
       if (selectedRole !== 'all') {
-        query = query.eq('role', selectedRole);
+        // Cast selectedRole to the proper type
+        const roleFilter = selectedRole as 'admin' | 'coordinator' | 'professor' | 'student';
+        query = query.eq('role', roleFilter);
       }
 
       if (searchTerm) {
