@@ -178,7 +178,7 @@ const ContentManagement = () => {
   };
 
   const handleDelete = (pageId: string) => {
-    if (confirm("¿Estás seguro de que quieres eliminar esta página?")) {
+    if (window.confirm("¿Estás seguro de que quieres eliminar esta página?")) {
       deletePageMutation.mutate(pageId);
     }
   };
