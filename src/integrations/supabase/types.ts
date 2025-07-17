@@ -875,6 +875,56 @@ export type Database = {
           },
         ]
       }
+      university_required_documents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          document_title: string
+          document_type: string
+          id: string
+          is_mandatory: boolean | null
+          mobility_type: string | null
+          template_file_name: string | null
+          template_file_url: string | null
+          university_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          document_title: string
+          document_type: string
+          id?: string
+          is_mandatory?: boolean | null
+          mobility_type?: string | null
+          template_file_name?: string | null
+          template_file_url?: string | null
+          university_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          document_title?: string
+          document_type?: string
+          id?: string
+          is_mandatory?: boolean | null
+          mobility_type?: string | null
+          template_file_name?: string | null
+          template_file_url?: string | null
+          university_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "university_required_documents_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -10,7 +10,8 @@ import {
   GraduationCap,
   FlaskConical,
   LogOut,
-  Plane
+  Plane,
+  FileText
 } from 'lucide-react';
 import { ApplicationsList } from '@/components/coordinator/ApplicationsList';
 import { UniversityProfile } from '@/components/coordinator/UniversityProfile';
@@ -19,9 +20,11 @@ import { CourseManagement } from '@/components/coordinator/CourseManagement';
 import { ProjectManagement } from '@/components/coordinator/ProjectManagement';
 import { ApplicationDetail } from '@/components/coordinator/ApplicationDetail';
 import { ProfessorMobilityApplications } from '@/components/coordinator/ProfessorMobilityApplications';
+import { UniversityRequiredDocuments } from '@/components/coordinator/UniversityRequiredDocuments';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useUniversities } from '@/hooks/useUniversities';
 import Header from '@/components/common/Header';
 
 export default function CoordinatorDashboard() {
@@ -30,6 +33,9 @@ export default function CoordinatorDashboard() {
   const [activeTab, setActiveTab] = useState('applications');
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [selectedProgram, setSelectedProgram] = useState<any>(null);
+
+  const { data: universities = [] } = useUniversities();
+  const coordinatorUniversity = universities.find(u => u.coordinator_id === user?.id);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -92,7 +98,7 @@ export default function CoordinatorDashboard() {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="applications" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Estudiantes
@@ -100,6 +106,10 @@ export default function CoordinatorDashboard() {
             <TabsTrigger value="professor-mobility" className="flex items-center gap-2">
               <Plane className="h-4 w-4" />
               Profesores
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Documentos
             </TabsTrigger>
             <TabsTrigger value="programs" className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
@@ -125,6 +135,23 @@ export default function CoordinatorDashboard() {
 
           <TabsContent value="professor-mobility">
             <ProfessorMobilityApplications />
+          </TabsContent>
+
+          <TabsContent value="documents">
+            {coordinatorUniversity ? (
+              <UniversityRequiredDocuments universityId={coordinatorUniversity.id} />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Documentos Requeridos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    No se encontró la universidad asignada. Contacta al administrador para configurar tu universidad.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="programs">
