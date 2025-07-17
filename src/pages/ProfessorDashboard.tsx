@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FlaskConical, FileText, User, Search, FolderOpen, Plane } from 'lucide-react';
@@ -8,7 +7,7 @@ import MyProjects from '@/components/professor/MyProjects';
 import ProjectSearch from '@/components/professor/ProjectSearch';
 import ProjectCreation from '@/components/professor/ProjectCreation';
 import MobilityOpportunities from '@/components/professor/mobility/MobilityOpportunities';
-import MobilityApplications from '@/components/professor/mobility/MobilityApplications';
+import { MobilityApplications } from '@/components/professor/mobility/MobilityApplications';
 import Header from '@/components/common/Header';
 import { useAuth } from '@/hooks/useAuth';
 

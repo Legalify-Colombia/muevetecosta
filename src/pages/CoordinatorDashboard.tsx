@@ -10,6 +10,8 @@ import { ProfessorMobilityApplications } from '@/components/coordinator/Professo
 import { ProjectManagement } from '@/components/coordinator/ProjectManagement';
 import { UniversityRequiredDocuments } from '@/components/coordinator/UniversityRequiredDocuments';
 import { useAuth } from '@/hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   School, 
   GraduationCap, 
@@ -23,6 +25,28 @@ import {
 const CoordinatorDashboard = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Fetch coordinator's university
+  const { data: myUniversity } = useQuery({
+    queryKey: ['coordinator-university', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('universities')
+        .select('*')
+        .eq('coordinator_id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id
+  });
+
+  const handleViewApplication = (applicationId: string) => {
+    console.log('Viewing application:', applicationId);
+    // TODO: Implement application detail view
+  };
 
   return (
     <div className="container mx-auto p-6">
@@ -134,11 +158,15 @@ const CoordinatorDashboard = () => {
         </TabsContent>
 
         <TabsContent value="courses">
-          <CourseManagement />
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">
+              Selecciona un programa para gestionar sus cursos
+            </p>
+          </div>
         </TabsContent>
 
         <TabsContent value="students">
-          <ApplicationsList />
+          <ApplicationsList onViewApplication={handleViewApplication} />
         </TabsContent>
 
         <TabsContent value="professors">
@@ -150,7 +178,15 @@ const CoordinatorDashboard = () => {
         </TabsContent>
 
         <TabsContent value="documents">
-          <UniversityRequiredDocuments />
+          {myUniversity ? (
+            <UniversityRequiredDocuments universityId={myUniversity.id} />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                No se encontró universidad asignada
+              </p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

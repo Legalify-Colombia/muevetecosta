@@ -8,7 +8,7 @@ import { ReportsDashboard } from '@/components/admin/reports/ReportsDashboard';
 import { EmailTemplateManager } from '@/components/admin/EmailTemplateManager';
 import { EmailConfiguration } from '@/components/admin/EmailConfiguration';
 import { EmailHistory } from '@/components/admin/EmailHistory';
-import { ContentManagement } from '@/components/admin/ContentManagement';
+import ContentManagement from '@/components/admin/ContentManagement';
 import { ProfessorMobilityManagement } from '@/components/admin/ProfessorMobilityManagement';
 import { UniversityCoordinatorAssignment } from '@/components/admin/UniversityCoordinatorAssignment';
 import { 
@@ -122,7 +122,11 @@ const AdminDashboard = () => {
         </TabsContent>
 
         <TabsContent value="coordinators">
-          <UniversityCoordinatorAssignment />
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">
+              Función de asignación de coordinadores disponible en la gestión de universidades
+            </p>
+          </div>
         </TabsContent>
 
         <TabsContent value="mobility">
