@@ -380,6 +380,56 @@ export type Database = {
           },
         ]
       }
+      professor_info: {
+        Row: {
+          created_at: string | null
+          cv_url: string | null
+          expertise_areas: string[] | null
+          faculty_department: string | null
+          id: string
+          profile_photo_url: string | null
+          project_experience: string | null
+          relevant_publications: Json | null
+          research_interests: string | null
+          university: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cv_url?: string | null
+          expertise_areas?: string[] | null
+          faculty_department?: string | null
+          id: string
+          profile_photo_url?: string | null
+          project_experience?: string | null
+          relevant_publications?: Json | null
+          research_interests?: string | null
+          university: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cv_url?: string | null
+          expertise_areas?: string[] | null
+          faculty_department?: string | null
+          id?: string
+          profile_photo_url?: string | null
+          project_experience?: string | null
+          relevant_publications?: Json | null
+          research_interests?: string | null
+          university?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professor_info_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -412,6 +462,288 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      project_comments: {
+        Row: {
+          comment: string
+          created_at: string | null
+          id: string
+          professor_id: string | null
+          project_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          comment: string
+          created_at?: string | null
+          id?: string
+          professor_id?: string | null
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          comment?: string
+          created_at?: string | null
+          id?: string
+          professor_id?: string | null
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_comments_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "research_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_documents: {
+        Row: {
+          description: string | null
+          document_type: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          project_id: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          document_type?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          project_id?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          document_type?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          project_id?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "research_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_milestones: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          documents_urls: string[] | null
+          id: string
+          milestone_date: string
+          next_steps: string | null
+          professor_id: string | null
+          project_id: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          documents_urls?: string[] | null
+          id?: string
+          milestone_date: string
+          next_steps?: string | null
+          professor_id?: string | null
+          project_id?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          documents_urls?: string[] | null
+          id?: string
+          milestone_date?: string
+          next_steps?: string | null
+          professor_id?: string | null
+          project_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "research_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_participants: {
+        Row: {
+          id: string
+          joined_at: string | null
+          professor_id: string | null
+          project_id: string | null
+          role: string
+          status: string | null
+          university_id: string | null
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          professor_id?: string | null
+          project_id?: string | null
+          role: string
+          status?: string | null
+          university_id?: string | null
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          professor_id?: string | null
+          project_id?: string | null
+          role?: string
+          status?: string | null
+          university_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_participants_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_participants_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "research_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_participants_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_universities: {
+        Row: {
+          id: string
+          project_id: string | null
+          role: string | null
+          university_id: string | null
+        }
+        Insert: {
+          id?: string
+          project_id?: string | null
+          role?: string | null
+          university_id?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string | null
+          role?: string | null
+          university_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_universities_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "research_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_universities_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_projects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_public: boolean | null
+          lead_university_id: string | null
+          objectives: string | null
+          start_date: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_public?: boolean | null
+          lead_university_id?: string | null
+          objectives?: string | null
+          start_date?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_public?: boolean | null
+          lead_university_id?: string | null
+          objectives?: string | null
+          start_date?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_projects_lead_university_id_fkey"
+            columns: ["lead_university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_info: {
         Row: {

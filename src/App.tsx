@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,7 @@ import Register from "./pages/Register";
 import StudentDashboard from "./pages/StudentDashboard";
 import CoordinatorDashboard from "./pages/CoordinatorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import ProfessorDashboard from "./pages/ProfessorDashboard";
 import Universities from "./pages/Universities";
 import UniversityDetail from "./pages/UniversityDetail";
 import MobilityApplication from "./pages/MobilityApplication";
@@ -56,6 +58,11 @@ function App() {
               <Route path="/dashboard/admin" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard/professor" element={
+                <ProtectedRoute allowedRoles={['professor']}>
+                  <ProfessorDashboard />
                 </ProtectedRoute>
               } />
               
