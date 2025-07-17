@@ -37,11 +37,6 @@ export default function CoordinatorDashboard() {
   const { data: universities = [] } = useUniversities();
   const coordinatorUniversity = universities.find(u => u.coordinator_id === user?.id);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
-  };
-
   const handleViewApplication = (applicationId: string) => {
     setSelectedApplicationId(applicationId);
   };

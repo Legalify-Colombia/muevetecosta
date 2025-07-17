@@ -10,10 +10,12 @@ import ProjectCreation from '@/components/professor/ProjectCreation';
 import MobilityOpportunities from '@/components/professor/mobility/MobilityOpportunities';
 import MobilityApplications from '@/components/professor/mobility/MobilityApplications';
 import Header from '@/components/common/Header';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function ProfessorDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showProjectCreation, setShowProjectCreation] = useState(false);
+  const { profile } = useAuth();
 
   const handleCreateProject = () => {
     setShowProjectCreation(true);
@@ -29,7 +31,7 @@ export default function ProfessorDashboard() {
       <div className="min-h-screen bg-background">
         <Header 
           showLogout={true}
-          userInfo="Profesor"
+          userInfo={`Profesor: ${profile?.full_name}`}
         />
         <div className="container mx-auto px-4 py-6">
           <ProjectCreation onClose={handleCloseProjectCreation} />
@@ -42,7 +44,7 @@ export default function ProfessorDashboard() {
     <div className="min-h-screen bg-background">
       <Header 
         showLogout={true}
-        userInfo="Profesor"
+        userInfo={`Profesor: ${profile?.full_name}`}
       />
       
       <div className="border-b">
