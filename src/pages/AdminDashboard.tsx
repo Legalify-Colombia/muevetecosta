@@ -1,32 +1,16 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { 
-  Users, 
-  University, 
-  FileText, 
-  Settings,
-  FlaskConical,
-  LogOut
-} from 'lucide-react';
-import { UserManagement } from '@/components/admin/UserManagement';
-import { UniversityManagement } from '@/components/admin/UniversityManagement';
+import { Users, University, FileText, Settings, Plane } from 'lucide-react';
+import UserManagement from '@/components/admin/UserManagement';
+import UniversityManagement from '@/components/admin/UniversityManagement';
 import ContentManagement from '@/components/admin/ContentManagement';
-import { ProjectManagement } from '@/components/admin/ProjectManagement';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import ProjectManagement from '@/components/admin/ProjectManagement';
+import { ProfessorMobilityManagement } from '@/components/admin/ProfessorMobilityManagement';
 import Header from '@/components/common/Header';
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('users');
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -41,7 +25,7 @@ export default function AdminDashboard() {
             <div>
               <h1 className="text-2xl font-bold">Panel de Administración</h1>
               <p className="text-muted-foreground">
-                Gestiona usuarios, universidades, contenido y proyectos de investigación
+                Gestiona usuarios, universidades y contenido del sistema MobiCaribe
               </p>
             </div>
           </div>
@@ -60,16 +44,16 @@ export default function AdminDashboard() {
               Universidades
             </TabsTrigger>
             <TabsTrigger value="projects" className="flex items-center gap-2">
-              <FlaskConical className="h-4 w-4" />
+              <FileText className="h-4 w-4" />
               Proyectos
             </TabsTrigger>
-            <TabsTrigger value="content" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Contenido
+            <TabsTrigger value="mobility" className="flex items-center gap-2">
+              <Plane className="h-4 w-4" />
+              Movilidad Profesores
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
+            <TabsTrigger value="content" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              Configuración
+              Contenido
             </TabsTrigger>
           </TabsList>
 
@@ -85,21 +69,12 @@ export default function AdminDashboard() {
             <ProjectManagement />
           </TabsContent>
 
-          <TabsContent value="content">
-            <ContentManagement />
+          <TabsContent value="mobility">
+            <ProfessorMobilityManagement />
           </TabsContent>
 
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Configuración del Sistema</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Configuraciones avanzadas del sistema disponibles próximamente.
-                </p>
-              </CardContent>
-            </Card>
+          <TabsContent value="content">
+            <ContentManagement />
           </TabsContent>
         </Tabs>
       </div>

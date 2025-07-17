@@ -1,39 +1,47 @@
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { FlaskConical, Search, Filter, Plus, Calendar, Users, Eye } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useProjectPermissions } from '@/hooks/useProjectPermissions';
+import ProjectDetail from './ProjectDetail';
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { BookOpen, Calendar, Users, Eye, Plus } from "lucide-react";
-import ProjectDetail from "./ProjectDetail";
-
-const MyProjects = () => {
+export default function MyProjects() {
   const { user } = useAuth();
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const { canCreateProject } = useProjectPermissions();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [showCreateProject, setShowCreateProject] = useState(false);
 
-  // Obtener proyectos del profesor
   const { data: projects = [], isLoading } = useQuery({
-    queryKey: ['professor-projects', user?.id],
+    queryKey: ['my-projects', user?.id, statusFilter],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
-        .from('project_participants')
+      let query = supabase
+        .from('research_projects')
         .select(`
           *,
-          research_projects (
-            *,
-            project_universities (
-              universities (
-                name
-              )
-            )
+          project_participants!inner(*),
+          project_universities(
+            universities(name, city)
           )
         `)
-        .eq('professor_id', user.id)
-        .order('joined_at', { ascending: false });
+        .eq('project_participants.professor_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data || [];
@@ -41,50 +49,56 @@ const MyProjects = () => {
     enabled: !!user?.id
   });
 
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      'proposal': { label: 'Propuesta', variant: 'outline' as const },
-      'active': { label: 'En Curso', variant: 'default' as const },
-      'completed': { label: 'Finalizado', variant: 'secondary' as const },
-      'cancelled': { label: 'Cancelado', variant: 'destructive' as const }
-    };
-    
-    const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.proposal;
-    return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>;
+  const handleCreateProject = () => {
+    if (!canCreateProject()) {
+      console.warn('User does not have permission to create projects');
+      return;
+    }
+    setShowCreateProject(true);
   };
 
-  const getRoleBadge = (role: string) => {
-    const roleMap = {
-      'principal_investigator': 'Investigador Principal',
-      'co_investigator': 'Co-investigador',
-      'collaborator': 'Colaborador'
-    };
-    
-    return roleMap[role as keyof typeof roleMap] || role;
+  const filteredProjects = projects.filter(project =>
+    project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    project.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'completed':
+        return 'bg-blue-100 text-blue-800';
+      case 'proposal':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
-  if (selectedProjectId) {
-    return (
-      <div>
-        <Button 
-          variant="outline" 
-          onClick={() => setSelectedProjectId(null)}
-          className="mb-4"
-        >
-          ← Volver a Mis Proyectos
-        </Button>
-        <ProjectDetail projectId={selectedProjectId} />
-      </div>
-    );
-  }
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'Activo';
+      case 'completed':
+        return 'Completado';
+      case 'proposal':
+        return 'Propuesta';
+      case 'cancelled':
+        return 'Cancelado';
+      default:
+        return status;
+    }
+  };
 
   if (isLoading) {
     return (
       <Card>
         <CardContent className="p-6">
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Cargando proyectos...</p>
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
           </div>
         </CardContent>
       </Card>
@@ -92,108 +106,146 @@ const MyProjects = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Mis Proyectos de Investigación</h2>
-          <p className="text-muted-foreground">
-            Gestiona tu participación en proyectos de investigación colaborativa
-          </p>
-        </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Proponer Proyecto
-        </Button>
-      </div>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center">
+                <FlaskConical className="h-5 w-5 mr-2" />
+                Mis Proyectos de Investigación
+              </CardTitle>
+              <CardDescription>
+                Gestiona y visualiza todos tus proyectos de investigación
+              </CardDescription>
+            </div>
+            {canCreateProject() && (
+              <Button onClick={handleCreateProject}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Proyecto
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {/* Filters */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar proyectos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-400" />
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="proposal">Propuestas</SelectItem>
+                  <SelectItem value="active">Activos</SelectItem>
+                  <SelectItem value="completed">Completados</SelectItem>
+                  <SelectItem value="cancelled">Cancelados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-      {/* Lista de Proyectos */}
-      {projects.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No tienes proyectos aún</h3>
-            <p className="text-muted-foreground mb-4">
-              Comienza a colaborar en proyectos de investigación con otras universidades
-            </p>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Proponer tu primer proyecto
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {projects.map((participation) => (
-            <Card key={participation.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      {participation.research_projects?.title}
-                      {getStatusBadge(participation.research_projects?.status || 'proposal')}
-                    </CardTitle>
-                    <CardDescription className="mt-2">
-                      {participation.research_projects?.description}
-                    </CardDescription>
+          {/* Projects Grid */}
+          {filteredProjects.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProjects.map((project) => (
+                <div key={project.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg line-clamp-2 mb-2">{project.title}</h3>
+                      <Badge className={getStatusColor(project.status)} variant="secondary">
+                        {getStatusText(project.status)}
+                      </Badge>
+                    </div>
                   </div>
+                  
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                    {project.description}
+                  </p>
+                  
+                  <div className="space-y-2 text-sm text-gray-500 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        {project.start_date 
+                          ? new Date(project.start_date).toLocaleDateString('es-ES')
+                          : 'Sin fecha de inicio'
+                        }
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <span>{project.project_participants?.length || 0} colaborador(es)</span>
+                    </div>
+                  </div>
+                  
                   <Button
-                    variant="outline" 
                     size="sm"
-                    onClick={() => setSelectedProjectId(participation.research_projects?.id)}
+                    variant="outline"
+                    onClick={() => setSelectedProject(project)}
+                    className="w-full"
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     Ver Detalles
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Mi Rol:</span>
-                    <Badge variant="outline">{getRoleBadge(participation.role)}</Badge>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Inicio:</span>
-                    <span>
-                      {participation.research_projects?.start_date
-                        ? new Date(participation.research_projects.start_date).toLocaleDateString()
-                        : 'Por definir'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">Universidades:</span>
-                    <span>
-                      {participation.research_projects?.project_universities?.length || 0} participantes
-                    </span>
-                  </div>
-                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <FlaskConical className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {searchTerm || statusFilter !== 'all' 
+                  ? 'No se encontraron proyectos'
+                  : 'No tienes proyectos aún'
+                }
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {searchTerm || statusFilter !== 'all'
+                  ? 'Intenta cambiar los filtros de búsqueda'
+                  : 'Comienza creando tu primer proyecto de investigación'
+                }
+              </p>
+              {canCreateProject() && !searchTerm && statusFilter === 'all' && (
+                <Button onClick={handleCreateProject}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Crear Primer Proyecto
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-                {/* Universidades participantes */}
-                {participation.research_projects?.project_universities && 
-                 participation.research_projects.project_universities.length > 0 && (
-                  <div className="mt-4">
-                    <div className="flex flex-wrap gap-2">
-                      {participation.research_projects.project_universities.map((pu: any, index: number) => (
-                        <Badge key={index} variant="secondary">
-                          {pu.universities?.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
+      {/* Project Detail Dialog */}
+      <Dialog open={!!selectedProject} onOpenChange={() => setSelectedProject(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedProject?.title}</DialogTitle>
+          </DialogHeader>
+          {selectedProject && (
+            <ProjectDetail 
+              project={selectedProject} 
+              onClose={() => setSelectedProject(null)} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
-};
-
-export default MyProjects;
+}

@@ -9,7 +9,8 @@ import {
   BookOpen, 
   GraduationCap,
   FlaskConical,
-  LogOut
+  LogOut,
+  Plane
 } from 'lucide-react';
 import { ApplicationsList } from '@/components/coordinator/ApplicationsList';
 import { UniversityProfile } from '@/components/coordinator/UniversityProfile';
@@ -17,6 +18,7 @@ import { ProgramManagement } from '@/components/coordinator/ProgramManagement';
 import { CourseManagement } from '@/components/coordinator/CourseManagement';
 import { ProjectManagement } from '@/components/coordinator/ProjectManagement';
 import { ApplicationDetail } from '@/components/coordinator/ApplicationDetail';
+import { ProfessorMobilityApplications } from '@/components/coordinator/ProfessorMobilityApplications';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -90,10 +92,14 @@ export default function CoordinatorDashboard() {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="applications" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Aplicaciones
+              Estudiantes
+            </TabsTrigger>
+            <TabsTrigger value="professor-mobility" className="flex items-center gap-2">
+              <Plane className="h-4 w-4" />
+              Profesores
             </TabsTrigger>
             <TabsTrigger value="programs" className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
@@ -115,6 +121,10 @@ export default function CoordinatorDashboard() {
 
           <TabsContent value="applications">
             <ApplicationsList onViewApplication={handleViewApplication} />
+          </TabsContent>
+
+          <TabsContent value="professor-mobility">
+            <ProfessorMobilityApplications />
           </TabsContent>
 
           <TabsContent value="programs">

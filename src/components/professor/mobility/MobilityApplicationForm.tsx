@@ -1,74 +1,94 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Upload, FileText, Calendar, User, Briefcase, Target } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { ArrowLeft, ArrowRight, Upload, FileText, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-interface MobilityOpportunity {
-  id: string;
-  title: string;
-  hostInstitution: string;
-  mobilityType: string;
-}
+import { useToast } from '@/hooks/use-toast';
 
 interface MobilityApplicationFormProps {
-  opportunity: MobilityOpportunity;
+  opportunity: any;
   onBack: () => void;
+  onComplete: () => void;
 }
 
-export default function MobilityApplicationForm({ opportunity, onBack }: MobilityApplicationFormProps) {
+export const MobilityApplicationForm = ({ 
+  opportunity, 
+  onBack, 
+  onComplete 
+}: MobilityApplicationFormProps) => {
   const { user } = useAuth();
-  const [formData, setFormData] = useState({
-    // Personal Information (Pre-filled)
-    fullName: user?.user_metadata?.full_name || '',
-    documentType: 'cc',
-    documentNumber: '',
-    gender: '',
-    birthDate: '',
-    birthPlace: '',
-    birthCountry: '',
-    bloodType: '',
-    healthInsurance: '',
-    phone: '',
-    email: user?.email || '',
-    
-    // Academic and Professional Information
-    originInstitution: '',
-    faculty: '',
-    currentRole: '',
-    expertiseArea: '',
-    experienceYears: '',
-    employeeCode: '',
-    
-    // Mobility Details
-    collaborationArea: '',
-    startDate: '',
-    endDate: '',
-    justification: '',
-    workPlan: '',
-    
-    // Documents
-    cv: null as File | null,
-    invitationLetter: null as File | null,
-    recommendationLetter: null as File | null,
-    researchProposal: null as File | null
-  });
-
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
+  const [formData, setFormData] = useState<any>({});
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+
   const totalSteps = 5;
+  const stepProgress = (currentStep / totalSteps) * 100;
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleFileChange = (field: string, file: File | null) => {
-    setFormData(prev => ({ ...prev, [field]: file }));
-  };
+  const createApplicationMutation = useMutation({
+    mutationFn: async (applicationData: any) => {
+      const { data, error } = await supabase
+        .from('professor_mobility_applications')
+        .insert({
+          ...applicationData,
+          professor_id: user?.id,
+          mobility_call_id: opportunity.id
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: async (application) => {
+      // Upload documents
+      for (const file of uploadedFiles) {
+        const filePath = `${user?.id}/${application.id}/${file.name}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('professor-mobility-docs')
+          .upload(filePath, file.file);
+          
+        if (uploadError) throw uploadError;
+        
+        // Save document reference
+        await supabase
+          .from('professor_mobility_documents')
+          .insert({
+            application_id: application.id,
+            document_type: file.type,
+            file_name: file.name,
+            file_path: filePath,
+            file_size: file.file.size,
+            uploaded_by: user?.id
+          });
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['professor-mobility-applications'] });
+      toast({
+        title: 'Postulación enviada exitosamente',
+        description: `Tu número de radicación es: ${application.application_number}`
+      });
+      onComplete();
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: 'No se pudo enviar la postulación. Inténtalo de nuevo.',
+        variant: 'destructive'
+      });
+    }
+  });
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -82,95 +102,97 @@ export default function MobilityApplicationForm({ opportunity, onBack }: Mobilit
     }
   };
 
-  const handleSubmit = async () => {
-    // Here you would implement the submission logic
-    console.log('Submitting mobility application:', formData);
-    // For now, just go back
-    onBack();
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const renderStepContent = () => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: string) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.includes('pdf') && !file.type.includes('doc')) {
+      toast({
+        title: 'Tipo de archivo no válido',
+        description: 'Solo se permiten archivos PDF y DOC/DOCX',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Archivo muy grande',
+        description: 'El archivo no puede superar los 5MB',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setUploadedFiles(prev => [
+      ...prev.filter(f => f.type !== type),
+      { type, name: file.name, file }
+    ]);
+
+    toast({
+      title: 'Archivo cargado',
+      description: `${file.name} ha sido cargado exitosamente`
+    });
+  };
+
+  const handleSubmit = () => {
+    createApplicationMutation.mutate(formData);
+  };
+
+  const renderStep = () => {
     switch (currentStep) {
       case 1:
         return (
           <div className="space-y-4">
-            <div className="flex items-center mb-4">
-              <User className="h-5 w-5 mr-2 text-blue-600" />
-              <h3 className="text-lg font-semibold">Información Personal</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 className="text-lg font-semibold">Información Personal</h3>
+            <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="fullName">Nombre Completo *</Label>
-                <Input
-                  id="fullName"
-                  value={formData.fullName}
-                  onChange={(e) => handleInputChange('fullName', e.target.value)}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div>
-                <Label htmlFor="documentType">Tipo de Documento *</Label>
-                <Select value={formData.documentType} onValueChange={(value) => handleInputChange('documentType', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cc">Cédula de Ciudadanía</SelectItem>
-                    <SelectItem value="ce">Cédula de Extranjería</SelectItem>
-                    <SelectItem value="passport">Pasaporte</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="documentNumber">Número de Documento *</Label>
-                <Input
-                  id="documentNumber"
-                  value={formData.documentNumber}
-                  onChange={(e) => handleInputChange('documentNumber', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="gender">Sexo *</Label>
-                <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                <Label htmlFor="gender">Sexo</Label>
+                <Select onValueChange={(value) => handleInputChange('gender', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="masculino">Masculino</SelectItem>
-                    <SelectItem value="femenino">Femenino</SelectItem>
+                    <SelectItem value="Masculino">Masculino</SelectItem>
+                    <SelectItem value="Femenino">Femenino</SelectItem>
+                    <SelectItem value="Otro">Otro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="birthDate">Fecha de Nacimiento *</Label>
+                <Label htmlFor="birth_date">Fecha de Nacimiento</Label>
                 <Input
-                  id="birthDate"
+                  id="birth_date"
                   type="date"
-                  value={formData.birthDate}
-                  onChange={(e) => handleInputChange('birthDate', e.target.value)}
+                  onChange={(e) => handleInputChange('birth_date', e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="birthPlace">Lugar de Nacimiento</Label>
+                <Label htmlFor="birth_place">Lugar de Nacimiento</Label>
                 <Input
-                  id="birthPlace"
-                  value={formData.birthPlace}
-                  onChange={(e) => handleInputChange('birthPlace', e.target.value)}
+                  id="birth_place"
+                  onChange={(e) => handleInputChange('birth_place', e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="birthCountry">País de Nacimiento</Label>
+                <Label htmlFor="birth_country">País de Nacimiento</Label>
                 <Input
-                  id="birthCountry"
-                  value={formData.birthCountry}
-                  onChange={(e) => handleInputChange('birthCountry', e.target.value)}
+                  id="birth_country"
+                  onChange={(e) => handleInputChange('birth_country', e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="bloodType">Grupo Sanguíneo</Label>
-                <Select value={formData.bloodType} onValueChange={(value) => handleInputChange('bloodType', value)}>
+                <Label htmlFor="blood_type">Grupo Sanguíneo</Label>
+                <Select onValueChange={(value) => handleInputChange('blood_type', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar" />
                   </SelectTrigger>
@@ -187,28 +209,26 @@ export default function MobilityApplicationForm({ opportunity, onBack }: Mobilit
                 </Select>
               </div>
               <div>
-                <Label htmlFor="healthInsurance">EPS</Label>
+                <Label htmlFor="health_insurance">EPS/Seguro de Salud</Label>
                 <Input
-                  id="healthInsurance"
-                  value={formData.healthInsurance}
-                  onChange={(e) => handleInputChange('healthInsurance', e.target.value)}
+                  id="health_insurance"
+                  onChange={(e) => handleInputChange('health_insurance', e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="phone">Teléfono de Contacto *</Label>
+                <Label htmlFor="contact_phone">Teléfono de Contacto</Label>
                 <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  id="contact_phone"
+                  type="tel"
+                  onChange={(e) => handleInputChange('contact_phone', e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="email">Correo Electrónico *</Label>
+                <Label htmlFor="contact_email">Correo Electrónico</Label>
                 <Input
-                  id="email"
+                  id="contact_email"
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  onChange={(e) => handleInputChange('contact_email', e.target.value)}
                 />
               </div>
             </div>
@@ -218,61 +238,51 @@ export default function MobilityApplicationForm({ opportunity, onBack }: Mobilit
       case 2:
         return (
           <div className="space-y-4">
-            <div className="flex items-center mb-4">
-              <Briefcase className="h-5 w-5 mr-2 text-green-600" />
-              <h3 className="text-lg font-semibold">Información Académica y Laboral</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 className="text-lg font-semibold">Información Académica y Laboral</h3>
+            <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="originInstitution">Institución de Origen *</Label>
+                <Label htmlFor="origin_institution">Institución de Origen</Label>
                 <Input
-                  id="originInstitution"
-                  value={formData.originInstitution}
-                  onChange={(e) => handleInputChange('originInstitution', e.target.value)}
+                  id="origin_institution"
+                  onChange={(e) => handleInputChange('origin_institution', e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="faculty">Facultad/Departamento *</Label>
+                <Label htmlFor="faculty_department">Facultad/Departamento</Label>
                 <Input
-                  id="faculty"
-                  value={formData.faculty}
-                  onChange={(e) => handleInputChange('faculty', e.target.value)}
+                  id="faculty_department"
+                  onChange={(e) => handleInputChange('faculty_department', e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="currentRole">Rol Actual *</Label>
+                <Label htmlFor="current_role">Rol Actual</Label>
                 <Input
-                  id="currentRole"
-                  placeholder="ej. Profesor Titular, Investigador Asociado"
-                  value={formData.currentRole}
-                  onChange={(e) => handleInputChange('currentRole', e.target.value)}
+                  id="current_role"
+                  placeholder="ej. Profesor Titular, Investigador..."
+                  onChange={(e) => handleInputChange('current_role', e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="expertiseArea">Área de Experticia Principal *</Label>
+                <Label htmlFor="expertise_area">Área de Experticia Principal</Label>
                 <Input
-                  id="expertiseArea"
-                  value={formData.expertiseArea}
-                  onChange={(e) => handleInputChange('expertiseArea', e.target.value)}
+                  id="expertise_area"
+                  onChange={(e) => handleInputChange('expertise_area', e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="experienceYears">Años de Experiencia *</Label>
+                <Label htmlFor="years_experience">Años de Experiencia</Label>
                 <Input
-                  id="experienceYears"
+                  id="years_experience"
                   type="number"
                   min="0"
-                  value={formData.experienceYears}
-                  onChange={(e) => handleInputChange('experienceYears', e.target.value)}
+                  onChange={(e) => handleInputChange('years_experience', parseInt(e.target.value))}
                 />
               </div>
               <div>
-                <Label htmlFor="employeeCode">Código de Empleado</Label>
+                <Label htmlFor="employee_code">Código de Empleado (opcional)</Label>
                 <Input
-                  id="employeeCode"
-                  value={formData.employeeCode}
-                  onChange={(e) => handleInputChange('employeeCode', e.target.value)}
+                  id="employee_code"
+                  onChange={(e) => handleInputChange('employee_code', e.target.value)}
                 />
               </div>
             </div>
@@ -282,45 +292,50 @@ export default function MobilityApplicationForm({ opportunity, onBack }: Mobilit
       case 3:
         return (
           <div className="space-y-4">
-            <div className="flex items-center mb-4">
-              <Calendar className="h-5 w-5 mr-2 text-purple-600" />
-              <h3 className="text-lg font-semibold">Detalles de la Movilidad</h3>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <Label>Universidad de Destino</Label>
-                <Input value={opportunity.hostInstitution} disabled className="bg-muted" />
-              </div>
-              <div className="md:col-span-2">
-                <Label>Tipo de Movilidad</Label>
-                <Input value={opportunity.mobilityType} disabled className="bg-muted" />
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="collaborationArea">Área de Colaboración/Departamento de Destino *</Label>
+            <h3 className="text-lg font-semibold">Detalles de la Movilidad</h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="collaboration_department">Área/Departamento de Colaboración</Label>
                 <Input
-                  id="collaborationArea"
-                  placeholder="Especifique el área o departamento con el que desea colaborar"
-                  value={formData.collaborationArea}
-                  onChange={(e) => handleInputChange('collaborationArea', e.target.value)}
+                  id="collaboration_department"
+                  placeholder="Especifica el área o departamento en la universidad anfitriona"
+                  onChange={(e) => handleInputChange('collaboration_department', e.target.value)}
+                />
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="proposed_start_date">Fecha de Inicio Propuesta</Label>
+                  <Input
+                    id="proposed_start_date"
+                    type="date"
+                    onChange={(e) => handleInputChange('proposed_start_date', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="proposed_end_date">Fecha de Finalización Propuesta</Label>
+                  <Input
+                    id="proposed_end_date"
+                    type="date"
+                    onChange={(e) => handleInputChange('proposed_end_date', e.target.value)}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="mobility_justification">Justificación y Objetivos de la Movilidad *</Label>
+                <Textarea
+                  id="mobility_justification"
+                  rows={6}
+                  placeholder="Explica tus motivos y razones para realizar la movilidad. Incluye por qué es relevante para tu desarrollo profesional, tu institución y la institución anfitriona, así como los objetivos específicos que esperas lograr."
+                  onChange={(e) => handleInputChange('mobility_justification', e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="startDate">Fecha de Inicio Propuesta *</Label>
-                <Input
-                  id="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => handleInputChange('startDate', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="endDate">Fecha de Finalización Propuesta *</Label>
-                <Input
-                  id="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => handleInputChange('endDate', e.target.value)}
+                <Label htmlFor="work_plan">Plan de Trabajo Detallado *</Label>
+                <Textarea
+                  id="work_plan"
+                  rows={8}
+                  placeholder="Describe las actividades concretas que realizarás durante tu estancia: actividades de docencia, investigación, administrativas, resultados esperados, etc."
+                  onChange={(e) => handleInputChange('work_plan', e.target.value)}
                 />
               </div>
             </div>
@@ -329,32 +344,100 @@ export default function MobilityApplicationForm({ opportunity, onBack }: Mobilit
 
       case 4:
         return (
-          <div className="space-y-4">
-            <div className="flex items-center mb-4">
-              <Target className="h-5 w-5 mr-2 text-orange-600" />
-              <h3 className="text-lg font-semibold">Justificación y Plan de Trabajo</h3>
-            </div>
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold">Documentos Anexos</h3>
             
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="justification">Justificación y Objetivos de la Movilidad *</Label>
-                <Textarea
-                  id="justification"
-                  placeholder="Explique sus motivos y razones para realizar la movilidad. Incluya cómo esta movilidad contribuirá a su desarrollo profesional y a las instituciones involucradas."
-                  className="min-h-[120px]"
-                  value={formData.justification}
-                  onChange={(e) => handleInputChange('justification', e.target.value)}
-                />
+            <div className="grid gap-4">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                <div className="text-center">
+                  <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <Label htmlFor="cv_file" className="text-sm font-medium cursor-pointer">
+                    Currículum Vitae (CV) *
+                  </Label>
+                  <Input
+                    id="cv_file"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => handleFileUpload(e, 'CV')}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">PDF o DOC, máximo 5MB</p>
+                  {uploadedFiles.find(f => f.type === 'CV') && (
+                    <div className="flex items-center justify-center gap-2 mt-2 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-sm">CV cargado</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <Label htmlFor="workPlan">Plan de Trabajo Detallado *</Label>
-                <Textarea
-                  id="workPlan"
-                  placeholder="Describa las actividades concretas que realizará durante su estancia (docencia, investigación, administrativas, etc.). Incluya los resultados esperados."
-                  className="min-h-[120px]"
-                  value={formData.workPlan}
-                  onChange={(e) => handleInputChange('workPlan', e.target.value)}
-                />
+
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                <div className="text-center">
+                  <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <Label htmlFor="invitation_letter_file" className="text-sm font-medium cursor-pointer">
+                    Carta de Invitación (opcional)
+                  </Label>
+                  <Input
+                    id="invitation_letter_file"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => handleFileUpload(e, 'Carta de Invitación')}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">PDF o DOC, máximo 5MB</p>
+                  {uploadedFiles.find(f => f.type === 'Carta de Invitación') && (
+                    <div className="flex items-center justify-center gap-2 mt-2 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-sm">Carta cargada</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                <div className="text-center">
+                  <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <Label htmlFor="recommendation_letter_file" className="text-sm font-medium cursor-pointer">
+                    Carta de Aval/Recomendación (opcional)
+                  </Label>
+                  <Input
+                    id="recommendation_letter_file"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => handleFileUpload(e, 'Carta de Recomendación')}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">PDF o DOC, máximo 5MB</p>
+                  {uploadedFiles.find(f => f.type === 'Carta de Recomendación') && (
+                    <div className="flex items-center justify-center gap-2 mt-2 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-sm">Carta cargada</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                <div className="text-center">
+                  <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <Label htmlFor="proposal_file" className="text-sm font-medium cursor-pointer">
+                    Propuesta Detallada (opcional)
+                  </Label>
+                  <Input
+                    id="proposal_file"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => handleFileUpload(e, 'Propuesta Detallada')}
+                    className="hidden"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">PDF o DOC, máximo 5MB</p>
+                  {uploadedFiles.find(f => f.type === 'Propuesta Detallada') && (
+                    <div className="flex items-center justify-center gap-2 mt-2 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      <span className="text-sm">Propuesta cargada</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -362,49 +445,62 @@ export default function MobilityApplicationForm({ opportunity, onBack }: Mobilit
 
       case 5:
         return (
-          <div className="space-y-4">
-            <div className="flex items-center mb-4">
-              <FileText className="h-5 w-5 mr-2 text-red-600" />
-              <h3 className="text-lg font-semibold">Documentos Anexos</h3>
-            </div>
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold">Revisión Final</h3>
             
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="cv">Currículum Vitae (CV) * - PDF únicamente</Label>
-                <Input
-                  id="cv"
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => handleFileChange('cv', e.target.files?.[0] || null)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="invitationLetter">Carta de Invitación de la Institución Anfitriona - PDF únicamente</Label>
-                <Input
-                  id="invitationLetter"
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => handleFileChange('invitationLetter', e.target.files?.[0] || null)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="recommendationLetter">Carta de Aval/Recomendación de la Universidad de Origen - PDF únicamente</Label>
-                <Input
-                  id="recommendationLetter"
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => handleFileChange('recommendationLetter', e.target.files?.[0] || null)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="researchProposal">Propuesta Detallada de Investigación/Docencia - PDF únicamente</Label>
-                <Input
-                  id="researchProposal"
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => handleFileChange('researchProposal', e.target.files?.[0] || null)}
-                />
-              </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Resumen de tu Postulación</CardTitle>
+                <CardDescription>Revisa la información antes de enviar</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="font-medium">Convocatoria:</h4>
+                  <p className="text-sm text-gray-600">{opportunity.title}</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium">Universidad Anfitriona:</h4>
+                  <p className="text-sm text-gray-600">{opportunity.universities?.name}</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium">Tipo de Movilidad:</h4>
+                  <p className="text-sm text-gray-600">{opportunity.mobility_type}</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium">Área de Colaboración:</h4>
+                  <p className="text-sm text-gray-600">{formData.collaboration_department || 'No especificada'}</p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium">Fechas Propuestas:</h4>
+                  <p className="text-sm text-gray-600">
+                    {formData.proposed_start_date && formData.proposed_end_date
+                      ? `${new Date(formData.proposed_start_date).toLocaleDateString('es-ES')} - ${new Date(formData.proposed_end_date).toLocaleDateString('es-ES')}`
+                      : 'No especificadas'
+                    }
+                  </p>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium">Documentos Adjuntos:</h4>
+                  <ul className="text-sm text-gray-600">
+                    {uploadedFiles.map((file, index) => (
+                      <li key={index}>• {file.type}: {file.name}</li>
+                    ))}
+                    {uploadedFiles.length === 0 && <li>No hay documentos adjuntos</li>}
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-sm text-yellow-800">
+                <strong>Importante:</strong> Una vez enviada la postulación, no podrás realizar cambios. 
+                Asegúrate de que toda la información sea correcta y de haber adjuntado todos los documentos necesarios.
+              </p>
             </div>
           </div>
         );
@@ -415,52 +511,63 @@ export default function MobilityApplicationForm({ opportunity, onBack }: Mobilit
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center">
-        <Button variant="ghost" size="sm" onClick={onBack} className="mr-4">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver a Detalles
+          Volver
         </Button>
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold">Postulación de Movilidad</h1>
+          <p className="text-muted-foreground">{opportunity.title}</p>
+        </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Postulación de Movilidad - {opportunity.title}</CardTitle>
-          <div className="text-sm text-muted-foreground">
-            Paso {currentStep} de {totalSteps} - Complete todos los campos requeridos (*)
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Paso {currentStep} de {totalSteps}</CardTitle>
+              <CardDescription>Completa todos los pasos para enviar tu postulación</CardDescription>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500">Progreso</div>
+              <div className="text-lg font-semibold">{Math.round(stepProgress)}%</div>
+            </div>
           </div>
-          <div className="w-full bg-muted rounded-full h-2">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300" 
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-            />
-          </div>
+          <Progress value={stepProgress} className="mt-4" />
         </CardHeader>
+        
         <CardContent>
-          {renderStepContent()}
-          
-          <div className="flex justify-between pt-6 border-t">
-            <Button 
-              variant="outline" 
-              onClick={handlePrevious}
-              disabled={currentStep === 1}
-            >
-              Anterior
-            </Button>
-            
-            {currentStep === totalSteps ? (
-              <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
-                <Upload className="h-4 w-4 mr-2" />
-                Enviar Postulación
-              </Button>
-            ) : (
-              <Button onClick={handleNext}>
-                Siguiente
-              </Button>
-            )}
-          </div>
+          {renderStep()}
         </CardContent>
+        
+        <div className="flex justify-between p-6 pt-0">
+          <Button
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentStep === 1}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Anterior
+          </Button>
+          
+          {currentStep < totalSteps ? (
+            <Button onClick={handleNext}>
+              Siguiente
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          ) : (
+            <Button 
+              onClick={handleSubmit}
+              disabled={createApplicationMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {createApplicationMutation.isPending ? 'Enviando...' : 'Enviar Postulación'}
+            </Button>
+          )}
+        </div>
       </Card>
     </div>
   );
-}
+};
