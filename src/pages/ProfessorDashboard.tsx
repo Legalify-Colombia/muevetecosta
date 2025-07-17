@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
@@ -88,7 +87,10 @@ const ProfessorDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header 
+        showLogout={true}
+        userInfo={`Prof. ${profile?.full_name}`}
+      />
       
       <main className="container mx-auto px-4 py-8">
         {/* Bienvenida */}
