@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
@@ -40,7 +41,7 @@ const formSchema = z.object({
   password: z.string().min(6, {
     message: "La contraseña debe tener al menos 6 caracteres.",
   }),
-  role: z.enum(["admin", "coordinator", "professor", "student"]),
+  role: z.enum(["professor", "student"]), // Solo profesores y estudiantes
   originUniversity: z.string().optional(),
   academicProgram: z.string().optional(),
   currentSemester: z.string().optional(),
@@ -68,10 +69,6 @@ export default function Register() {
       currentSemester: "",
     },
   })
-
-  function isValidRole(role: string): role is "admin" | "coordinator" | "professor" | "student" {
-    return ["admin", "coordinator", "professor", "student"].includes(role)
-  }
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
@@ -135,7 +132,7 @@ export default function Register() {
           <CardHeader>
             <CardTitle className="text-center">Crear una cuenta</CardTitle>
             <CardDescription className="text-center">
-              Ingresa tus datos para registrarte
+              Registro para estudiantes y profesores
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -234,18 +231,16 @@ export default function Register() {
                   name="role"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Rol</FormLabel>
+                      <FormLabel>Tipo de Usuario</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecciona un rol" />
+                            <SelectValue placeholder="Selecciona tu rol" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="student">Estudiante</SelectItem>
                           <SelectItem value="professor">Profesor</SelectItem>
-                          <SelectItem value="coordinator">Coordinador</SelectItem>
-                          <SelectItem value="admin">Administrador</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
