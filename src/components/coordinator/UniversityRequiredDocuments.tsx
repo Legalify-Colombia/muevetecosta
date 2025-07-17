@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,8 +40,10 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
   const form = useForm<DocumentFormData>({
     resolver: zodResolver(documentSchema),
     defaultValues: {
+      document_title: "",
       is_mandatory: true,
       mobility_type: 'student',
+      description: "",
     },
   });
 
@@ -53,10 +54,15 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
         data: data
       });
     } else {
-      createDocumentMutation.mutate({
-        ...data,
-        university_id: universityId
-      });
+      // Ensure all required fields are present
+      const createData = {
+        university_id: universityId,
+        document_title: data.document_title,
+        is_mandatory: data.is_mandatory,
+        mobility_type: data.mobility_type,
+        ...(data.description && { description: data.description })
+      };
+      createDocumentMutation.mutate(createData);
     }
     
     handleCloseDialog();
@@ -81,7 +87,12 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
   const handleCloseDialog = () => {
     setShowCreateDialog(false);
     setEditingDocument(null);
-    form.reset();
+    form.reset({
+      document_title: "",
+      is_mandatory: true,
+      mobility_type: 'student',
+      description: "",
+    });
   };
 
   const getMobilityTypeLabel = (type: string) => {

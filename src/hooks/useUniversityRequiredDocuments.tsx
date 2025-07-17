@@ -35,7 +35,7 @@ export const useUniversityRequiredDocuments = (universityId?: string) => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return (data || []) as UniversityRequiredDocument[];
+      return (data || []) as unknown as UniversityRequiredDocument[];
     },
     enabled: !!universityId
   });
