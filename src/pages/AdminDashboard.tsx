@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserManagement } from '@/components/admin/UserManagement';
@@ -13,7 +14,7 @@ import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Users, 
   School, 
