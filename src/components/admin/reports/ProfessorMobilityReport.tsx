@@ -13,13 +13,13 @@ export const ProfessorMobilityReport = () => {
     queryKey: ['professor-mobility-by-type'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_applications')
-        .select('professor_mobility_calls(mobility_type)');
+        .from('professor_mobility_applications' as any)
+        .select('mobility_type');
       
       if (error) throw error;
 
-      const typeCounts = data.reduce((acc, app) => {
-        const type = app.professor_mobility_calls?.mobility_type || 'teaching';
+      const typeCounts = (data || []).reduce((acc: any, app: any) => {
+        const type = app.mobility_type || 'teaching';
         const typeName = type === 'teaching' ? 'Docencia' :
                         type === 'research' ? 'Investigación' :
                         type === 'training' ? 'Capacitación' : type;
@@ -35,12 +35,12 @@ export const ProfessorMobilityReport = () => {
     queryKey: ['professor-mobility-by-status'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_applications')
+        .from('professor_mobility_applications' as any)
         .select('status');
       
       if (error) throw error;
 
-      const statusCounts = data.reduce((acc, app) => {
+      const statusCounts = (data || []).reduce((acc: any, app: any) => {
         const status = app.status || 'pending';
         const statusName = status === 'pending' ? 'Pendientes' :
                           status === 'in_review' ? 'En Revisión' :
@@ -60,17 +60,16 @@ export const ProfessorMobilityReport = () => {
     queryKey: ['professor-mobility-by-destination'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_applications')
+        .from('professor_mobility_applications' as any)
         .select(`
-          professor_mobility_calls(
-            universities(name)
-          )
+          *,
+          universities!destination_university_id(name)
         `);
       
       if (error) throw error;
 
-      const universityCounts = data.reduce((acc, app) => {
-        const universityName = app.professor_mobility_calls?.universities?.name || 'Sin especificar';
+      const universityCounts = (data || []).reduce((acc: any, app: any) => {
+        const universityName = app.universities?.name || 'Sin especificar';
         acc[universityName] = (acc[universityName] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
@@ -86,15 +85,15 @@ export const ProfessorMobilityReport = () => {
     queryKey: ['top-professors-mobility'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_applications')
+        .from('professor_mobility_applications' as any)
         .select(`
           professor_id,
-          profiles(full_name)
+          profiles!professor_id(full_name)
         `);
       
       if (error) throw error;
 
-      const professorCounts = data.reduce((acc, app) => {
+      const professorCounts = (data || []).reduce((acc: any, app: any) => {
         const professorName = app.profiles?.full_name || 'Sin especificar';
         acc[professorName] = (acc[professorName] || 0) + 1;
         return acc;

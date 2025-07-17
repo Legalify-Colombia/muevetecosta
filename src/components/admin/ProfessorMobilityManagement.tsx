@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,33 +50,28 @@ export const ProfessorMobilityManagement = () => {
   const [editingCall, setEditingCall] = useState<MobilityCall | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch mobility calls using RPC or raw SQL to avoid type issues
+  // Fetch mobility calls - simplified approach
   const { data: mobilityCalls = [], isLoading } = useQuery({
     queryKey: ['professor-mobility-calls-admin'],
     queryFn: async () => {
+      // Direct query without RPC to avoid type issues
       const { data, error } = await supabase
-        .rpc('get_professor_mobility_calls_with_universities');
-      
+        .from('professor_mobility_calls' as any)
+        .select(`
+          *,
+          universities!host_university_id(name, city)
+        `)
+        .order('created_at', { ascending: false });
+        
       if (error) {
         console.error('Error fetching mobility calls:', error);
-        // Fallback to direct query if RPC doesn't exist
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('professor_mobility_calls' as any)
-          .select(`
-            *,
-            universities(name, city)
-          `)
-          .order('created_at', { ascending: false });
-          
-        if (fallbackError) {
-          console.error('Fallback query error:', fallbackError);
-          throw fallbackError;
-        }
-        
-        return fallbackData as MobilityCall[];
+        throw error;
       }
       
-      return data as MobilityCall[];
+      return (data || []).map((call: any) => ({
+        ...call,
+        universities: call.universities || null
+      })) as MobilityCall[];
     }
   });
 

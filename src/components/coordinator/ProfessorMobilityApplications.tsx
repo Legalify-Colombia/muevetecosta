@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -77,14 +76,14 @@ export const ProfessorMobilityApplications = () => {
     queryKey: ['coordinator-professor-mobility-applications'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_applications')
+        .from('professor_mobility_applications' as any)
         .select(`
           *,
-          profiles(full_name, document_number),
-          professor_mobility_calls(
+          profiles!professor_id(full_name, document_number),
+          professor_mobility_calls!mobility_call_id(
             title,
             mobility_type,
-            universities(name, city)
+            universities!host_university_id(name, city)
           )
         `)
         .order('created_at', { ascending: false });
@@ -94,7 +93,10 @@ export const ProfessorMobilityApplications = () => {
         throw error;
       }
       
-      return data as ProfessorMobilityApplication[];
+      return (data || []).map((app: any) => ({
+        ...app,
+        professor_mobility_calls: app.professor_mobility_calls || {}
+      })) as ProfessorMobilityApplication[];
     }
   });
 
@@ -105,13 +107,13 @@ export const ProfessorMobilityApplications = () => {
       if (!selectedApplication?.id) return [];
       
       const { data, error } = await supabase
-        .from('professor_mobility_documents')
+        .from('professor_mobility_documents' as any)
         .select('*')
         .eq('application_id', selectedApplication.id)
         .order('uploaded_at', { ascending: false });
       
       if (error) throw error;
-      return data as ApplicationDocument[];
+      return (data || []) as ApplicationDocument[];
     },
     enabled: !!selectedApplication?.id
   });
@@ -123,13 +125,13 @@ export const ProfessorMobilityApplications = () => {
       if (!selectedApplication?.id) return [];
       
       const { data, error } = await supabase
-        .from('professor_education_levels')
+        .from('professor_education_levels' as any)
         .select('*')
         .eq('application_id', selectedApplication.id)
         .order('graduation_year', { ascending: false });
       
       if (error) throw error;
-      return data as EducationLevel[];
+      return (data || []) as EducationLevel[];
     },
     enabled: !!selectedApplication?.id
   });
@@ -139,7 +141,7 @@ export const ProfessorMobilityApplications = () => {
     mutationFn: async ({ applicationId, status, note }: { applicationId: string; status: string; note?: string }) => {
       // Update application status
       const { error: updateError } = await supabase
-        .from('professor_mobility_applications')
+        .from('professor_mobility_applications' as any)
         .update({ 
           status,
           updated_at: new Date().toISOString()
@@ -151,7 +153,7 @@ export const ProfessorMobilityApplications = () => {
       // Add note if provided
       if (note) {
         const { error: noteError } = await supabase
-          .from('professor_mobility_notes')
+          .from('professor_mobility_notes' as any)
           .insert({
             application_id: applicationId,
             coordinator_id: user?.id,
