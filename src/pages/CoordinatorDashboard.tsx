@@ -17,6 +17,7 @@ import { UniversityProfile } from '@/components/coordinator/UniversityProfile';
 import { ProgramManagement } from '@/components/coordinator/ProgramManagement';
 import { CourseManagement } from '@/components/coordinator/CourseManagement';
 import { ProjectManagement } from '@/components/coordinator/ProjectManagement';
+import { ApplicationDetail } from '@/components/coordinator/ApplicationDetail';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -25,11 +26,57 @@ export default function CoordinatorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('applications');
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+  const [selectedProgram, setSelectedProgram] = useState<any>(null);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
   };
+
+  const handleViewApplication = (applicationId: string) => {
+    setSelectedApplicationId(applicationId);
+  };
+
+  const handleBackFromApplication = () => {
+    setSelectedApplicationId(null);
+  };
+
+  const handleManageCourses = (program: any) => {
+    setSelectedProgram(program);
+    setActiveTab('courses');
+  };
+
+  const handleBackFromCourses = () => {
+    setSelectedProgram(null);
+    setActiveTab('programs');
+  };
+
+  // If viewing application detail, show that instead of tabs
+  if (selectedApplicationId) {
+    return (
+      <div className="min-h-screen bg-background">
+        <ApplicationDetail 
+          applicationId={selectedApplicationId}
+          onBack={handleBackFromApplication}
+        />
+      </div>
+    );
+  }
+
+  // If managing courses for a specific program, show course management
+  if (selectedProgram) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-6">
+          <CourseManagement 
+            program={selectedProgram}
+            onBack={handleBackFromCourses}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,15 +131,24 @@ export default function CoordinatorDashboard() {
           </TabsList>
 
           <TabsContent value="applications">
-            <ApplicationsList />
+            <ApplicationsList onViewApplication={handleViewApplication} />
           </TabsContent>
 
           <TabsContent value="programs">
-            <ProgramManagement />
+            <ProgramManagement onManageCourses={handleManageCourses} />
           </TabsContent>
 
           <TabsContent value="courses">
-            <CourseManagement />
+            <Card>
+              <CardHeader>
+                <CardTitle>Gestión de Cursos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Selecciona un programa desde la pestaña "Programas" para gestionar sus cursos.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="projects">

@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { UniversityManagement } from '@/components/admin/UniversityManagement';
-import { ContentManagement } from '@/components/admin/ContentManagement';
+import ContentManagement from '@/components/admin/ContentManagement';
 import { ProjectManagement } from '@/components/admin/ProjectManagement';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
