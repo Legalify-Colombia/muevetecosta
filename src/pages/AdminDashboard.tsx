@@ -7,7 +7,8 @@ import { ProjectManagement } from '@/components/admin/ProjectManagement';
 import { ProfessorMobilityManagement } from '@/components/admin/ProfessorMobilityManagement';
 import ContentManagement from '@/components/admin/ContentManagement';
 import { EmailConfiguration } from '@/components/admin/EmailConfiguration';
-import { Users, Building2, Briefcase, Plane, FileText, Mail } from 'lucide-react';
+import ReportsAnalytics from '@/components/admin/ReportsAnalytics';
+import { Users, Building2, Briefcase, Plane, FileText, Mail, BarChart3 } from 'lucide-react';
 import Header from '@/components/common/Header';
 
 export default function AdminDashboard() {
@@ -26,7 +27,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Usuarios
@@ -50,6 +51,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="email" className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
               Correo
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Reportes
             </TabsTrigger>
           </TabsList>
 
@@ -75,6 +80,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="email">
             <EmailConfiguration />
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <ReportsAnalytics />
           </TabsContent>
         </Tabs>
       </div>
