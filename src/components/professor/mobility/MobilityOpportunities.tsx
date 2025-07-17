@@ -37,7 +37,7 @@ export default function MobilityOpportunities() {
     queryKey: ['mobility-opportunities'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_calls')
+        .from('professor_mobility_calls' as any)
         .select(`
           *,
           universities(name, city)
@@ -51,7 +51,7 @@ export default function MobilityOpportunities() {
         throw error;
       }
       
-      return data as MobilityOpportunity[];
+      return (data as any[]) as MobilityOpportunity[];
     }
   });
 

@@ -79,7 +79,7 @@ export const ProfessorMobilityApplications = () => {
     queryKey: ['professor-mobility-applications'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_applications')
+        .from('professor_mobility_applications' as any)
         .select(`
           *,
           profiles(full_name, document_number, phone),
@@ -96,7 +96,7 @@ export const ProfessorMobilityApplications = () => {
         throw error;
       }
       
-      return data as ProfessorMobilityApplication[];
+      return (data as any[]) as ProfessorMobilityApplication[];
     }
   });
 
@@ -107,7 +107,7 @@ export const ProfessorMobilityApplications = () => {
       if (!selectedApplication?.id) return [];
       
       const { data, error } = await supabase
-        .from('professor_mobility_documents')
+        .from('professor_mobility_documents' as any)
         .select('*')
         .eq('application_id', selectedApplication.id)
         .order('uploaded_at', { ascending: false });
@@ -117,7 +117,7 @@ export const ProfessorMobilityApplications = () => {
         throw error;
       }
       
-      return data as MobilityDocument[];
+      return (data as any[]) as MobilityDocument[];
     },
     enabled: !!selectedApplication?.id
   });
@@ -127,7 +127,7 @@ export const ProfessorMobilityApplications = () => {
     mutationFn: async ({ applicationId, status, note }: { applicationId: string; status: string; note?: string }) => {
       // Update application status
       const { error: updateError } = await supabase
-        .from('professor_mobility_applications')
+        .from('professor_mobility_applications' as any)
         .update({ 
           status,
           updated_at: new Date().toISOString()
@@ -139,7 +139,7 @@ export const ProfessorMobilityApplications = () => {
       // Add note if provided
       if (note) {
         const { error: noteError } = await supabase
-          .from('professor_mobility_notes')
+          .from('professor_mobility_notes' as any)
           .insert({
             application_id: applicationId,
             coordinator_id: user?.id,
@@ -176,12 +176,12 @@ export const ProfessorMobilityApplications = () => {
       
       // Create download link
       const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
+      const a = window.document.createElement('a');
       a.href = url;
       a.download = document.file_name;
-      document.body.appendChild(a);
+      window.document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      window.document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading document:', error);

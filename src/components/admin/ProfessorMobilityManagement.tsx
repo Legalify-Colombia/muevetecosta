@@ -58,7 +58,7 @@ export const ProfessorMobilityManagement = () => {
     queryKey: ['professor-mobility-calls'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_calls')
+        .from('professor_mobility_calls' as any)
         .select(`
           *,
           universities(name, city),
@@ -71,7 +71,7 @@ export const ProfessorMobilityManagement = () => {
         throw error;
       }
       
-      return data as MobilityCall[];
+      return (data as any[]) as MobilityCall[];
     }
   });
 
@@ -94,7 +94,7 @@ export const ProfessorMobilityManagement = () => {
     mutationFn: async (callData: any) => {
       if (editingCall) {
         const { error } = await supabase
-          .from('professor_mobility_calls')
+          .from('professor_mobility_calls' as any)
           .update({
             ...callData,
             updated_at: new Date().toISOString()
@@ -104,7 +104,7 @@ export const ProfessorMobilityManagement = () => {
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('professor_mobility_calls')
+          .from('professor_mobility_calls' as any)
           .insert({
             ...callData,
             created_by: user?.id
@@ -136,7 +136,7 @@ export const ProfessorMobilityManagement = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('professor_mobility_calls')
+        .from('professor_mobility_calls' as any)
         .delete()
         .eq('id', id);
       
