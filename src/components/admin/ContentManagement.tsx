@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -178,8 +177,8 @@ const ContentManagement = () => {
   };
 
   const handleDelete = (pageId: string) => {
-    const confirmed = confirm("¿Estás seguro de que quieres eliminar esta página?");
-    if (confirmed) {
+    const userConfirmed = window.confirm("¿Estás seguro de que quieres eliminar esta página?");
+    if (userConfirmed) {
       deletePageMutation.mutate(pageId);
     }
   };
