@@ -73,7 +73,14 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center mb-4">
+            <img 
+              src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+              alt="Muévete por la Costa" 
+              className="h-12 w-auto"
+            />
+          </div>
           <CardTitle className="text-2xl text-center">Iniciar Sesión</CardTitle>
           <CardDescription className="text-center">
             Ingresa tus credenciales para acceder a tu cuenta

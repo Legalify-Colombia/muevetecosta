@@ -7,9 +7,11 @@ import { MyApplications } from "@/components/student/MyApplications";
 import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/common/Header";
 import Footer from "@/components/common/Footer";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const StudentDashboard = () => {
   const { profile } = useAuth();
+  const isMobile = useIsMobile();
 
   const navigationLinks = [
     { label: "Universidades", href: "/universities" }
@@ -23,20 +25,25 @@ const StudentDashboard = () => {
         navigationLinks={navigationLinks}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Panel de Estudiante
-          </h1>
-          <p className="text-lg text-gray-600">
-            Gestiona tu proceso de movilidad estudiantil en el Caribe colombiano
-          </p>
+      <div className="border-b bg-white/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Panel de Estudiante
+              </h1>
+              <p className="text-lg text-gray-600">
+                Gestiona tu proceso de movilidad estudiantil en el Caribe colombiano
+              </p>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+        <div className={`grid gap-8 ${isMobile ? 'grid-cols-1' : 'lg:grid-cols-3'}`}>
           {/* Quick Actions */}
-          <div className="lg:col-span-1">
+          <div className={isMobile ? 'order-2' : 'lg:col-span-1'}>
             <Card>
               <CardHeader>
                 <CardTitle>Acciones Rápidas</CardTitle>
@@ -89,7 +96,7 @@ const StudentDashboard = () => {
           </div>
 
           {/* Applications Section */}
-          <div className="lg:col-span-2">
+          <div className={`${isMobile ? 'order-1' : 'lg:col-span-2'}`}>
             <MyApplications />
           </div>
         </div>

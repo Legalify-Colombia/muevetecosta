@@ -129,7 +129,14 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <Card>
-          <CardHeader>
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <img 
+                src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+                alt="Muévete por la Costa" 
+                className="h-12 w-auto"
+              />
+            </div>
             <CardTitle className="text-center">Crear una cuenta</CardTitle>
             <CardDescription className="text-center">
               Registro para estudiantes y profesores

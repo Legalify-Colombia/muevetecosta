@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FlaskConical, FileText, User, Search, FolderOpen, Plane } from 'lucide-react';
@@ -10,11 +11,13 @@ import MobilityOpportunities from '@/components/professor/mobility/MobilityOppor
 import { MobilityApplications } from '@/components/professor/mobility/MobilityApplications';
 import Header from '@/components/common/Header';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function ProfessorDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showProjectCreation, setShowProjectCreation] = useState(false);
   const { profile } = useAuth();
+  const isMobile = useIsMobile();
 
   const handleCreateProject = () => {
     setShowProjectCreation(true);
@@ -61,30 +64,30 @@ export default function ProfessorDashboard() {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-6'}`}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <FlaskConical className="h-4 w-4" />
-              Resumen
+              {!isMobile && "Resumen"}
             </TabsTrigger>
             <TabsTrigger value="my-projects" className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4" />
-              Mis Proyectos
+              {!isMobile && "Mis Proyectos"}
             </TabsTrigger>
             <TabsTrigger value="search" className="flex items-center gap-2">
               <Search className="h-4 w-4" />
-              Buscar Proyectos
+              {!isMobile && "Buscar Proyectos"}
             </TabsTrigger>
             <TabsTrigger value="mobility" className="flex items-center gap-2">
               <Plane className="h-4 w-4" />
-              Movilidad
+              {!isMobile && "Movilidad"}
             </TabsTrigger>
             <TabsTrigger value="my-mobility" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Mis Postulaciones
+              {!isMobile && "Mis Postulaciones"}
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              Mi Perfil
+              {!isMobile && "Mi Perfil"}
             </TabsTrigger>
           </TabsList>
 
