@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,10 +27,6 @@ interface PageContent {
   sort_order: number | null;
 }
 
-interface PagesContentProps {
-  pages: PageContent[];
-}
-
 const ContentManagement = () => {
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -43,19 +40,22 @@ const ContentManagement = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const { data: pages, isLoading, isError } = useQuery<PageContent[]>("pages", async () => {
-    const { data, error } = await supabase
-      .from("pages_content")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) {
-      throw new Error(error.message);
+  const { data: pages, isLoading, isError } = useQuery({
+    queryKey: ["pages"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pages_content")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) {
+        throw new Error(error.message);
+      }
+      return data as PageContent[];
     }
-    return data || [];
   });
 
-  const createPageMutation = useMutation(
-    async () => {
+  const createPageMutation = useMutation({
+    mutationFn: async () => {
       if (!user?.id) {
         throw new Error("User ID is missing");
       }
@@ -76,28 +76,26 @@ const ContentManagement = () => {
       }
       return data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries("pages");
-        toast({
-          title: "Éxito",
-          description: "Página creada correctamente",
-        });
-        resetForm();
-        setIsModalOpen(false);
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pages"] });
+      toast({
+        title: "Éxito",
+        description: "Página creada correctamente",
+      });
+      resetForm();
+      setIsModalOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-  const updatePageMutation = useMutation(
-    async (pageId: string) => {
+  const updatePageMutation = useMutation({
+    mutationFn: async (pageId: string) => {
       if (!user?.id) {
         throw new Error("User ID is missing");
       }
@@ -119,51 +117,47 @@ const ContentManagement = () => {
       }
       return data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries("pages");
-        toast({
-          title: "Éxito",
-          description: "Página actualizada correctamente",
-        });
-        resetForm();
-        setEditingPageId(null);
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pages"] });
+      toast({
+        title: "Éxito",
+        description: "Página actualizada correctamente",
+      });
+      resetForm();
+      setEditingPageId(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
-  const deletePageMutation = useMutation(
-    async (pageId: string) => {
+  const deletePageMutation = useMutation({
+    mutationFn: async (pageId: string) => {
       const { data, error } = await supabase.from("pages_content").delete().eq("id", pageId);
       if (error) {
         throw new Error(error.message);
       }
       return data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries("pages");
-        toast({
-          title: "Éxito",
-          description: "Página eliminada correctamente",
-        });
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pages"] });
+      toast({
+        title: "Éxito",
+        description: "Página eliminada correctamente",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     if (editingPageId && pages) {
@@ -253,7 +247,7 @@ const ContentManagement = () => {
                           variant="destructive"
                           size="sm"
                           onClick={() => handleDelete(page.id)}
-                          disabled={deletePageMutation.isLoading}
+                          disabled={deletePageMutation.isPending}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Eliminar
@@ -334,7 +328,7 @@ const ContentManagement = () => {
                     />
                   </div>
                   <div className="items-center space-x-2">
-                    <Button type="submit" disabled={createPageMutation.isLoading || updatePageMutation.isLoading}>
+                    <Button type="submit" disabled={createPageMutation.isPending || updatePageMutation.isPending}>
                       <Save className="mr-2 h-4 w-4" />
                       {editingPageId ? "Actualizar" : "Guardar"}
                     </Button>
