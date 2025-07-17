@@ -17,6 +17,7 @@ import ContentManagement from '@/components/admin/ContentManagement';
 import { ProjectManagement } from '@/components/admin/ProjectManagement';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import Header from '@/components/common/Header';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -29,6 +30,11 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header 
+        showLogout={true}
+        userInfo="Administrador"
+      />
+      
       <div className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
@@ -38,14 +44,6 @@ export default function AdminDashboard() {
                 Gestiona usuarios, universidades, contenido y proyectos de investigación
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Cerrar Sesión
-            </Button>
           </div>
         </div>
       </div>

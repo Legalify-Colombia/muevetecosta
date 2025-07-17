@@ -20,12 +20,14 @@ import { ApplicationDetail } from '@/components/coordinator/ApplicationDetail';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import Header from '@/components/common/Header';
 
 export default function CoordinatorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('applications');
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+  const [selectedProgram, setSelectedProgram] = useState<any>(null);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -40,10 +42,24 @@ export default function CoordinatorDashboard() {
     setSelectedApplicationId(null);
   };
 
+  const handleManageCourses = (program: any) => {
+    setSelectedProgram(program);
+    setActiveTab('courses');
+  };
+
+  const handleBackFromCourses = () => {
+    setSelectedProgram(null);
+    setActiveTab('programs');
+  };
+
   // If viewing application detail, show that instead of tabs
   if (selectedApplicationId) {
     return (
       <div className="min-h-screen bg-background">
+        <Header 
+          showLogout={true}
+          userInfo="Coordinador"
+        />
         <ApplicationDetail 
           applicationId={selectedApplicationId}
           onBack={handleBackFromApplication}
@@ -54,6 +70,11 @@ export default function CoordinatorDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header 
+        showLogout={true}
+        userInfo="Coordinador"
+      />
+      
       <div className="border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
@@ -63,14 +84,6 @@ export default function CoordinatorDashboard() {
                 Gestiona aplicaciones, programas y proyectos de movilidad
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={handleLogout}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Cerrar Sesión
-            </Button>
           </div>
         </div>
       </div>
@@ -105,20 +118,27 @@ export default function CoordinatorDashboard() {
           </TabsContent>
 
           <TabsContent value="programs">
-            <ProgramManagement />
+            <ProgramManagement onManageCourses={handleManageCourses} />
           </TabsContent>
 
           <TabsContent value="courses">
-            <Card>
-              <CardHeader>
-                <CardTitle>Gestión de Cursos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Selecciona un programa específico para gestionar sus cursos desde la pestaña "Programas".
-                </p>
-              </CardContent>
-            </Card>
+            {selectedProgram ? (
+              <CourseManagement 
+                program={selectedProgram} 
+                onBack={handleBackFromCourses}
+              />
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gestión de Cursos</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Selecciona un programa específico para gestionar sus cursos desde la pestaña "Programas".
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="university">
