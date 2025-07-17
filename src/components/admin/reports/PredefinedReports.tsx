@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Users, Briefcase, Building2 } from 'lucide-react';
+import { ArrowLeft, GraduationCap, Users, Briefcase, Building2 } from 'lucide-react';
 import { StudentMobilityReport } from './StudentMobilityReport';
 import { ProfessorMobilityReport } from './ProfessorMobilityReport';
 import { ResearchProjectsReport } from './ResearchProjectsReport';
@@ -51,13 +51,18 @@ export const PredefinedReports = () => {
     if (report) {
       const ReportComponent = report.component;
       return (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">{report.title}</h3>
-              <p className="text-muted-foreground">{report.description}</p>
+        <div className="space-y-4 sm:space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-lg sm:text-xl font-semibold line-clamp-2">{report.title}</h3>
+              <p className="text-sm text-muted-foreground line-clamp-3">{report.description}</p>
             </div>
-            <Button variant="outline" onClick={() => setActiveReport(null)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setActiveReport(null)}
+              className="w-full sm:w-auto"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
               Volver a Reportes
             </Button>
           </div>
@@ -68,33 +73,34 @@ export const PredefinedReports = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-2">Reportes Predefinidos</h3>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Seleccione un reporte predefinido para generar análisis detallados de la plataforma.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {reports.map((report) => {
           const Icon = report.icon;
           return (
-            <Card key={report.id} className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <Icon className={`h-6 w-6 ${report.color}`} />
-                  <CardTitle className="text-lg">{report.title}</CardTitle>
+            <Card key={report.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-4">
+                <div className="flex items-start gap-3">
+                  <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${report.color} flex-shrink-0 mt-0.5`} />
+                  <CardTitle className="text-base sm:text-lg leading-tight">{report.title}</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
+              <CardContent className="space-y-4 pt-0">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   {report.description}
                 </p>
                 
                 <Button 
                   onClick={() => setActiveReport(report.id)}
                   className="w-full"
+                  size="sm"
                 >
                   Ver Reporte
                 </Button>

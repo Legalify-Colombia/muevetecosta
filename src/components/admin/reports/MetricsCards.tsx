@@ -1,103 +1,92 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, GraduationCap, Building2, Briefcase } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, Building2, Briefcase, GraduationCap, Loader2 } from 'lucide-react';
 
 export const MetricsCards = () => {
-  // Total de postulaciones
-  const { data: totalApplications } = useQuery({
-    queryKey: ['metrics-total-applications'],
+  const { data: metrics, isLoading } = useQuery({
+    queryKey: ['admin-metrics'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('mobility_applications')
-        .select('*', { count: 'exact', head: true });
-      if (error) throw error;
-      return count || 0;
-    }
+      const [
+        { count: totalApplications },
+        { count: totalProjects },
+        { count: totalUniversities },
+        { count: totalUsers }
+      ] = await Promise.all([
+        supabase.from('mobility_applications').select('*', { count: 'exact', head: true }),
+        supabase.from('research_projects').select('*', { count: 'exact', head: true }),
+        supabase.from('universities').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true })
+      ]);
+
+      return {
+        totalApplications: totalApplications || 0,
+        totalProjects: totalProjects || 0,
+        totalUniversities: totalUniversities || 0,
+        totalUsers: totalUsers || 0
+      };
+    },
   });
 
-  // Total de universidades activas
-  const { data: totalUniversities } = useQuery({
-    queryKey: ['metrics-total-universities'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('universities')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true);
-      if (error) throw error;
-      return count || 0;
-    }
-  });
-
-  // Total de usuarios
-  const { data: totalUsers } = useQuery({
-    queryKey: ['metrics-total-users'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-      if (error) throw error;
-      return count || 0;
-    }
-  });
-
-  // Total de proyectos
-  const { data: totalProjects } = useQuery({
-    queryKey: ['metrics-total-projects'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('research_projects')
-        .select('*', { count: 'exact', head: true });
-      if (error) throw error;
-      return count || 0;
-    }
-  });
-
-  const metrics = [
+  const cards = [
     {
       title: 'Total Postulaciones',
-      value: totalApplications?.toLocaleString() || '0',
+      value: metrics?.totalApplications || 0,
       icon: GraduationCap,
       color: 'text-blue-600'
     },
     {
-      title: 'Universidades Activas',
-      value: totalUniversities?.toLocaleString() || '0',
-      icon: Building2,
+      title: 'Proyectos Activos',
+      value: metrics?.totalProjects || 0,
+      icon: Briefcase,
       color: 'text-green-600'
     },
     {
-      title: 'Usuarios Registrados',
-      value: totalUsers?.toLocaleString() || '0',
-      icon: Users,
+      title: 'Universidades',
+      value: metrics?.totalUniversities || 0,
+      icon: Building2,
       color: 'text-purple-600'
     },
     {
-      title: 'Proyectos de Investigación',
-      value: totalProjects?.toLocaleString() || '0',
-      icon: Briefcase,
+      title: 'Usuarios Totales',
+      value: metrics?.totalUsers || 0,
+      icon: Users,
       color: 'text-orange-600'
     }
   ];
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {metrics.map((metric) => {
-        const Icon = metric.icon;
-        return (
-          <Card key={metric.title}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {metric.title}
-                  </p>
-                  <p className="text-3xl font-bold">{metric.value}</p>
-                </div>
-                <Icon className={`h-8 w-8 ${metric.color}`} />
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin" />
               </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {cards.map((card, index) => {
+        const Icon = card.icon;
+        return (
+          <Card key={index}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground line-clamp-2">
+                {card.title}
+              </CardTitle>
+              <Icon className={`h-4 w-4 ${card.color}`} />
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="text-xl sm:text-2xl font-bold">{card.value.toLocaleString()}</div>
             </CardContent>
           </Card>
         );

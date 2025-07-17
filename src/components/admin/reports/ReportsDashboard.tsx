@@ -14,40 +14,47 @@ export const ReportsDashboard = () => {
         <MetricsCards />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
+        {/* Mobile: Stack all charts vertically */}
         <Card>
-          <CardHeader>
-            <CardTitle>Estado de Postulaciones de Movilidad</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg">Estado de Postulaciones de Movilidad</CardTitle>
           </CardHeader>
-          <CardContent>
-            <MobilityOverviewChart />
+          <CardContent className="pt-0">
+            <div className="h-[250px] sm:h-[300px]">
+              <MobilityOverviewChart />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Postulaciones por Universidad</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg">Postulaciones por Universidad</CardTitle>
           </CardHeader>
-          <CardContent>
-            <UniversityStatsChart />
+          <CardContent className="pt-0">
+            <div className="h-[250px] sm:h-[300px]">
+              <UniversityStatsChart />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Estado de Proyectos de Investigación</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg">Estado de Proyectos de Investigación</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ProjectStatusChart />
+          <CardContent className="pt-0">
+            <div className="h-[250px] sm:h-[300px]">
+              <ProjectStatusChart />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Tendencia de Postulaciones</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg">Tendencia de Postulaciones</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+          <CardContent className="pt-0">
+            <div className="h-[250px] sm:h-[300px] flex items-center justify-center text-muted-foreground text-sm">
               Gráfico de tendencias por implementar
             </div>
           </CardContent>
