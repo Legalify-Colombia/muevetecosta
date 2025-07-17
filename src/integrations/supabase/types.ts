@@ -562,6 +562,63 @@ export type Database = {
           },
         ]
       }
+      professor_mobility_applications: {
+        Row: {
+          application_number: string | null
+          created_at: string | null
+          destination_university_id: string | null
+          end_date: string | null
+          id: string
+          mobility_type: string
+          professor_id: string
+          purpose: string | null
+          start_date: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          application_number?: string | null
+          created_at?: string | null
+          destination_university_id?: string | null
+          end_date?: string | null
+          id?: string
+          mobility_type?: string
+          professor_id: string
+          purpose?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          application_number?: string | null
+          created_at?: string | null
+          destination_university_id?: string | null
+          end_date?: string | null
+          id?: string
+          mobility_type?: string
+          professor_id?: string
+          purpose?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professor_mobility_applications_destination_university_id_fkey"
+            columns: ["destination_university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professor_mobility_applications_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
