@@ -14,6 +14,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Plus, Edit, Trash2, FileText } from "lucide-react";
 import { useUniversityRequiredDocuments, useCreateUniversityRequiredDocument, useUpdateUniversityRequiredDocument, useDeleteUniversityRequiredDocument, UniversityRequiredDocument } from "@/hooks/useUniversityRequiredDocuments";
+import { FileUpload } from "@/components/ui/file-upload";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { Download } from "lucide-react";
 
 const documentSchema = z.object({
   document_title: z.string().min(2, "El título debe tener al menos 2 caracteres"),
@@ -31,11 +34,18 @@ interface UniversityRequiredDocumentsProps {
 export const UniversityRequiredDocuments = ({ universityId }: UniversityRequiredDocumentsProps) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editingDocument, setEditingDocument] = useState<UniversityRequiredDocument | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [currentTemplate, setCurrentTemplate] = useState<{ name: string; url: string } | null>(null);
 
   const { data: documents = [], isLoading } = useUniversityRequiredDocuments(universityId);
   const createDocumentMutation = useCreateUniversityRequiredDocument();
   const updateDocumentMutation = useUpdateUniversityRequiredDocument();
   const deleteDocumentMutation = useDeleteUniversityRequiredDocument();
+  
+  const { uploadFile, isUploading } = useFileUpload({ 
+    bucket: 'document-templates',
+    folder: `university-${universityId}`
+  });
 
   const form = useForm<DocumentFormData>({
     resolver: zodResolver(documentSchema),
@@ -47,22 +57,44 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
     },
   });
 
-  const onSubmit = (data: DocumentFormData) => {
+  const onSubmit = async (data: DocumentFormData) => {
+    let templateFileUrl = '';
+    let templateFileName = '';
+
+    // Si hay un archivo seleccionado, subirlo primero
+    if (selectedFile) {
+      const fileName = `${data.document_title.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.${selectedFile.name.split('.').pop()}`;
+      const uploadedUrl = await uploadFile(selectedFile, fileName);
+      
+      if (!uploadedUrl) {
+        return; // Error en la carga, el hook ya mostró el mensaje
+      }
+      
+      templateFileUrl = uploadedUrl;
+      templateFileName = selectedFile.name;
+    } else if (editingDocument && currentTemplate) {
+      // Mantener el archivo existente si estamos editando y no se seleccionó uno nuevo
+      templateFileUrl = currentTemplate.url;
+      templateFileName = currentTemplate.name;
+    }
+
+    const documentData = {
+      university_id: universityId,
+      document_title: data.document_title,
+      is_mandatory: data.is_mandatory,
+      mobility_type: data.mobility_type,
+      ...(data.description && { description: data.description }),
+      ...(templateFileUrl && { template_file_url: templateFileUrl }),
+      ...(templateFileName && { template_file_name: templateFileName })
+    };
+
     if (editingDocument) {
       updateDocumentMutation.mutate({
         id: editingDocument.id,
-        data: data
+        data: documentData
       });
     } else {
-      // Ensure all required fields are present
-      const createData = {
-        university_id: universityId,
-        document_title: data.document_title,
-        is_mandatory: data.is_mandatory,
-        mobility_type: data.mobility_type,
-        ...(data.description && { description: data.description })
-      };
-      createDocumentMutation.mutate(createData);
+      createDocumentMutation.mutate(documentData);
     }
     
     handleCloseDialog();
@@ -76,6 +108,17 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
       mobility_type: document.mobility_type,
       description: document.description || "",
     });
+    
+    // Configurar el archivo de plantilla actual si existe
+    if (document.template_file_url && document.template_file_name) {
+      setCurrentTemplate({
+        name: document.template_file_name,
+        url: document.template_file_url
+      });
+    } else {
+      setCurrentTemplate(null);
+    }
+    setSelectedFile(null);
   };
 
   const handleDelete = (id: string) => {
@@ -87,6 +130,8 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
   const handleCloseDialog = () => {
     setShowCreateDialog(false);
     setEditingDocument(null);
+    setSelectedFile(null);
+    setCurrentTemplate(null);
     form.reset({
       document_title: "",
       is_mandatory: true,
@@ -134,7 +179,7 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
               Agregar Documento
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingDocument ? "Editar Documento Requerido" : "Nuevo Documento Requerido"}
@@ -229,12 +274,26 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
                   )}
                 />
 
+                <div className="space-y-2">
+                  <Label>Plantilla del Documento (Opcional)</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Sube una plantilla que los postulantes puedan descargar como referencia
+                  </p>
+                  <FileUpload
+                    onFileSelect={setSelectedFile}
+                    accept=".pdf,.doc,.docx"
+                    currentFile={selectedFile ? { name: selectedFile.name, url: '' } : currentTemplate}
+                    disabled={isUploading}
+                    className="mt-2"
+                  />
+                </div>
+
                 <DialogFooter>
                   <Button 
                     type="submit" 
-                    disabled={createDocumentMutation.isPending || updateDocumentMutation.isPending}
+                    disabled={createDocumentMutation.isPending || updateDocumentMutation.isPending || isUploading}
                   >
-                    {(createDocumentMutation.isPending || updateDocumentMutation.isPending) 
+                    {(createDocumentMutation.isPending || updateDocumentMutation.isPending || isUploading) 
                       ? "Guardando..." 
                       : (editingDocument ? "Actualizar" : "Crear Documento")
                     }
@@ -272,6 +331,7 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
                   <TableHead>Documento</TableHead>
                   <TableHead>Tipo de Movilidad</TableHead>
                   <TableHead>Obligatorio</TableHead>
+                  <TableHead>Plantilla</TableHead>
                   <TableHead>Descripción</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
@@ -291,6 +351,20 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
                       <Badge variant={document.is_mandatory ? "default" : "secondary"}>
                         {document.is_mandatory ? "Obligatorio" : "Opcional"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {document.template_file_url ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(document.template_file_url, '_blank')}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          {document.template_file_name}
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Sin plantilla</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="max-w-xs truncate">
