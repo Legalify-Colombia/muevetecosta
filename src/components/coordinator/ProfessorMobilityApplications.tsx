@@ -3,91 +3,123 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { FileText, Eye, Download, MessageSquare, Calendar, User, Building } from 'lucide-react';
+import { Eye, Download, MessageSquare, Calendar, User, Building, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+
+// Interfaces temporales
+interface ProfessorMobilityApplication {
+  id: string;
+  application_number: string;
+  professor_id: string;
+  mobility_call_id: string;
+  gender?: string;
+  birth_date?: string;
+  birth_place?: string;
+  birth_country?: string;
+  blood_type?: string;
+  health_insurance?: string;
+  contact_phone?: string;
+  contact_email?: string;
+  origin_institution?: string;
+  faculty_department?: string;
+  current_role?: string;
+  expertise_area?: string;
+  years_experience?: number;
+  employee_code?: string;
+  collaboration_department?: string;
+  proposed_start_date?: string;
+  proposed_end_date?: string;
+  mobility_justification?: string;
+  work_plan?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  profiles?: {
+    full_name: string;
+    document_number: string;
+    phone?: string;
+  };
+  professor_mobility_calls?: {
+    title: string;
+    mobility_type: string;
+    universities?: {
+      name: string;
+      city: string;
+    };
+  };
+}
+
+interface MobilityDocument {
+  id: string;
+  application_id: string;
+  document_type: string;
+  file_name: string;
+  file_path: string;
+  file_size?: number;
+  uploaded_at: string;
+}
 
 export const ProfessorMobilityApplications = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [selectedApplication, setSelectedApplication] = useState<ProfessorMobilityApplication | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const { data: myUniversity } = useQuery({
-    queryKey: ['coordinator-university', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('universities')
-        .select('*')
-        .eq('coordinator_id', user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id
-  });
-
+  // Fetch mobility applications
   const { data: applications = [], isLoading } = useQuery({
-    queryKey: ['professor-mobility-applications', myUniversity?.id, statusFilter],
+    queryKey: ['professor-mobility-applications'],
     queryFn: async () => {
-      if (!myUniversity?.id) return [];
-      
-      let query = supabase
-        .from('professor_mobility_applications')
+      const { data, error } = await supabase
+        .from('professor_mobility_applications' as any)
         .select(`
           *,
-          profiles!professor_mobility_applications_professor_id_fkey(full_name, document_number, document_type),
-          professor_mobility_calls!professor_mobility_applications_mobility_call_id_fkey(title, mobility_type, host_institution_id),
-          universities!professor_mobility_calls_host_institution_id_fkey(name)
+          profiles!professor_mobility_applications_professor_id_fkey(full_name, document_number, phone),
+          professor_mobility_calls!professor_mobility_applications_mobility_call_id_fkey(
+            title,
+            mobility_type,
+            universities!professor_mobility_calls_host_institution_id_fkey(name, city)
+          )
         `)
-        .eq('professor_mobility_calls.host_institution_id', myUniversity.id)
         .order('created_at', { ascending: false });
       
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-      
-      const { data, error } = await query;
-      
       if (error) throw error;
-      return data || [];
-    },
-    enabled: !!myUniversity?.id
+      return data as ProfessorMobilityApplication[];
+    }
   });
 
-  const { data: applicationDocuments = [], refetch: refetchDocuments } = useQuery({
+  // Fetch documents for selected application
+  const { data: documents = [] } = useQuery({
     queryKey: ['professor-mobility-documents', selectedApplication?.id],
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
       
       const { data, error } = await supabase
-        .from('professor_mobility_documents')
+        .from('professor_mobility_documents' as any)
         .select('*')
-        .eq('application_id', selectedApplication.id)
-        .order('uploaded_at', { ascending: false });
+        .eq('application_id', selectedApplication.id);
       
       if (error) throw error;
-      return data;
+      return data as MobilityDocument[];
     },
     enabled: !!selectedApplication?.id
   });
 
+  // Update application status mutation
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ applicationId, status }: { applicationId: string; status: string }) => {
+    mutationFn: async ({ applicationId, status, note }: { applicationId: string; status: string; note?: string }) => {
       const { error } = await supabase
-        .from('professor_mobility_applications')
+        .from('professor_mobility_applications' as any)
         .update({ 
           status,
           updated_at: new Date().toISOString()
@@ -95,6 +127,20 @@ export const ProfessorMobilityApplications = () => {
         .eq('id', applicationId);
       
       if (error) throw error;
+
+      // Add note if provided
+      if (note) {
+        const { error: noteError } = await supabase
+          .from('professor_mobility_notes' as any)
+          .insert({
+            application_id: applicationId,
+            coordinator_id: user?.id,
+            note,
+            is_internal: false
+          });
+        
+        if (noteError) throw noteError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['professor-mobility-applications'] });
@@ -102,39 +148,25 @@ export const ProfessorMobilityApplications = () => {
         title: 'Estado actualizado',
         description: 'El estado de la postulación se ha actualizado exitosamente.'
       });
-    }
-  });
-
-  const addNoteMutation = useMutation({
-    mutationFn: async ({ applicationId, note, isInternal }: { applicationId: string; note: string; isInternal: boolean }) => {
-      const { error } = await supabase
-        .from('professor_mobility_notes')
-        .insert({
-          application_id: applicationId,
-          coordinator_id: user?.id,
-          note,
-          is_internal: isInternal
-        });
-      
-      if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['professor-mobility-notes'] });
+    onError: () => {
       toast({
-        title: 'Nota agregada',
-        description: 'La nota se ha guardado exitosamente.'
+        title: 'Error',
+        description: 'No se pudo actualizar el estado de la postulación.',
+        variant: 'destructive'
       });
     }
   });
 
-  const downloadDocument = async (document: any) => {
+  const handleDownloadDocument = async (document: MobilityDocument) => {
     try {
       const { data, error } = await supabase.storage
         .from('professor-mobility-docs')
         .download(document.file_path);
-      
+
       if (error) throw error;
-      
+
+      // Create download link
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
@@ -143,57 +175,54 @@ export const ProfessorMobilityApplications = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Descarga iniciada',
+        description: `Descargando ${document.file_name}`
+      });
     } catch (error) {
       toast({
-        title: 'Error',
+        title: 'Error de descarga',
         description: 'No se pudo descargar el documento.',
         variant: 'destructive'
       });
     }
   };
 
-  const handleSubmitNote = (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
+  const filteredApplications = applications.filter(app => {
+    const matchesSearch = 
+      app.application_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.profiles?.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.professor_mobility_calls?.title.toLowerCase().includes(searchTerm.toLowerCase());
     
-    addNoteMutation.mutate({
-      applicationId: selectedApplication.id,
-      note: formData.get('note') as string,
-      isInternal: formData.get('is_internal') === 'on'
-    });
+    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     
-    (e.target as HTMLFormElement).reset();
-  };
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status: string) => {
     const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      in_review: 'bg-blue-100 text-blue-800',
-      approved_origin: 'bg-green-100 text-green-800',
-      approved_destination: 'bg-green-100 text-green-800',
-      rejected: 'bg-red-100 text-red-800',
-      completed: 'bg-purple-100 text-purple-800'
+      'pending': 'bg-yellow-100 text-yellow-800',
+      'in_review': 'bg-blue-100 text-blue-800',
+      'approved_origin': 'bg-green-100 text-green-800',
+      'approved_destination': 'bg-green-100 text-green-800',
+      'rejected': 'bg-red-100 text-red-800',
+      'completed': 'bg-purple-100 text-purple-800'
     };
     return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  const getStatusText = (status: string) => {
-    const statusTexts = {
-      pending: 'Pendiente',
-      in_review: 'En Revisión',
-      approved_origin: 'Aprobada por Origen',
-      approved_destination: 'Aprobada por Destino',
-      rejected: 'Rechazada',
-      completed: 'Completada'
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      'pending': 'Pendiente',
+      'in_review': 'En Revisión',
+      'approved_origin': 'Aprobada (Origen)',
+      'approved_destination': 'Aprobada (Destino)',
+      'rejected': 'Rechazada',
+      'completed': 'Completada'
     };
-    return statusTexts[status as keyof typeof statusTexts] || status;
+    return labels[status as keyof typeof labels] || status;
   };
-
-  const filteredApplications = applications.filter(app =>
-    app.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.application_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.professor_mobility_calls?.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   if (isLoading) {
     return (
@@ -209,235 +238,224 @@ export const ProfessorMobilityApplications = () => {
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <FileText className="h-5 w-5 mr-2" />
-            Postulaciones de Movilidad - Profesores
-          </CardTitle>
-          <CardDescription>
-            Gestiona las postulaciones de movilidad de profesores a tu universidad
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Buscar por nombre, número de radicación o convocatoria..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="pending">Pendientes</SelectItem>
-                <SelectItem value="in_review">En Revisión</SelectItem>
-                <SelectItem value="approved_origin">Aprobadas por Origen</SelectItem>
-                <SelectItem value="approved_destination">Aprobadas por Destino</SelectItem>
-                <SelectItem value="rejected">Rechazadas</SelectItem>
-                <SelectItem value="completed">Completadas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <User className="h-5 w-5 mr-2" />
+          Postulaciones de Movilidad - Profesores
+        </CardTitle>
+        <CardDescription>
+          Gestiona y revisa las postulaciones de movilidad de profesores
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Input
+            placeholder="Buscar por número, profesor o convocatoria..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1"
+          />
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filtrar por estado" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
+              <SelectItem value="pending">Pendiente</SelectItem>
+              <SelectItem value="in_review">En Revisión</SelectItem>
+              <SelectItem value="approved_origin">Aprobada (Origen)</SelectItem>
+              <SelectItem value="approved_destination">Aprobada (Destino)</SelectItem>
+              <SelectItem value="rejected">Rechazada</SelectItem>
+              <SelectItem value="completed">Completada</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-          <div className="space-y-4">
-            {filteredApplications.map((app) => (
-              <div key={app.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div>
-                      <p className="font-medium text-lg">{app.application_number}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(app.created_at).toLocaleDateString('es-ES')}
-                      </p>
-                    </div>
-                    <Badge className={getStatusColor(app.status)} variant="secondary">
-                      {getStatusText(app.status)}
+        <div className="text-sm text-muted-foreground">
+          {filteredApplications.length} postulación(es) encontrada(s)
+        </div>
+
+        <div className="grid gap-4">
+          {filteredApplications.map((application) => (
+            <div key={application.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold">{application.application_number}</h3>
+                    <Badge className={getStatusColor(application.status)} variant="secondary">
+                      {getStatusLabel(application.status)}
                     </Badge>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => setSelectedApplication(app)}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Ver Detalles
-                  </Button>
+                  
+                  <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>{application.profiles?.full_name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      <span>{application.professor_mobility_calls?.title}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Creada: {new Date(application.created_at).toLocaleDateString('es-ES')}</span>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-400" />
-                    <span><strong>Profesor:</strong> {app.profiles?.full_name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Building className="h-4 w-4 text-gray-400" />
-                    <span><strong>Convocatoria:</strong> {app.professor_mobility_calls?.title}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {filteredApplications.length === 0 && (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No se encontraron postulaciones</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Application Detail Dialog */}
-      <Dialog open={!!selectedApplication} onOpenChange={() => setSelectedApplication(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalle de Postulación - {selectedApplication?.application_number}</DialogTitle>
-          </DialogHeader>
-          
-          {selectedApplication && (
-            <div className="space-y-6">
-              {/* Status Update */}
-              <div className="flex items-center gap-4">
-                <Label>Estado actual:</Label>
-                <Badge className={getStatusColor(selectedApplication.status)} variant="secondary">
-                  {getStatusText(selectedApplication.status)}
-                </Badge>
-                <Select 
-                  value={selectedApplication.status} 
-                  onValueChange={(status) => updateStatusMutation.mutate({ 
-                    applicationId: selectedApplication.id, 
-                    status 
-                  })}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedApplication(application);
+                    setIsDetailDialogOpen(true);
+                  }}
                 >
-                  <SelectTrigger className="w-48">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pendiente</SelectItem>
-                    <SelectItem value="in_review">En Revisión</SelectItem>
-                    <SelectItem value="approved_destination">Aprobar</SelectItem>
-                    <SelectItem value="rejected">Rechazar</SelectItem>
-                    <SelectItem value="completed">Completar</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Separator />
-
-              {/* Personal Information */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Información Personal</h3>
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                  <div><strong>Nombre:</strong> {selectedApplication.profiles?.full_name}</div>
-                  <div><strong>Documento:</strong> {selectedApplication.profiles?.document_type?.toUpperCase()} {selectedApplication.profiles?.document_number}</div>
-                  <div><strong>Email:</strong> {selectedApplication.contact_email}</div>
-                  <div><strong>Teléfono:</strong> {selectedApplication.contact_phone}</div>
-                  <div><strong>Fecha de Nacimiento:</strong> {selectedApplication.birth_date ? new Date(selectedApplication.birth_date).toLocaleDateString('es-ES') : 'No especificada'}</div>
-                  <div><strong>Lugar de Nacimiento:</strong> {selectedApplication.birth_place || 'No especificado'}</div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Academic Information */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Información Académica/Laboral</h3>
-                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                  <div><strong>Institución de Origen:</strong> {selectedApplication.origin_institution}</div>
-                  <div><strong>Facultad/Departamento:</strong> {selectedApplication.faculty_department}</div>
-                  <div><strong>Rol Actual:</strong> {selectedApplication.current_role}</div>
-                  <div><strong>Área de Experticia:</strong> {selectedApplication.expertise_area}</div>
-                  <div><strong>Años de Experiencia:</strong> {selectedApplication.years_experience}</div>
-                  <div><strong>Código de Empleado:</strong> {selectedApplication.employee_code || 'No especificado'}</div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Mobility Details */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Detalles de Movilidad</h3>
-                <div className="space-y-3 text-sm">
-                  <div><strong>Departamento de Colaboración:</strong> {selectedApplication.collaboration_department}</div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div><strong>Fecha de Inicio:</strong> {selectedApplication.proposed_start_date ? new Date(selectedApplication.proposed_start_date).toLocaleDateString('es-ES') : 'No especificada'}</div>
-                    <div><strong>Fecha de Finalización:</strong> {selectedApplication.proposed_end_date ? new Date(selectedApplication.proposed_end_date).toLocaleDateString('es-ES') : 'No especificada'}</div>
-                  </div>
-                  <div>
-                    <strong>Justificación y Objetivos:</strong>
-                    <p className="mt-1 p-3 bg-gray-50 rounded text-sm">{selectedApplication.mobility_justification}</p>
-                  </div>
-                  <div>
-                    <strong>Plan de Trabajo:</strong>
-                    <p className="mt-1 p-3 bg-gray-50 rounded text-sm">{selectedApplication.work_plan}</p>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Documents */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Documentos</h3>
-                <div className="space-y-2">
-                  {applicationDocuments.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 border rounded">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-4 w-4" />
-                        <div>
-                          <p className="font-medium">{doc.document_type}</p>
-                          <p className="text-sm text-gray-500">{doc.file_name}</p>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => downloadDocument(doc)}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Descargar
-                      </Button>
-                    </div>
-                  ))}
-                  {applicationDocuments.length === 0 && (
-                    <p className="text-gray-500 text-center py-4">No hay documentos adjuntos</p>
-                  )}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Add Note */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Agregar Nota</h3>
-                <form onSubmit={handleSubmitNote} className="space-y-4">
-                  <Textarea
-                    name="note"
-                    placeholder="Escriba su nota o comentario..."
-                    required
-                  />
-                  <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2">
-                      <input type="checkbox" name="is_internal" />
-                      <span className="text-sm">Nota interna (no visible para el profesor)</span>
-                    </label>
-                    <Button type="submit" disabled={addNoteMutation.isPending}>
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      {addNoteMutation.isPending ? 'Guardando...' : 'Agregar Nota'}
-                    </Button>
-                  </div>
-                </form>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Ver Detalles
+                </Button>
               </div>
             </div>
+          ))}
+          
+          {filteredApplications.length === 0 && (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No se encontraron postulaciones</p>
+            </div>
           )}
-        </DialogContent>
-      </Dialog>
-    </>
+        </div>
+
+        {/* Detail Dialog */}
+        <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Detalle de Postulación - {selectedApplication?.application_number}
+              </DialogTitle>
+            </DialogHeader>
+            
+            {selectedApplication && (
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Profesor</Label>
+                    <p className="text-sm">{selectedApplication.profiles?.full_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Estado</Label>
+                    <Badge className={getStatusColor(selectedApplication.status)} variant="secondary">
+                      {getStatusLabel(selectedApplication.status)}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Convocatoria</Label>
+                    <p className="text-sm">{selectedApplication.professor_mobility_calls?.title}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Teléfono</Label>
+                    <p className="text-sm">{selectedApplication.contact_phone || 'No especificado'}</p>
+                  </div>
+                </div>
+
+                {/* Academic Info */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Institución de Origen</Label>
+                    <p className="text-sm">{selectedApplication.origin_institution}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Rol Actual</Label>
+                    <p className="text-sm">{selectedApplication.current_role}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Área de Experticia</Label>
+                    <p className="text-sm">{selectedApplication.expertise_area}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Años de Experiencia</Label>
+                    <p className="text-sm">{selectedApplication.years_experience}</p>
+                  </div>
+                </div>
+
+                {/* Mobility Details */}
+                {selectedApplication.mobility_justification && (
+                  <div>
+                    <Label className="text-sm font-medium">Justificación de la Movilidad</Label>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{selectedApplication.mobility_justification}</p>
+                  </div>
+                )}
+
+                {selectedApplication.work_plan && (
+                  <div>
+                    <Label className="text-sm font-medium">Plan de Trabajo</Label>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{selectedApplication.work_plan}</p>
+                  </div>
+                )}
+
+                {/* Documents */}
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Documentos Adjuntos</Label>
+                  <div className="grid gap-2">
+                    {documents.map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between p-2 border rounded">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          <span className="text-sm">{doc.file_name}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {doc.document_type}
+                          </Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownloadDocument(doc)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {documents.length === 0 && (
+                      <p className="text-sm text-gray-500">No hay documentos adjuntos</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Status Update */}
+                <div className="border-t pt-4">
+                  <Label className="text-sm font-medium mb-2 block">Actualizar Estado</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      defaultValue={selectedApplication.status}
+                      onValueChange={(newStatus) => {
+                        updateStatusMutation.mutate({
+                          applicationId: selectedApplication.id,
+                          status: newStatus
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pendiente</SelectItem>
+                        <SelectItem value="in_review">En Revisión</SelectItem>
+                        <SelectItem value="approved_origin">Aprobada (Origen)</SelectItem>
+                        <SelectItem value="approved_destination">Aprobada (Destino)</SelectItem>
+                        <SelectItem value="rejected">Rechazada</SelectItem>
+                        <SelectItem value="completed">Completada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
   );
 };

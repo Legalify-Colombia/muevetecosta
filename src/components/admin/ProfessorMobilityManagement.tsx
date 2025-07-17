@@ -15,12 +15,43 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
+// Interfaces temporales hasta que se actualicen los tipos de Supabase
+interface MobilityCall {
+  id: string;
+  title: string;
+  description?: string;
+  host_institution_id?: string;
+  mobility_type: string;
+  application_deadline: string;
+  estimated_duration?: string;
+  collaboration_area?: string;
+  funding_available: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  requirements?: string[];
+  universities?: {
+    name: string;
+    city: string;
+  };
+  profiles?: {
+    full_name: string;
+  };
+}
+
+interface University {
+  id: string;
+  name: string;
+  city: string;
+}
+
 export const ProfessorMobilityManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [editingCall, setEditingCall] = useState<any>(null);
+  const [editingCall, setEditingCall] = useState<MobilityCall | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch mobility calls
@@ -28,7 +59,7 @@ export const ProfessorMobilityManagement = () => {
     queryKey: ['professor-mobility-calls'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_calls')
+        .from('professor_mobility_calls' as any)
         .select(`
           *,
           universities!professor_mobility_calls_host_institution_id_fkey(name, city),
@@ -37,7 +68,7 @@ export const ProfessorMobilityManagement = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as MobilityCall[];
     }
   });
 
@@ -51,7 +82,7 @@ export const ProfessorMobilityManagement = () => {
         .eq('is_active', true);
       
       if (error) throw error;
-      return data;
+      return data as University[];
     }
   });
 
@@ -60,7 +91,7 @@ export const ProfessorMobilityManagement = () => {
     mutationFn: async (callData: any) => {
       if (editingCall) {
         const { error } = await supabase
-          .from('professor_mobility_calls')
+          .from('professor_mobility_calls' as any)
           .update({
             ...callData,
             updated_at: new Date().toISOString()
@@ -70,7 +101,7 @@ export const ProfessorMobilityManagement = () => {
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('professor_mobility_calls')
+          .from('professor_mobility_calls' as any)
           .insert({
             ...callData,
             created_by: user?.id
@@ -101,7 +132,7 @@ export const ProfessorMobilityManagement = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('professor_mobility_calls')
+        .from('professor_mobility_calls' as any)
         .delete()
         .eq('id', id);
       
