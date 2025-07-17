@@ -11,6 +11,8 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, profile, loading } = useAuth();
 
+  console.log('ProtectedRoute - user:', user?.id, 'profile:', profile?.role, 'loading:', loading, 'allowedRoles:', allowedRoles);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -23,13 +25,21 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
 
   if (!user) {
+    console.log('No user, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+  if (!profile) {
+    console.log('No profile, redirecting to login');
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(profile.role)) {
+    console.log('Role not allowed, redirecting to home. User role:', profile.role, 'Allowed roles:', allowedRoles);
     return <Navigate to="/" replace />;
   }
 
+  console.log('Access granted for role:', profile.role);
   return <>{children}</>;
 };
 

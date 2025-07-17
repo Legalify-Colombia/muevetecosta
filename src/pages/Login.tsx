@@ -16,26 +16,38 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signIn, user, profile } = useAuth();
+  const { signIn, user, profile, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (user && profile) {
+    console.log('Login useEffect - user:', user?.id, 'profile:', profile?.role, 'authLoading:', authLoading);
+    
+    if (!authLoading && user && profile) {
+      console.log('Redirecting user with role:', profile.role);
+      
       // Redirect based on user role
       switch (profile.role) {
         case "student":
-          navigate("/dashboard/student");
+          console.log('Redirecting to student dashboard');
+          navigate("/dashboard/student", { replace: true });
           break;
         case "coordinator":
-          navigate("/dashboard/coordinator");
+          console.log('Redirecting to coordinator dashboard');
+          navigate("/dashboard/coordinator", { replace: true });
           break;
         case "admin":
-          navigate("/dashboard/admin");
+          console.log('Redirecting to admin dashboard');
+          navigate("/dashboard/admin", { replace: true });
+          break;
+        case "professor":
+          console.log('Redirecting to professor dashboard');
+          navigate("/dashboard/professor", { replace: true });
           break;
         default:
-          navigate("/");
+          console.log('Unknown role, redirecting to home:', profile.role);
+          navigate("/", { replace: true });
       }
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,23 +63,46 @@ const Login = () => {
 
     setLoading(true);
     
-    const { error } = await signIn(email, password);
-    
-    if (error) {
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        console.error('Login error:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Error al iniciar sesión",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "¡Bienvenido!",
+          description: "Has iniciado sesión correctamente",
+        });
+        // La redirección se manejará en el useEffect cuando se actualice el profile
+      }
+    } catch (err) {
+      console.error('Unexpected login error:', err);
       toast({
         title: "Error",
-        description: error.message || "Error al iniciar sesión",
+        description: "Error inesperado al iniciar sesión",
         variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "¡Bienvenido!",
-        description: "Has iniciado sesión correctamente",
       });
     }
     
     setLoading(false);
   };
+
+  // Si ya está autenticado y cargando, mostrar loading
+  if (!authLoading && user && profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Redirigiendo...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
@@ -131,7 +166,7 @@ const Login = () => {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading || authLoading}>
                 {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
               </Button>
             </form>
