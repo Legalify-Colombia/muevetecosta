@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,7 +63,7 @@ const ProfessorProfile = () => {
         expertise_areas: professorInfo.expertise_areas || [],
         research_interests: professorInfo.research_interests || "",
         relevant_publications: Array.isArray(professorInfo.relevant_publications) 
-          ? professorInfo.relevant_publications as Publication[]
+          ? (professorInfo.relevant_publications as unknown as Publication[])
           : [],
         project_experience: professorInfo.project_experience || "",
         cv_url: professorInfo.cv_url || "",
@@ -82,7 +81,14 @@ const ProfessorProfile = () => {
         .from('professor_info')
         .upsert({
           id: user.id,
-          ...data
+          university: data.university,
+          faculty_department: data.faculty_department,
+          expertise_areas: data.expertise_areas,
+          research_interests: data.research_interests,
+          relevant_publications: data.relevant_publications as any,
+          project_experience: data.project_experience,
+          cv_url: data.cv_url,
+          profile_photo_url: data.profile_photo_url
         });
       
       if (error) throw error;
