@@ -51,21 +51,30 @@ export const ProfessorMobilityManagement = () => {
   const [editingCall, setEditingCall] = useState<MobilityCall | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch mobility calls from database
+  // Fetch mobility calls using RPC or raw SQL to avoid type issues
   const { data: mobilityCalls = [], isLoading } = useQuery({
     queryKey: ['professor-mobility-calls-admin'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_calls')
-        .select(`
-          *,
-          universities(name, city)
-        `)
-        .order('created_at', { ascending: false });
+        .rpc('get_professor_mobility_calls_with_universities');
       
       if (error) {
         console.error('Error fetching mobility calls:', error);
-        throw error;
+        // Fallback to direct query if RPC doesn't exist
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('professor_mobility_calls' as any)
+          .select(`
+            *,
+            universities(name, city)
+          `)
+          .order('created_at', { ascending: false });
+          
+        if (fallbackError) {
+          console.error('Fallback query error:', fallbackError);
+          throw fallbackError;
+        }
+        
+        return fallbackData as MobilityCall[];
       }
       
       return data as MobilityCall[];
@@ -91,7 +100,7 @@ export const ProfessorMobilityManagement = () => {
     mutationFn: async (callData: any) => {
       if (editingCall) {
         const { error } = await supabase
-          .from('professor_mobility_calls')
+          .from('professor_mobility_calls' as any)
           .update({
             ...callData,
             updated_at: new Date().toISOString()
@@ -101,7 +110,7 @@ export const ProfessorMobilityManagement = () => {
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('professor_mobility_calls')
+          .from('professor_mobility_calls' as any)
           .insert(callData);
         
         if (error) throw error;
@@ -130,7 +139,7 @@ export const ProfessorMobilityManagement = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('professor_mobility_calls')
+        .from('professor_mobility_calls' as any)
         .delete()
         .eq('id', id);
       
