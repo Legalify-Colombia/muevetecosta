@@ -5,10 +5,11 @@ import Footer from "@/components/common/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, User, Search, FileText, Bell, Plus } from "lucide-react";
+import { BookOpen, User, Search, FileText, Bell, Plus, Users, Lightbulb } from "lucide-react";
 import ProfessorProfile from "@/components/professor/ProfessorProfile";
 import MyProjects from "@/components/professor/MyProjects";
 import ProjectSearch from "@/components/professor/ProjectSearch";
+import ProjectsOverview from "@/components/professor/ProjectsOverview";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -42,6 +43,30 @@ const ProfessorDashboard = () => {
     enabled: !!user?.id
   });
 
+  // Obtener estadísticas generales de investigación
+  const { data: researchStats } = useQuery({
+    queryKey: ['research-stats'],
+    queryFn: async () => {
+      const [projectsResult, opportunitiesResult] = await Promise.all([
+        supabase
+          .from('research_projects')
+          .select('status')
+          .eq('is_public', true),
+        supabase
+          .from('research_projects')
+          .select('id')
+          .eq('status', 'proposal')
+          .eq('is_public', true)
+      ]);
+      
+      return {
+        totalProjects: projectsResult.data?.length || 0,
+        activeProjects: projectsResult.data?.filter(p => p.status === 'active').length || 0,
+        opportunities: opportunitiesResult.data?.length || 0
+      };
+    }
+  });
+
   // Obtener notificaciones recientes
   const { data: notifications = [] } = useQuery({
     queryKey: ['professor-notifications', user?.id],
@@ -69,24 +94,50 @@ const ProfessorDashboard = () => {
         {/* Bienvenida */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">
-            ¡Bienvenido, Profesor {profile?.full_name}!
+            ¡Bienvenido, Prof. {profile?.full_name}!
           </h1>
           <p className="text-muted-foreground">
-            Centro de operaciones para la gestión de proyectos de investigación y colaboración internacional
+            Centro de gestión para proyectos de investigación colaborativa en la red MobiCaribe
           </p>
         </div>
 
         {/* Resumen Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Proyectos Activos</CardTitle>
+              <CardTitle className="text-sm font-medium">Mis Proyectos</CardTitle>
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{activeProjects.length}</div>
               <p className="text-xs text-muted-foreground">
-                Proyectos en los que participas actualmente
+                Proyectos en los que participo
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Red MobiCaribe</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{researchStats?.activeProjects || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Proyectos activos en la red
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Oportunidades</CardTitle>
+              <Lightbulb className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{researchStats?.opportunities || 0}</div>
+              <p className="text-xs text-muted-foreground">
+                Propuestas para colaborar
               </p>
             </CardContent>
           </Card>
@@ -101,18 +152,6 @@ const ProfessorDashboard = () => {
               <p className="text-xs text-muted-foreground">
                 Notificaciones recientes
               </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Mi Perfil</CardTitle>
-              <User className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" size="sm" className="w-full">
-                Editar Perfil
-              </Button>
             </CardContent>
           </Card>
         </div>
@@ -145,13 +184,18 @@ const ProfessorDashboard = () => {
         )}
 
         {/* Pestañas principales */}
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="research" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="research">Investigación</TabsTrigger>
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
             <TabsTrigger value="projects">Mis Proyectos</TabsTrigger>
-            <TabsTrigger value="search">Explorar Proyectos</TabsTrigger>
+            <TabsTrigger value="search">Explorar</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="research" className="space-y-6">
+            <ProjectsOverview />
+          </TabsContent>
 
           <TabsContent value="dashboard" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -206,7 +250,7 @@ const ProfessorDashboard = () => {
                   </Button>
                   <Button variant="outline" className="w-full justify-start">
                     <Search className="h-4 w-4 mr-2" />
-                    Explorar Proyectos Públicos
+                    Explorar Proyectos de la Red
                   </Button>
                   <Button variant="outline" className="w-full justify-start">
                     <Plus className="h-4 w-4 mr-2" />
