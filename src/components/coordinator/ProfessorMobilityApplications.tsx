@@ -4,12 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Eye, Download, MessageSquare, Calendar, User, Building, FileText } from 'lucide-react';
+import { Eye, Download, Calendar, User, Building, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -90,11 +89,10 @@ export const ProfessorMobilityApplications = () => {
             mobility_type,
             universities!professor_mobility_calls_host_institution_id_fkey(name, city)
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
       
       if (error) throw error;
-      return data as ProfessorMobilityApplication[];
+      return (data || []) as ProfessorMobilityApplication[];
     }
   });
 
@@ -110,7 +108,7 @@ export const ProfessorMobilityApplications = () => {
         .eq('application_id', selectedApplication.id);
       
       if (error) throw error;
-      return data as MobilityDocument[];
+      return (data || []) as MobilityDocument[];
     },
     enabled: !!selectedApplication?.id
   });
@@ -168,12 +166,12 @@ export const ProfessorMobilityApplications = () => {
 
       // Create download link
       const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
+      const a = window.document.createElement('a');
       a.href = url;
       a.download = document.file_name;
-      document.body.appendChild(a);
+      window.document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      window.document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       toast({
@@ -191,9 +189,9 @@ export const ProfessorMobilityApplications = () => {
 
   const filteredApplications = applications.filter(app => {
     const matchesSearch = 
-      app.application_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.profiles?.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.professor_mobility_calls?.title.toLowerCase().includes(searchTerm.toLowerCase());
+      app.application_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.professor_mobility_calls?.title?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     

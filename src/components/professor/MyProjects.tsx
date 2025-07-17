@@ -240,8 +240,7 @@ export default function MyProjects() {
           </DialogHeader>
           {selectedProject && (
             <ProjectDetail 
-              project={selectedProject} 
-              onClose={() => setSelectedProject(null)} 
+              projectId={selectedProject.id}
             />
           )}
         </DialogContent>

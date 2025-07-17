@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,7 +42,7 @@ interface Project {
   }>;
 }
 
-export function ProjectManagement() {
+export const ProjectManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -290,4 +289,4 @@ export function ProjectManagement() {
       />
     </div>
   );
-}
+};

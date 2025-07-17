@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, University, FileText, Settings, Plane } from 'lucide-react';
-import UserManagement from '@/components/admin/UserManagement';
-import UniversityManagement from '@/components/admin/UniversityManagement';
+import { UserManagement } from '@/components/admin/UserManagement';
+import { UniversityManagement } from '@/components/admin/UniversityManagement';
 import ContentManagement from '@/components/admin/ContentManagement';
-import ProjectManagement from '@/components/admin/ProjectManagement';
+import { ProjectManagement } from '@/components/admin/ProjectManagement';
 import { ProfessorMobilityManagement } from '@/components/admin/ProfessorMobilityManagement';
 import Header from '@/components/common/Header';
 

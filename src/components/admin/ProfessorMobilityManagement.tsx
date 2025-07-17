@@ -64,11 +64,10 @@ export const ProfessorMobilityManagement = () => {
           *,
           universities!professor_mobility_calls_host_institution_id_fkey(name, city),
           profiles!professor_mobility_calls_created_by_fkey(full_name)
-        `)
-        .order('created_at', { ascending: false });
+        `);
       
       if (error) throw error;
-      return data as MobilityCall[];
+      return (data || []) as MobilityCall[];
     }
   });
 
@@ -82,7 +81,7 @@ export const ProfessorMobilityManagement = () => {
         .eq('is_active', true);
       
       if (error) throw error;
-      return data as University[];
+      return (data || []) as University[];
     }
   });
 
@@ -176,8 +175,8 @@ export const ProfessorMobilityManagement = () => {
   };
 
   const filteredCalls = mobilityCalls.filter(call =>
-    call.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    call.universities?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    call.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    call.universities?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusColor = (isActive: boolean) => {
