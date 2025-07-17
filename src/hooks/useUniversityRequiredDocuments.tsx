@@ -14,6 +14,14 @@ export interface UniversityRequiredDocument {
   updated_at: string;
 }
 
+type CreateUniversityRequiredDocument = {
+  university_id: string;
+  document_title: string;
+  is_mandatory: boolean;
+  mobility_type: 'student' | 'professor' | 'both';
+  description?: string;
+};
+
 export const useUniversityRequiredDocuments = (universityId?: string) => {
   return useQuery({
     queryKey: ['university-required-documents', universityId],
@@ -27,7 +35,7 @@ export const useUniversityRequiredDocuments = (universityId?: string) => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as UniversityRequiredDocument[];
+      return (data || []) as UniversityRequiredDocument[];
     },
     enabled: !!universityId
   });
@@ -38,7 +46,7 @@ export const useCreateUniversityRequiredDocument = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: Omit<UniversityRequiredDocument, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (data: CreateUniversityRequiredDocument) => {
       const { data: result, error } = await supabase
         .from('university_required_documents' as any)
         .insert([data])
@@ -70,7 +78,7 @@ export const useUpdateUniversityRequiredDocument = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string, data: Partial<UniversityRequiredDocument> }) => {
+    mutationFn: async ({ id, data }: { id: string, data: Partial<CreateUniversityRequiredDocument> }) => {
       const { data: result, error } = await supabase
         .from('university_required_documents' as any)
         .update(data)
