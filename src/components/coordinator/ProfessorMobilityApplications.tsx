@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Eye, Download, Calendar, User, Building, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,30 +21,20 @@ interface ProfessorMobilityApplication {
   mobility_call_id: string;
   gender?: string;
   birth_date?: string;
-  birth_place?: string;
-  birth_country?: string;
-  blood_type?: string;
-  health_insurance?: string;
   contact_phone?: string;
   contact_email?: string;
   origin_institution?: string;
-  faculty_department?: string;
   current_role?: string;
   expertise_area?: string;
-  years_experience?: number;
-  employee_code?: string;
-  collaboration_department?: string;
   proposed_start_date?: string;
   proposed_end_date?: string;
   mobility_justification?: string;
   work_plan?: string;
   status: string;
   created_at: string;
-  updated_at: string;
   profiles?: {
     full_name: string;
     document_number: string;
-    phone?: string;
   };
   professor_mobility_calls?: {
     title: string;
@@ -55,14 +46,20 @@ interface ProfessorMobilityApplication {
   };
 }
 
-interface MobilityDocument {
+interface ApplicationDocument {
   id: string;
-  application_id: string;
   document_type: string;
   file_name: string;
   file_path: string;
-  file_size?: number;
   uploaded_at: string;
+}
+
+interface EducationLevel {
+  id: string;
+  education_level: string;
+  institution: string;
+  graduation_year: number;
+  title: string;
 }
 
 export const ProfessorMobilityApplications = () => {
@@ -73,16 +70,17 @@ export const ProfessorMobilityApplications = () => {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [statusNote, setStatusNote] = useState('');
 
-  // Fetch mobility applications from database
+  // Fetch applications for coordinator's university
   const { data: applications = [], isLoading } = useQuery({
-    queryKey: ['professor-mobility-applications'],
+    queryKey: ['coordinator-professor-mobility-applications'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_applications' as any)
+        .from('professor_mobility_applications')
         .select(`
           *,
-          profiles(full_name, document_number, phone),
+          profiles(full_name, document_number),
           professor_mobility_calls(
             title,
             mobility_type,
@@ -96,28 +94,42 @@ export const ProfessorMobilityApplications = () => {
         throw error;
       }
       
-      return (data as any[]) as ProfessorMobilityApplication[];
+      return data as ProfessorMobilityApplication[];
     }
   });
 
   // Fetch documents for selected application
   const { data: documents = [] } = useQuery({
-    queryKey: ['professor-mobility-documents', selectedApplication?.id],
+    queryKey: ['professor-application-documents', selectedApplication?.id],
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
       
       const { data, error } = await supabase
-        .from('professor_mobility_documents' as any)
+        .from('professor_mobility_documents')
         .select('*')
         .eq('application_id', selectedApplication.id)
         .order('uploaded_at', { ascending: false });
       
-      if (error) {
-        console.error('Error fetching documents:', error);
-        throw error;
-      }
+      if (error) throw error;
+      return data as ApplicationDocument[];
+    },
+    enabled: !!selectedApplication?.id
+  });
+
+  // Fetch education levels for selected application
+  const { data: educationLevels = [] } = useQuery({
+    queryKey: ['professor-education-levels', selectedApplication?.id],
+    queryFn: async () => {
+      if (!selectedApplication?.id) return [];
       
-      return (data as any[]) as MobilityDocument[];
+      const { data, error } = await supabase
+        .from('professor_education_levels')
+        .select('*')
+        .eq('application_id', selectedApplication.id)
+        .order('graduation_year', { ascending: false });
+      
+      if (error) throw error;
+      return data as EducationLevel[];
     },
     enabled: !!selectedApplication?.id
   });
@@ -127,7 +139,7 @@ export const ProfessorMobilityApplications = () => {
     mutationFn: async ({ applicationId, status, note }: { applicationId: string; status: string; note?: string }) => {
       // Update application status
       const { error: updateError } = await supabase
-        .from('professor_mobility_applications' as any)
+        .from('professor_mobility_applications')
         .update({ 
           status,
           updated_at: new Date().toISOString()
@@ -139,7 +151,7 @@ export const ProfessorMobilityApplications = () => {
       // Add note if provided
       if (note) {
         const { error: noteError } = await supabase
-          .from('professor_mobility_notes' as any)
+          .from('professor_mobility_notes')
           .insert({
             application_id: applicationId,
             coordinator_id: user?.id,
@@ -151,7 +163,8 @@ export const ProfessorMobilityApplications = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['professor-mobility-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['coordinator-professor-mobility-applications'] });
+      setStatusNote('');
       toast({
         title: 'Estado actualizado',
         description: 'El estado de la postulación se ha actualizado exitosamente.'
@@ -166,7 +179,7 @@ export const ProfessorMobilityApplications = () => {
     }
   });
 
-  const handleDownloadDocument = async (document: MobilityDocument) => {
+  const handleDownloadDocument = async (document: ApplicationDocument) => {
     try {
       const { data, error } = await supabase.storage
         .from('professor-mobility-docs')
@@ -174,14 +187,11 @@ export const ProfessorMobilityApplications = () => {
       
       if (error) throw error;
       
-      // Create download link
       const url = URL.createObjectURL(data);
-      const a = window.document.createElement('a');
+      const a = document.createElement('a');
       a.href = url;
       a.download = document.file_name;
-      window.document.body.appendChild(a);
       a.click();
-      window.document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading document:', error);
@@ -226,6 +236,26 @@ export const ProfessorMobilityApplications = () => {
       'completed': 'Completada'
     };
     return labels[status as keyof typeof labels] || status;
+  };
+
+  const getTypeLabel = (type: string) => {
+    const labels = {
+      'teaching': 'Docencia',
+      'research': 'Investigación',
+      'training': 'Capacitación'
+    };
+    return labels[type as keyof typeof labels] || type;
+  };
+
+  const getEducationLevelLabel = (level: string) => {
+    const labels = {
+      'professional': 'Profesional',
+      'technologist': 'Tecnólogo',
+      'specialist': 'Especialista',
+      'master': 'Magíster',
+      'doctorate': 'Doctorado'
+    };
+    return labels[level as keyof typeof labels] || level;
   };
 
   if (isLoading) {
@@ -306,6 +336,10 @@ export const ProfessorMobilityApplications = () => {
                       <Calendar className="h-4 w-4" />
                       <span>Creada: {new Date(application.created_at).toLocaleDateString('es-ES')}</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      <span>{getTypeLabel(application.professor_mobility_calls?.mobility_type || '')}</span>
+                    </div>
                   </div>
                 </div>
                 
@@ -360,12 +394,12 @@ export const ProfessorMobilityApplications = () => {
                     <p className="text-sm">{selectedApplication.professor_mobility_calls?.title}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Teléfono</Label>
-                    <p className="text-sm">{selectedApplication.contact_phone || 'No especificado'}</p>
+                    <Label className="text-sm font-medium">Tipo de Movilidad</Label>
+                    <p className="text-sm">{getTypeLabel(selectedApplication.professor_mobility_calls?.mobility_type || '')}</p>
                   </div>
                 </div>
 
-                {/* Academic Info */}
+                {/* Professional Info */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium">Institución de Origen</Label>
@@ -377,13 +411,40 @@ export const ProfessorMobilityApplications = () => {
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Área de Experticia</Label>
-                    <p className="text-sm">{selectedApplication.expertise_area}</p>
+                    <p className="text-sm">{selectedApplication.expertise_area || 'No especificada'}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Años de Experiencia</Label>
-                    <p className="text-sm">{selectedApplication.years_experience}</p>
+                    <Label className="text-sm font-medium">Teléfono</Label>
+                    <p className="text-sm">{selectedApplication.contact_phone}</p>
                   </div>
                 </div>
+
+                {/* Education Levels */}
+                {educationLevels.length > 0 && (
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Niveles de Educación</Label>
+                    <div className="space-y-2">
+                      {educationLevels.map((level) => (
+                        <div key={level.id} className="p-3 border rounded-lg">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium">Nivel:</span> {getEducationLevelLabel(level.education_level)}
+                            </div>
+                            <div>
+                              <span className="font-medium">Institución:</span> {level.institution}
+                            </div>
+                            <div>
+                              <span className="font-medium">Título:</span> {level.title}
+                            </div>
+                            <div>
+                              <span className="font-medium">Año:</span> {level.graduation_year}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Mobility Details */}
                 {selectedApplication.mobility_justification && (
@@ -431,13 +492,14 @@ export const ProfessorMobilityApplications = () => {
                 {/* Status Update */}
                 <div className="border-t pt-4">
                   <Label className="text-sm font-medium mb-2 block">Actualizar Estado</Label>
-                  <div className="flex gap-2">
+                  <div className="space-y-3">
                     <Select
                       defaultValue={selectedApplication.status}
                       onValueChange={(newStatus) => {
                         updateStatusMutation.mutate({
                           applicationId: selectedApplication.id,
-                          status: newStatus
+                          status: newStatus,
+                          note: statusNote
                         });
                       }}
                     >
@@ -453,6 +515,16 @@ export const ProfessorMobilityApplications = () => {
                         <SelectItem value="completed">Completada</SelectItem>
                       </SelectContent>
                     </Select>
+                    
+                    <div>
+                      <Label className="text-sm font-medium">Nota al profesor (opcional)</Label>
+                      <Textarea
+                        value={statusNote}
+                        onChange={(e) => setStatusNote(e.target.value)}
+                        placeholder="Escribe una nota que será visible para el profesor..."
+                        rows={3}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

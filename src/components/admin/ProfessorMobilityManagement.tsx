@@ -19,23 +19,21 @@ interface MobilityCall {
   id: string;
   title: string;
   description?: string;
-  host_institution_id?: string;
   mobility_type: string;
+  start_date?: string;
+  end_date?: string;
   application_deadline: string;
-  estimated_duration?: string;
-  collaboration_area?: string;
-  funding_available: boolean;
+  host_university_id?: string;
+  max_participants: number;
+  requirements?: string;
+  benefits?: string;
+  duration_weeks?: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  created_by?: string;
-  requirements?: string[];
   universities?: {
     name: string;
     city: string;
-  };
-  profiles?: {
-    full_name: string;
   };
 }
 
@@ -55,14 +53,13 @@ export const ProfessorMobilityManagement = () => {
 
   // Fetch mobility calls from database
   const { data: mobilityCalls = [], isLoading } = useQuery({
-    queryKey: ['professor-mobility-calls'],
+    queryKey: ['professor-mobility-calls-admin'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_calls' as any)
+        .from('professor_mobility_calls')
         .select(`
           *,
-          universities(name, city),
-          profiles(full_name)
+          universities(name, city)
         `)
         .order('created_at', { ascending: false });
       
@@ -71,7 +68,7 @@ export const ProfessorMobilityManagement = () => {
         throw error;
       }
       
-      return (data as any[]) as MobilityCall[];
+      return data as MobilityCall[];
     }
   });
 
@@ -85,7 +82,7 @@ export const ProfessorMobilityManagement = () => {
         .eq('is_active', true);
       
       if (error) throw error;
-      return (data || []) as University[];
+      return data as University[];
     }
   });
 
@@ -94,7 +91,7 @@ export const ProfessorMobilityManagement = () => {
     mutationFn: async (callData: any) => {
       if (editingCall) {
         const { error } = await supabase
-          .from('professor_mobility_calls' as any)
+          .from('professor_mobility_calls')
           .update({
             ...callData,
             updated_at: new Date().toISOString()
@@ -104,17 +101,14 @@ export const ProfessorMobilityManagement = () => {
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from('professor_mobility_calls' as any)
-          .insert({
-            ...callData,
-            created_by: user?.id
-          });
+          .from('professor_mobility_calls')
+          .insert(callData);
         
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['professor-mobility-calls'] });
+      queryClient.invalidateQueries({ queryKey: ['professor-mobility-calls-admin'] });
       setIsCreateDialogOpen(false);
       setEditingCall(null);
       toast({
@@ -136,14 +130,14 @@ export const ProfessorMobilityManagement = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('professor_mobility_calls' as any)
+        .from('professor_mobility_calls')
         .delete()
         .eq('id', id);
       
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['professor-mobility-calls'] });
+      queryClient.invalidateQueries({ queryKey: ['professor-mobility-calls-admin'] });
       toast({
         title: 'Convocatoria eliminada',
         description: 'La convocatoria se ha eliminado exitosamente.'
@@ -162,21 +156,19 @@ export const ProfessorMobilityManagement = () => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     
-    const requirementsText = formData.get('requirements') as string;
-    const requirements = requirementsText ? 
-      requirementsText.split('\n').filter(req => req.trim()) : [];
-    
     const callData = {
       title: formData.get('title'),
       description: formData.get('description'),
-      host_institution_id: formData.get('host_institution_id'),
       mobility_type: formData.get('mobility_type'),
+      start_date: formData.get('start_date') || null,
+      end_date: formData.get('end_date') || null,
       application_deadline: formData.get('application_deadline'),
-      estimated_duration: formData.get('estimated_duration'),
-      collaboration_area: formData.get('collaboration_area'),
-      funding_available: formData.get('funding_available') === 'on',
-      is_active: formData.get('is_active') === 'on',
-      requirements
+      host_university_id: formData.get('host_university_id') || null,
+      max_participants: parseInt(formData.get('max_participants') as string) || 10,
+      requirements: formData.get('requirements') || null,
+      benefits: formData.get('benefits') || null,
+      duration_weeks: parseInt(formData.get('duration_weeks') as string) || null,
+      is_active: formData.get('is_active') === 'on'
     };
 
     createUpdateMutation.mutate(callData);
@@ -193,12 +185,20 @@ export const ProfessorMobilityManagement = () => {
 
   const getTypeColor = (type: string) => {
     const colors = {
-      'Docencia': 'bg-blue-100 text-blue-800',
-      'Investigación': 'bg-purple-100 text-purple-800',
-      'Capacitación': 'bg-orange-100 text-orange-800',
-      'Observación': 'bg-teal-100 text-teal-800'
+      'teaching': 'bg-blue-100 text-blue-800',
+      'research': 'bg-purple-100 text-purple-800',
+      'training': 'bg-orange-100 text-orange-800'
     };
     return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getTypeLabel = (type: string) => {
+    const labels = {
+      'teaching': 'Docencia',
+      'research': 'Investigación',
+      'training': 'Capacitación'
+    };
+    return labels[type as keyof typeof labels] || type;
   };
 
   if (isLoading) {
@@ -224,7 +224,7 @@ export const ProfessorMobilityManagement = () => {
               Gestión de Convocatorias de Movilidad - Profesores
             </CardTitle>
             <CardDescription>
-              Administra las convocatorias de movilidad para profesores y personal administrativo
+              Administra las convocatorias de movilidad para profesores
             </CardDescription>
           </div>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -244,7 +244,7 @@ export const ProfessorMobilityManagement = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <Label htmlFor="title">Título de la Convocatoria</Label>
+                    <Label htmlFor="title">Título de la Convocatoria *</Label>
                     <Input
                       id="title"
                       name="title"
@@ -264,8 +264,22 @@ export const ProfessorMobilityManagement = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="host_institution_id">Universidad Anfitriona</Label>
-                    <Select name="host_institution_id" defaultValue={editingCall?.host_institution_id}>
+                    <Label htmlFor="mobility_type">Tipo de Movilidad *</Label>
+                    <Select name="mobility_type" defaultValue={editingCall?.mobility_type}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="teaching">Docencia</SelectItem>
+                        <SelectItem value="research">Investigación</SelectItem>
+                        <SelectItem value="training">Capacitación</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="host_university_id">Universidad Anfitriona</Label>
+                    <Select name="host_university_id" defaultValue={editingCall?.host_university_id}>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccionar universidad" />
                       </SelectTrigger>
@@ -280,22 +294,7 @@ export const ProfessorMobilityManagement = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="mobility_type">Tipo de Movilidad</Label>
-                    <Select name="mobility_type" defaultValue={editingCall?.mobility_type}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Docencia">Docencia</SelectItem>
-                        <SelectItem value="Investigación">Investigación</SelectItem>
-                        <SelectItem value="Capacitación">Capacitación</SelectItem>
-                        <SelectItem value="Observación">Observación</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="application_deadline">Fecha Límite</Label>
+                    <Label htmlFor="application_deadline">Fecha Límite de Aplicación *</Label>
                     <Input
                       id="application_deadline"
                       name="application_deadline"
@@ -306,42 +305,67 @@ export const ProfessorMobilityManagement = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="estimated_duration">Duración Estimada</Label>
+                    <Label htmlFor="max_participants">Máx. Participantes</Label>
                     <Input
-                      id="estimated_duration"
-                      name="estimated_duration"
-                      placeholder="ej. 3 meses"
-                      defaultValue={editingCall?.estimated_duration}
+                      id="max_participants"
+                      name="max_participants"
+                      type="number"
+                      min="1"
+                      defaultValue={editingCall?.max_participants || 10}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="start_date">Fecha de Inicio</Label>
+                    <Input
+                      id="start_date"
+                      name="start_date"
+                      type="date"
+                      defaultValue={editingCall?.start_date}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="end_date">Fecha de Fin</Label>
+                    <Input
+                      id="end_date"
+                      name="end_date"
+                      type="date"
+                      defaultValue={editingCall?.end_date}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="duration_weeks">Duración (semanas)</Label>
+                    <Input
+                      id="duration_weeks"
+                      name="duration_weeks"
+                      type="number"
+                      min="1"
+                      defaultValue={editingCall?.duration_weeks}
                     />
                   </div>
                   
                   <div className="md:col-span-2">
-                    <Label htmlFor="collaboration_area">Área de Colaboración</Label>
-                    <Input
-                      id="collaboration_area"
-                      name="collaboration_area"
-                      defaultValue={editingCall?.collaboration_area}
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <Label htmlFor="requirements">Requisitos (uno por línea)</Label>
+                    <Label htmlFor="requirements">Requisitos</Label>
                     <Textarea
                       id="requirements"
                       name="requirements"
-                      rows={4}
-                      defaultValue={editingCall?.requirements?.join('\n')}
-                      placeholder="Escriba cada requisito en una línea nueva"
+                      rows={3}
+                      defaultValue={editingCall?.requirements}
+                      placeholder="Describe los requisitos para esta convocatoria..."
                     />
                   </div>
                   
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="funding_available"
-                      name="funding_available"
-                      defaultChecked={editingCall?.funding_available}
+                  <div className="md:col-span-2">
+                    <Label htmlFor="benefits">Beneficios</Label>
+                    <Textarea
+                      id="benefits"
+                      name="benefits"
+                      rows={3}
+                      defaultValue={editingCall?.benefits}
+                      placeholder="Describe los beneficios de esta movilidad..."
                     />
-                    <Label htmlFor="funding_available">Financiamiento Disponible</Label>
                   </div>
                   
                   <div className="flex items-center space-x-2">
@@ -399,24 +423,31 @@ export const ProfessorMobilityManagement = () => {
                       {call.is_active ? 'Activa' : 'Inactiva'}
                     </Badge>
                     <Badge className={getTypeColor(call.mobility_type)} variant="secondary">
-                      {call.mobility_type}
+                      {getTypeLabel(call.mobility_type)}
                     </Badge>
-                    {call.funding_available && (
-                      <Badge className="bg-green-100 text-green-800" variant="secondary">
-                        Con Financiamiento
-                      </Badge>
-                    )}
                   </div>
                   
                   <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      <span>{call.universities?.name} - {call.universities?.city}</span>
-                    </div>
+                    {call.universities && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        <span>{call.universities.name} - {call.universities.city}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       <span>Fecha límite: {new Date(call.application_deadline).toLocaleDateString('es-ES')}</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <span>Máx. {call.max_participants} participantes</span>
+                    </div>
+                    {call.duration_weeks && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>{call.duration_weeks} semanas</span>
+                      </div>
+                    )}
                   </div>
                   
                   {call.description && (

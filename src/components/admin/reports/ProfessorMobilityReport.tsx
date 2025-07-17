@@ -14,12 +14,12 @@ export const ProfessorMobilityReport = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('professor_mobility_applications')
-        .select('mobility_type');
+        .select('professor_mobility_calls(mobility_type)');
       
       if (error) throw error;
 
       const typeCounts = data.reduce((acc, app) => {
-        const type = app.mobility_type || 'teaching';
+        const type = app.professor_mobility_calls?.mobility_type || 'teaching';
         const typeName = type === 'teaching' ? 'Docencia' :
                         type === 'research' ? 'Investigación' :
                         type === 'training' ? 'Capacitación' : type;
@@ -43,7 +43,9 @@ export const ProfessorMobilityReport = () => {
       const statusCounts = data.reduce((acc, app) => {
         const status = app.status || 'pending';
         const statusName = status === 'pending' ? 'Pendientes' :
-                          status === 'approved' ? 'Aprobadas' :
+                          status === 'in_review' ? 'En Revisión' :
+                          status === 'approved_origin' ? 'Aprobadas (Origen)' :
+                          status === 'approved_destination' ? 'Aprobadas (Destino)' :
                           status === 'rejected' ? 'Rechazadas' :
                           status === 'completed' ? 'Completadas' : status;
         acc[statusName] = (acc[statusName] || 0) + 1;
@@ -60,14 +62,15 @@ export const ProfessorMobilityReport = () => {
       const { data, error } = await supabase
         .from('professor_mobility_applications')
         .select(`
-          destination_university_id,
-          universities!destination_university_id(name)
+          professor_mobility_calls(
+            universities(name)
+          )
         `);
       
       if (error) throw error;
 
       const universityCounts = data.reduce((acc, app) => {
-        const universityName = app.universities?.name || 'Sin especificar';
+        const universityName = app.professor_mobility_calls?.universities?.name || 'Sin especificar';
         acc[universityName] = (acc[universityName] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
@@ -86,7 +89,7 @@ export const ProfessorMobilityReport = () => {
         .from('professor_mobility_applications')
         .select(`
           professor_id,
-          profiles!professor_id(full_name)
+          profiles(full_name)
         `);
       
       if (error) throw error;
