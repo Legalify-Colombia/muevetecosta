@@ -3,16 +3,13 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Building, FileText, Settings, BarChart3, UserCog, BookOpen, TrendingUp, Activity } from "lucide-react";
+import { Users, Building, FileText, BarChart3, UserCog, TrendingUp, Activity, Lightbulb } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { UserManagement } from "@/components/admin/UserManagement";
-import { UniversityManagement } from "@/components/admin/UniversityManagement";
-import ContentManagement from "@/components/admin/ContentManagement";
 import DashboardHeader from "@/components/common/DashboardHeader";
 import DashboardSidebar from "@/components/common/DashboardSidebar";
+import { Link } from "react-router-dom";
 
 const AdminDashboard = () => {
   const { profile } = useAuth();
@@ -25,12 +22,14 @@ const AdminDashboard = () => {
         universitiesResult,
         applicationsResult,
         studentsResult,
-        coordinatorsResult
+        coordinatorsResult,
+        projectsResult
       ] = await Promise.all([
         supabase.from('universities').select('id').eq('is_active', true),
         supabase.from('mobility_applications').select('id, status'),
         supabase.from('profiles').select('id').eq('role', 'student'),
-        supabase.from('profiles').select('id').eq('role', 'coordinator')
+        supabase.from('profiles').select('id').eq('role', 'coordinator'),
+        supabase.from('research_projects').select('id, status')
       ]);
 
       return {
@@ -39,6 +38,8 @@ const AdminDashboard = () => {
         pendingApplications: applicationsResult.data?.filter(app => app.status === 'pending').length || 0,
         students: studentsResult.data?.length || 0,
         coordinators: coordinatorsResult.data?.length || 0,
+        projects: projectsResult.data?.length || 0,
+        activeProjects: projectsResult.data?.filter(p => p.status === 'active').length || 0,
       };
     }
   });
@@ -114,7 +115,10 @@ const AdminDashboard = () => {
       />
       
       <div className="flex">
-        <DashboardSidebar collapsed={sidebarCollapsed} />
+        <DashboardSidebar 
+          collapsed={sidebarCollapsed} 
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
+        />
         
         <main className="flex-1 p-6">
           {/* Welcome Section */}
@@ -129,219 +133,180 @@ const AdminDashboard = () => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Universidades</p>
-                    <p className="text-3xl font-bold text-primary">{stats?.universities || 0}</p>
-                    <div className="flex items-center space-x-1 text-sm text-green-600">
-                      <TrendingUp className="h-3 w-3" />
-                      <span>+12% vs mes anterior</span>
+            <Link to="/admin/universities">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Universidades</p>
+                      <p className="text-3xl font-bold text-primary">{stats?.universities || 0}</p>
+                      <div className="flex items-center space-x-1 text-sm text-green-600">
+                        <TrendingUp className="h-3 w-3" />
+                        <span>+12% vs mes anterior</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-blue-100 rounded-full">
+                      <Building className="h-6 w-6 text-blue-600" />
                     </div>
                   </div>
-                  <div className="p-3 bg-blue-100 rounded-full">
-                    <Building className="h-6 w-6 text-blue-600" />
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/admin/users">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Estudiantes</p>
+                      <p className="text-3xl font-bold text-primary">{stats?.students || 0}</p>
+                      <div className="flex items-center space-x-1 text-sm text-green-600">
+                        <TrendingUp className="h-3 w-3" />
+                        <span>+8% vs mes anterior</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-green-100 rounded-full">
+                      <Users className="h-6 w-6 text-green-600" />
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link to="/admin/applications">
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Postulaciones</p>
+                      <p className="text-3xl font-bold text-primary">{stats?.applications || 0}</p>
+                      <div className="flex items-center space-x-1 text-sm text-yellow-600">
+                        <Activity className="h-3 w-3" />
+                        <span>{stats?.pendingApplications || 0} pendientes</span>
+                      </div>
+                    </div>
+                    <div className="p-3 bg-purple-100 rounded-full">
+                      <FileText className="h-6 w-6 text-purple-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
             <Card className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Estudiantes</p>
-                    <p className="text-3xl font-bold text-primary">{stats?.students || 0}</p>
-                    <div className="flex items-center space-x-1 text-sm text-green-600">
-                      <TrendingUp className="h-3 w-3" />
-                      <span>+8% vs mes anterior</span>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <Users className="h-6 w-6 text-green-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Postulaciones</p>
-                    <p className="text-3xl font-bold text-primary">{stats?.applications || 0}</p>
-                    <div className="flex items-center space-x-1 text-sm text-yellow-600">
-                      <Activity className="h-3 w-3" />
-                      <span>{stats?.pendingApplications || 0} pendientes</span>
-                    </div>
-                  </div>
-                  <div className="p-3 bg-purple-100 rounded-full">
-                    <FileText className="h-6 w-6 text-purple-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Coordinadores</p>
-                    <p className="text-3xl font-bold text-primary">{stats?.coordinators || 0}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Proyectos</p>
+                    <p className="text-3xl font-bold text-primary">{stats?.projects || 0}</p>
                     <div className="flex items-center space-x-1 text-sm text-blue-600">
                       <Activity className="h-3 w-3" />
-                      <span>Activos</span>
+                      <span>{stats?.activeProjects || 0} activos</span>
                     </div>
                   </div>
                   <div className="p-3 bg-orange-100 rounded-full">
-                    <UserCog className="h-6 w-6 text-orange-600" />
+                    <Lightbulb className="h-6 w-6 text-orange-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Main Content Tabs */}
-          <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 bg-muted p-1 rounded-lg">
-              <TabsTrigger value="overview" className="rounded-md">Resumen</TabsTrigger>
-              <TabsTrigger value="users" className="rounded-md">Usuarios</TabsTrigger>
-              <TabsTrigger value="universities" className="rounded-md">Universidades</TabsTrigger>
-              <TabsTrigger value="applications" className="rounded-md">Postulaciones</TabsTrigger>
-              <TabsTrigger value="content" className="rounded-md">Contenidos</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="space-y-6">
-              <div className="grid lg:grid-cols-2 gap-6">
-                {/* Recent Applications */}
-                <Card className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <FileText className="h-5 w-5 mr-2" />
-                      Postulaciones Recientes
-                    </CardTitle>
-                    <CardDescription>
-                      Últimas solicitudes de movilidad estudiantil
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {recentApplications.map((app) => (
-                        <div key={app.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className="space-y-1">
-                            <p className="font-medium">{app.application_number}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {app.profiles?.full_name} → {app.universities?.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(app.created_at).toLocaleDateString('es-ES')}
-                            </p>
-                          </div>
-                          <Badge className={getStatusColor(app.status)} variant="secondary">
-                            {getStatusText(app.status)}
-                          </Badge>
-                        </div>
-                      ))}
-                      {recentApplications.length === 0 && (
-                        <p className="text-center text-muted-foreground py-8">
-                          No hay postulaciones recientes
+          {/* Main Content */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Recent Applications */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="h-5 w-5 mr-2" />
+                  Postulaciones Recientes
+                </CardTitle>
+                <CardDescription>
+                  Últimas solicitudes de movilidad estudiantil
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentApplications.map((app) => (
+                    <div key={app.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="space-y-1">
+                        <p className="font-medium">{app.application_number}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {app.profiles?.full_name} → {app.universities?.name}
                         </p>
-                      )}
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(app.created_at).toLocaleDateString('es-ES')}
+                        </p>
+                      </div>
+                      <Badge className={getStatusColor(app.status)} variant="secondary">
+                        {getStatusText(app.status)}
+                      </Badge>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* System Activity */}
-                <Card className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <BarChart3 className="h-5 w-5 mr-2" />
-                      Actividad del Sistema
-                    </CardTitle>
-                    <CardDescription>
-                      Resumen de actividad en la plataforma
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-blue-100 rounded-full">
-                            <Users className="h-4 w-4 text-blue-600" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Nuevos usuarios</p>
-                            <p className="text-xs text-muted-foreground">Últimos 7 días</p>
-                          </div>
-                        </div>
-                        <Badge variant="secondary">+15</Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-green-100 rounded-full">
-                            <FileText className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Postulaciones procesadas</p>
-                            <p className="text-xs text-muted-foreground">Esta semana</p>
-                          </div>
-                        </div>
-                        <Badge variant="secondary">+8</Badge>
-                      </div>
-                      
-                      <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-purple-100 rounded-full">
-                            <Building className="h-4 w-4 text-purple-600" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Universidades activas</p>
-                            <p className="text-xs text-muted-foreground">En el sistema</p>
-                          </div>
-                        </div>
-                        <Badge variant="secondary">{stats?.universities || 0}</Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="users">
-              <UserManagement />
-            </TabsContent>
-
-            <TabsContent value="universities">
-              <UniversityManagement />
-            </TabsContent>
-
-            <TabsContent value="applications">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Gestión de Postulaciones</CardTitle>
-                  <CardDescription>
-                    Revisar y procesar solicitudes de movilidad estudiantil
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Panel de Postulaciones</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Funcionalidad avanzada de gestión de postulaciones en desarrollo
+                  ))}
+                  {recentApplications.length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">
+                      No hay postulaciones recientes
                     </p>
-                    <Button>Próximamente</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-            <TabsContent value="content">
-              <ContentManagement />
-            </TabsContent>
-          </Tabs>
+            {/* System Activity */}
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChart3 className="h-5 w-5 mr-2" />
+                  Actividad del Sistema
+                </CardTitle>
+                <CardDescription>
+                  Resumen de actividad en la plataforma
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-100 rounded-full">
+                        <Users className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Nuevos usuarios</p>
+                        <p className="text-xs text-muted-foreground">Últimos 7 días</p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary">+15</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-green-100 rounded-full">
+                        <FileText className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Postulaciones procesadas</p>
+                        <p className="text-xs text-muted-foreground">Esta semana</p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary">+8</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-purple-100 rounded-full">
+                        <Building className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Universidades activas</p>
+                        <p className="text-xs text-muted-foreground">En el sistema</p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary">{stats?.universities || 0}</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </main>
       </div>
     </div>
