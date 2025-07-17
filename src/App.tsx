@@ -41,7 +41,32 @@ function App() {
               <Route path="/universities/:id" element={<UniversityDetail />} />
               <Route path="/page/:slug" element={<DynamicPage />} />
 
-              {/* Protected Routes */}
+              {/* Protected Routes - Dashboard */}
+              <Route path="/dashboard/admin" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/dashboard/coordinator" element={
+                <ProtectedRoute allowedRoles={['coordinator']}>
+                  <CoordinatorDashboard />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/dashboard/professor" element={
+                <ProtectedRoute allowedRoles={['professor']}>
+                  <ProfessorDashboard />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/dashboard/student" element={
+                <ProtectedRoute allowedRoles={['student']}>
+                  <StudentDashboard />
+                </ProtectedRoute>
+              } />
+
+              {/* Legacy routes for backwards compatibility */}
               <Route path="/admin" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
