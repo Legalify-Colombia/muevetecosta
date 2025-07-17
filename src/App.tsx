@@ -27,6 +27,7 @@ import AdminUsers from '@/pages/admin/AdminUsers';
 import AdminUniversities from '@/pages/admin/AdminUniversities';
 import AdminApplications from '@/pages/admin/AdminApplications';
 import AdminProjects from '@/pages/admin/AdminProjects';
+import AdminReports from '@/pages/admin/AdminReports';
 import AdminSettings from '@/pages/admin/AdminSettings';
 
 const queryClient = new QueryClient({
@@ -109,6 +110,14 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminProjects />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/reports" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminReports />
                 </ProtectedRoute>
               } 
             />

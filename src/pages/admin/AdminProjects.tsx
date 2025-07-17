@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import DashboardHeader from "@/components/common/DashboardHeader";
+import DashboardSidebar from "@/components/common/DashboardSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +35,7 @@ import {
 } from "lucide-react";
 
 const AdminProjects = () => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -284,240 +287,246 @@ const AdminProjects = () => {
 
   if (projectsLoading) {
     return (
-      <div className="p-6">
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Cargando proyectos...</p>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader 
+          title="Gestión de Proyectos"
+          searchPlaceholder="Buscar proyectos..."
+        />
+        
+        <div className="flex">
+          <DashboardSidebar 
+            collapsed={sidebarCollapsed} 
+            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
+          />
+          
+          <main className="flex-1 p-6">
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Cargando proyectos...</p>
+            </div>
+          </main>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-2xl font-bold">Gestión de Proyectos de Investigación</h1>
-          <p className="text-muted-foreground">
-            Control total sobre todos los proyectos de investigación colaborativa
-          </p>
-        </div>
-        <Button onClick={() => setShowCreateProject(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Crear Proyecto
-        </Button>
-      </div>
-
-      {/* Estadísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Proyectos</CardTitle>
-            <Lightbulb className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{projectStats?.total || 0}</div>
-            <p className="text-xs text-muted-foreground">En toda la red</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Proyectos Activos</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{projectStats?.active || 0}</div>
-            <p className="text-xs text-muted-foreground">En desarrollo</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Propuestas</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{projectStats?.proposals || 0}</div>
-            <p className="text-xs text-muted-foreground">Por aprobar</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Finalizados</CardTitle>
-            <Archive className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{projectStats?.completed || 0}</div>
-            <p className="text-xs text-muted-foreground">Completados</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filtros y Búsqueda */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros de Búsqueda</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 flex-wrap">
-            <div className="flex-1 min-w-64">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por título, descripción..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+    <div className="min-h-screen bg-background">
+      <DashboardHeader 
+        title="Gestión de Proyectos"
+        searchPlaceholder="Buscar proyectos..."
+      />
+      
+      <div className="flex">
+        <DashboardSidebar 
+          collapsed={sidebarCollapsed} 
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
+        />
+        
+        <main className="flex-1 p-6">
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground mb-2">
+                  Gestión de Proyectos de Investigación
+                </h1>
+                <p className="text-muted-foreground">
+                  Control total sobre todos los proyectos de investigación colaborativa
+                </p>
               </div>
-            </div>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los Estados</SelectItem>
-                <SelectItem value="proposal">Propuestas</SelectItem>
-                <SelectItem value="active">En Curso</SelectItem>
-                <SelectItem value="completed">Finalizados</SelectItem>
-                <SelectItem value="cancelled">Cancelados</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={universityFilter} onValueChange={setUniversityFilter}>
-              <SelectTrigger className="w-48">
-                <Building className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Universidad" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las Universidades</SelectItem>
-                {universities.map((university) => (
-                  <SelectItem key={university.id} value={university.id}>
-                    {university.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lista de Proyectos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Proyectos de Investigación</CardTitle>
-          <CardDescription>
-            Gestión completa de todos los proyectos en la plataforma
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {projects.length === 0 ? (
-            <div className="text-center py-12">
-              <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No se encontraron proyectos</h3>
-              <p className="text-muted-foreground mb-4">
-                No hay proyectos que coincidan con los criterios de búsqueda
-              </p>
               <Button onClick={() => setShowCreateProject(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Crear el primer proyecto
+                Crear Proyecto
               </Button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {projects.map((project) => (
-                <Card key={project.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">{project.title}</h3>
-                          {getStatusBadge(project.status)}
-                          {project.is_public && (
-                            <Badge variant="outline">
-                              <Globe className="h-3 w-3 mr-1" />
-                              Público
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-muted-foreground mb-3 line-clamp-2">
-                          {project.description}
-                        </p>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog(project)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteProject(project.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Inicio:</span>
-                        <span>
-                          {project.start_date
-                            ? new Date(project.start_date).toLocaleDateString()
-                            : 'Por definir'}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Participantes:</span>
-                        <span>{project.project_participants?.length || 0}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Building className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Universidades:</span>
-                        <span>{project.project_universities?.length || 0}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Líder:</span>
-                        <span>{project.universities?.name || 'Sin asignar'}</span>
-                      </div>
-                    </div>
 
-                    {/* Universidades participantes */}
-                    {project.project_universities && project.project_universities.length > 0 && (
-                      <div className="mt-4">
-                        <div className="flex flex-wrap gap-2">
-                          {project.project_universities.map((pu: any, index: number) => (
-                            <Badge key={index} variant="outline">
-                              {pu.universities?.name}
-                              {pu.role === 'lead' && ' (Líder)'}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+            {/* Estadísticas */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Proyectos</CardTitle>
+                  <Lightbulb className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{projectStats?.total || 0}</div>
+                  <p className="text-xs text-muted-foreground">En toda la red</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Proyectos Activos</CardTitle>
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{projectStats?.active || 0}</div>
+                  <p className="text-xs text-muted-foreground">En desarrollo</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Propuestas</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{projectStats?.proposals || 0}</div>
+                  <p className="text-xs text-muted-foreground">Por aprobar</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Finalizados</CardTitle>
+                  <Archive className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{projectStats?.completed || 0}</div>
+                  <p className="text-xs text-muted-foreground">Completados</p>
+                </CardContent>
+              </Card>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* Filtros y Búsqueda */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Filtros de Búsqueda</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4 flex-wrap">
+                  <div className="flex-1 min-w-64">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar por título, descripción..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-48">
+                      <Filter className="h-4 w-4 mr-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los Estados</SelectItem>
+                      <SelectItem value="proposal">Propuestas</SelectItem>
+                      <SelectItem value="active">En Curso</SelectItem>
+                      <SelectItem value="completed">Finalizados</SelectItem>
+                      <SelectItem value="cancelled">Cancelados</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={universityFilter} onValueChange={setUniversityFilter}>
+                    <SelectTrigger className="w-48">
+                      <Building className="h-4 w-4 mr-2" />
+                      <SelectValue placeholder="Universidad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las Universidades</SelectItem>
+                      {universities.map((university) => (
+                        <SelectItem key={university.id} value={university.id}>
+                          {university.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tabla de Proyectos */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Proyectos de Investigación</CardTitle>
+                <CardDescription>
+                  Gestión completa de todos los proyectos en la plataforma
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {projects.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No se encontraron proyectos</h3>
+                    <p className="text-muted-foreground mb-4">
+                      No hay proyectos que coincidan con los criterios de búsqueda
+                    </p>
+                    <Button onClick={() => setShowCreateProject(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Crear el primer proyecto
+                    </Button>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Proyecto</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Universidad Líder</TableHead>
+                        <TableHead>Participantes</TableHead>
+                        <TableHead>Fecha Inicio</TableHead>
+                        <TableHead>Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {projects.map((project) => (
+                        <TableRow key={project.id}>
+                          <TableCell>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{project.title}</p>
+                                {project.is_public && (
+                                  <Badge variant="outline">
+                                    <Globe className="h-3 w-3 mr-1" />
+                                    Público
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground line-clamp-1">
+                                {project.description}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {getStatusBadge(project.status)}
+                          </TableCell>
+                          <TableCell>
+                            {project.universities?.name || 'Sin asignar'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              <span>{project.project_participants?.length || 0}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {project.start_date
+                              ? new Date(project.start_date).toLocaleDateString()
+                              : 'Por definir'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="outline" size="sm">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" onClick={() => openEditDialog(project)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
 
       {/* Dialog para crear proyecto */}
       <Dialog open={showCreateProject} onOpenChange={setShowCreateProject}>
