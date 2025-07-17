@@ -1,27 +1,24 @@
-
 import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { UniversityProfile } from '@/components/coordinator/UniversityProfile';
 import { ProgramManagement } from '@/components/coordinator/ProgramManagement';
-import { CourseManagement } from '@/components/coordinator/CourseManagement';
 import { ApplicationsList } from '@/components/coordinator/ApplicationsList';
 import { ProfessorMobilityApplications } from '@/components/coordinator/ProfessorMobilityApplications';
 import { ProjectManagement } from '@/components/coordinator/ProjectManagement';
 import { UniversityRequiredDocuments } from '@/components/coordinator/UniversityRequiredDocuments';
 import Header from '@/components/common/Header';
+import { CoordinatorSidebar } from '@/components/coordinator/CoordinatorSidebar';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { 
-  School, 
+  FileText, 
   GraduationCap, 
   BookOpen, 
-  FileText, 
-  Users, 
-  Briefcase,
-  Settings
+  Briefcase
 } from 'lucide-react';
 
 const CoordinatorDashboard = () => {
@@ -48,164 +45,141 @@ const CoordinatorDashboard = () => {
 
   const handleViewApplication = (applicationId: string) => {
     console.log('Viewing application:', applicationId);
-    // TODO: Implement application detail view
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header 
-        showLogout={true}
-        userInfo={`Coordinador: ${profile?.full_name}`}
-      />
-      
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Panel de Coordinación</h1>
-              <p className="text-muted-foreground">
-                Gestiona tu universidad y las postulaciones de movilidad
-              </p>
+    <SidebarProvider>
+      <div className="min-h-screen bg-background flex w-full">
+        <CoordinatorSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        <SidebarInset className="flex-1">
+          <Header 
+            showLogout={true}
+            userInfo={`Coordinador: ${profile?.full_name}`}
+          />
+          
+          {isMobile && (
+            <div className="flex items-center gap-2 px-4 py-2 border-b">
+              <SidebarTrigger />
+              <h1 className="font-semibold">Panel de Coordinación</h1>
+            </div>
+          )}
+          
+          <div className="border-b">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  {!isMobile && <h1 className="text-2xl font-bold">Panel de Coordinación</h1>}
+                  <p className="text-muted-foreground">
+                    Gestiona tu universidad y las postulaciones de movilidad
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+
+          <div className="container mx-auto px-4 py-6">
+            <Tabs value={activeTab} className="space-y-6">
+              <TabsContent value="overview" className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Postulaciones Pendientes</CardTitle>
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">--</div>
+                      <p className="text-xs text-muted-foreground">
+                        Esperando revisión
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Programas Activos</CardTitle>
+                      <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">--</div>
+                      <p className="text-xs text-muted-foreground">
+                        Programas disponibles
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Cursos</CardTitle>
+                      <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">--</div>
+                      <p className="text-xs text-muted-foreground">
+                        Cursos registrados
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Proyectos</CardTitle>
+                      <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">--</div>
+                      <p className="text-xs text-muted-foreground">
+                        Proyectos de investigación
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="university">
+                <UniversityProfile />
+              </TabsContent>
+
+              <TabsContent value="programs">
+                <ProgramManagement />
+              </TabsContent>
+
+              <TabsContent value="courses">
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    Selecciona un programa para gestionar sus cursos
+                  </p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="students">
+                <ApplicationsList onViewApplication={handleViewApplication} />
+              </TabsContent>
+
+              <TabsContent value="professors">
+                <ProfessorMobilityApplications />
+              </TabsContent>
+
+              <TabsContent value="projects">
+                <ProjectManagement />
+              </TabsContent>
+
+              <TabsContent value="documents">
+                {myUniversity ? (
+                  <UniversityRequiredDocuments universityId={myUniversity.id} />
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
+                      No se encontró universidad asignada
+                    </p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </SidebarInset>
       </div>
-
-      <div className="container mx-auto px-4 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-4 lg:grid-cols-8'}`}>
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <School className="h-4 w-4" />
-              {!isMobile && "Resumen"}
-            </TabsTrigger>
-            <TabsTrigger value="university" className="flex items-center gap-2">
-              <School className="h-4 w-4" />
-              {!isMobile && "Universidad"}
-            </TabsTrigger>
-            <TabsTrigger value="programs" className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              {!isMobile && "Programas"}
-            </TabsTrigger>
-            <TabsTrigger value="courses" className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              {!isMobile && "Cursos"}
-            </TabsTrigger>
-            <TabsTrigger value="students" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              {!isMobile && "Estudiantes"}
-            </TabsTrigger>
-            <TabsTrigger value="professors" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              {!isMobile && "Profesores"}
-            </TabsTrigger>
-            <TabsTrigger value="projects" className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4" />
-              {!isMobile && "Proyectos"}
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              {!isMobile && "Documentos"}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Postulaciones Pendientes</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">--</div>
-                  <p className="text-xs text-muted-foreground">
-                    Esperando revisión
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Programas Activos</CardTitle>
-                  <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">--</div>
-                  <p className="text-xs text-muted-foreground">
-                    Programas disponibles
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Cursos</CardTitle>
-                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">--</div>
-                  <p className="text-xs text-muted-foreground">
-                    Cursos registrados
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Proyectos</CardTitle>
-                  <Briefcase className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">--</div>
-                  <p className="text-xs text-muted-foreground">
-                    Proyectos de investigación
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="university">
-            <UniversityProfile />
-          </TabsContent>
-
-          <TabsContent value="programs">
-            <ProgramManagement />
-          </TabsContent>
-
-          <TabsContent value="courses">
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                Selecciona un programa para gestionar sus cursos
-              </p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="students">
-            <ApplicationsList onViewApplication={handleViewApplication} />
-          </TabsContent>
-
-          <TabsContent value="professors">
-            <ProfessorMobilityApplications />
-          </TabsContent>
-
-          <TabsContent value="projects">
-            <ProjectManagement />
-          </TabsContent>
-
-          <TabsContent value="documents">
-            {myUniversity ? (
-              <UniversityRequiredDocuments universityId={myUniversity.id} />
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  No se encontró universidad asignada
-                </p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
