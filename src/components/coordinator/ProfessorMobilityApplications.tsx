@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,25 +81,21 @@ export const ProfessorMobilityApplications = () => {
     }
   });
 
-  // Fetch documents for selected application
+  // Fetch documents for selected application (simplified - return empty for now)
   const { data: documents = [] } = useQuery({
     queryKey: ['professor-application-documents', selectedApplication?.id],
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
-      
-      // For now, return empty array since the table doesn't exist yet
       return [] as ApplicationDocument[];
     },
     enabled: !!selectedApplication?.id
   });
 
-  // Fetch education levels for selected application
+  // Fetch education levels for selected application (simplified - return empty for now)  
   const { data: educationLevels = [] } = useQuery({
     queryKey: ['professor-education-levels', selectedApplication?.id],
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
-      
-      // For now, return empty array since the table doesn't exist yet
       return [] as EducationLevel[];
     },
     enabled: !!selectedApplication?.id
@@ -109,7 +104,6 @@ export const ProfessorMobilityApplications = () => {
   // Update application status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ applicationId, status, note }: { applicationId: string; status: string; note?: string }) => {
-      // Update application status
       const { error: updateError } = await supabase
         .from('professor_mobility_applications' as any)
         .update({ 
@@ -120,7 +114,6 @@ export const ProfessorMobilityApplications = () => {
       
       if (updateError) throw updateError;
 
-      // Add note if provided (skip for now since table doesn't exist)
       if (note) {
         console.log('Note would be added:', note);
       }
@@ -151,10 +144,10 @@ export const ProfessorMobilityApplications = () => {
       if (error) throw error;
       
       const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = document.file_name;
-      a.click();
+      const link = window.document.createElement('a');
+      link.href = url;
+      link.download = document.file_name;
+      link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading document:', error);
@@ -207,17 +200,6 @@ export const ProfessorMobilityApplications = () => {
       'training': 'Capacitación'
     };
     return labels[type as keyof typeof labels] || type;
-  };
-
-  const getEducationLevelLabel = (level: string) => {
-    const labels = {
-      'professional': 'Profesional',
-      'technologist': 'Tecnólogo',
-      'specialist': 'Especialista',
-      'master': 'Magíster',
-      'doctorate': 'Doctorado'
-    };
-    return labels[level as keyof typeof labels] || level;
   };
 
   if (isLoading) {
@@ -335,7 +317,6 @@ export const ProfessorMobilityApplications = () => {
             
             {selectedApplication && (
               <div className="space-y-6">
-                {/* Basic Info */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium">Profesor</Label>
@@ -353,7 +334,6 @@ export const ProfessorMobilityApplications = () => {
                   </div>
                 </div>
 
-                {/* Status Update */}
                 <div className="border-t pt-4">
                   <Label className="text-sm font-medium mb-2 block">Actualizar Estado</Label>
                   <div className="space-y-3">

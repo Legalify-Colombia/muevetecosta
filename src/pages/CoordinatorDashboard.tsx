@@ -1,103 +1,160 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Users, BookOpen, GraduationCap, Building, BarChart3 } from 'lucide-react';
-import CoordinatorProfile from '@/components/coordinator/CoordinatorProfile';
-import ProgramsManagement from '@/components/coordinator/ProgramsManagement';
-import CoursesManagement from '@/components/coordinator/CoursesManagement';
-import StudentMobilityApplications from '@/components/coordinator/StudentMobilityApplications';
-import ProfessorMobilityApplications from '@/components/coordinator/ProfessorMobilityApplications';
-import Header from '@/components/common/Header';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { UniversityProfile } from '@/components/coordinator/UniversityProfile';
+import { ProgramManagement } from '@/components/coordinator/ProgramManagement';
+import { CourseManagement } from '@/components/coordinator/CourseManagement';
+import { ApplicationsList } from '@/components/coordinator/ApplicationsList';
+import { ProfessorMobilityApplications } from '@/components/coordinator/ProfessorMobilityApplications';
+import { ProjectManagement } from '@/components/coordinator/ProjectManagement';
+import { UniversityRequiredDocuments } from '@/components/coordinator/UniversityRequiredDocuments';
 import { useAuth } from '@/hooks/useAuth';
+import { 
+  School, 
+  GraduationCap, 
+  BookOpen, 
+  FileText, 
+  Users, 
+  Briefcase,
+  Settings
+} from 'lucide-react';
 
-export default function CoordinatorDashboard() {
+const CoordinatorDashboard = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
-  const { profile, isLoading } = useAuth();
-
-  useEffect(() => {
-    if (!isLoading && !profile) {
-      // Redirect or handle no profile case
-      console.warn('No profile found for coordinator');
-    }
-  }, [profile, isLoading]);
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header 
-        showLogout={true}
-        userInfo={`Coordinador: ${profile?.full_name}`}
-      />
-      
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Panel del Coordinador</h1>
-              <p className="text-muted-foreground">
-                Gestiona postulaciones de movilidad estudiantil y profesoral
-              </p>
-            </div>
+    <div className="container mx-auto p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Panel de Coordinación</h1>
+        <p className="text-muted-foreground">
+          Gestiona tu universidad y las postulaciones de movilidad
+        </p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
+          <TabsTrigger value="overview">
+            <School className="h-4 w-4 mr-2" />
+            Resumen
+          </TabsTrigger>
+          <TabsTrigger value="university">
+            <School className="h-4 w-4 mr-2" />
+            Universidad
+          </TabsTrigger>
+          <TabsTrigger value="programs">
+            <GraduationCap className="h-4 w-4 mr-2" />
+            Programas
+          </TabsTrigger>
+          <TabsTrigger value="courses">
+            <BookOpen className="h-4 w-4 mr-2" />
+            Cursos
+          </TabsTrigger>
+          <TabsTrigger value="students">
+            <Users className="h-4 w-4 mr-2" />
+            Estudiantes
+          </TabsTrigger>
+          <TabsTrigger value="professors">
+            <Users className="h-4 w-4 mr-2" />
+            Profesores
+          </TabsTrigger>
+          <TabsTrigger value="projects">
+            <Briefcase className="h-4 w-4 mr-2" />
+            Proyectos
+          </TabsTrigger>
+          <TabsTrigger value="documents">
+            <Settings className="h-4 w-4 mr-2" />
+            Documentos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Postulaciones Pendientes</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">--</div>
+                <p className="text-xs text-muted-foreground">
+                  Esperando revisión
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Programas Activos</CardTitle>
+                <GraduationCap className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">--</div>
+                <p className="text-xs text-muted-foreground">
+                  Programas disponibles
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Cursos</CardTitle>
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">--</div>
+                <p className="text-xs text-muted-foreground">
+                  Cursos registrados
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Proyectos</CardTitle>
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">--</div>
+                <p className="text-xs text-muted-foreground">
+                  Proyectos de investigación
+                </p>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      </div>
+        </TabsContent>
 
-      <div className="container mx-auto px-4 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Resumen
-            </TabsTrigger>
-            <TabsTrigger value="applications" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Estudiantes
-            </TabsTrigger>
-            <TabsTrigger value="professor-applications" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Profesores
-            </TabsTrigger>
-            <TabsTrigger value="programs" className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              Programas
-            </TabsTrigger>
-            <TabsTrigger value="courses" className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              Cursos
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              Mi Universidad
-            </TabsTrigger>
-          </TabsList>
+        <TabsContent value="university">
+          <UniversityProfile />
+        </TabsContent>
 
-          <TabsContent value="overview">
-            <div>Resumen del Coordinador</div>
-          </TabsContent>
+        <TabsContent value="programs">
+          <ProgramManagement />
+        </TabsContent>
 
-          <TabsContent value="applications">
-            <StudentMobilityApplications />
-          </TabsContent>
+        <TabsContent value="courses">
+          <CourseManagement />
+        </TabsContent>
 
-          <TabsContent value="professor-applications">
-            <ProfessorMobilityApplications />
-          </TabsContent>
+        <TabsContent value="students">
+          <ApplicationsList />
+        </TabsContent>
 
-          <TabsContent value="programs">
-            <ProgramsManagement />
-          </TabsContent>
+        <TabsContent value="professors">
+          <ProfessorMobilityApplications />
+        </TabsContent>
 
-          <TabsContent value="courses">
-            <CoursesManagement />
-          </TabsContent>
+        <TabsContent value="projects">
+          <ProjectManagement />
+        </TabsContent>
 
-          <TabsContent value="profile">
-            <CoordinatorProfile />
-          </TabsContent>
-        </Tabs>
-      </div>
+        <TabsContent value="documents">
+          <UniversityRequiredDocuments />
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
+
+export default CoordinatorDashboard;

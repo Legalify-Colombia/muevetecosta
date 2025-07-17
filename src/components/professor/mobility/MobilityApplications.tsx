@@ -1,21 +1,23 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Calendar, Building, Clock, FileText, Eye, Download, User } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Eye, Download, Calendar, FileText, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 interface MobilityApplication {
   id: string;
   application_number: string;
-  mobility_type: string;
+  mobility_call_id: string;
   status: string;
   created_at: string;
+  mobility_type: string;
 }
 
 interface ApplicationDocument {
@@ -34,16 +36,18 @@ interface EducationLevel {
   title: string;
 }
 
-export default function MobilityApplications() {
+export const MobilityApplications = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [selectedApplication, setSelectedApplication] = useState<MobilityApplication | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
+  // Fetch professor's applications
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ['professor-mobility-applications'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('professor_mobility_applications')
+        .from('professor_mobility_applications' as any)
         .select('*')
         .eq('professor_id', user?.id)
         .order('created_at', { ascending: false });
@@ -56,50 +60,80 @@ export default function MobilityApplications() {
       return (data || []).map((app: any) => ({
         id: app.id,
         application_number: app.application_number,
-        mobility_type: app.mobility_type || 'teaching',
+        mobility_call_id: app.mobility_call_id || '',
         status: app.status || 'pending',
-        created_at: app.created_at
+        created_at: app.created_at,
+        mobility_type: app.mobility_type || 'teaching'
       })) as MobilityApplication[];
     }
   });
 
+  // Fetch documents for selected application (simplified)
   const { data: documents = [] } = useQuery({
-    queryKey: ['application-documents', selectedApplication?.id],
+    queryKey: ['professor-application-documents', selectedApplication?.id], 
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
-      
-      // For now, return empty array since the table doesn't exist yet
       return [] as ApplicationDocument[];
     },
     enabled: !!selectedApplication?.id
   });
 
+  // Fetch education levels for selected application (simplified)
   const { data: educationLevels = [] } = useQuery({
-    queryKey: ['education-levels', selectedApplication?.id],
+    queryKey: ['professor-education-levels', selectedApplication?.id],
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
-      
-      // For now, return empty array since the table doesn't exist yet
       return [] as EducationLevel[];
     },
     enabled: !!selectedApplication?.id
   });
 
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      'pending': { variant: 'secondary' as const, color: 'bg-yellow-100 text-yellow-800', label: 'Pendiente' },
-      'in_review': { variant: 'default' as const, color: 'bg-blue-100 text-blue-800', label: 'En Revisión' },
-      'approved_origin': { variant: 'default' as const, color: 'bg-green-100 text-green-800', label: 'Aprobada (Origen)' },
-      'approved_destination': { variant: 'default' as const, color: 'bg-green-100 text-green-800', label: 'Aprobada (Destino)' },
-      'rejected': { variant: 'destructive' as const, color: 'bg-red-100 text-red-800', label: 'Rechazada' },
-      'completed': { variant: 'default' as const, color: 'bg-purple-100 text-purple-800', label: 'Completada' }
+  const handleDownloadDocument = async (document: ApplicationDocument) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('professor-mobility-docs')
+        .download(document.file_path);
+      
+      if (error) throw error;
+      
+      const url = URL.createObjectURL(data);
+      const link = window.document.createElement('a');
+      link.href = url;
+      link.download = document.file_name;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast({
+        title: 'Error de descarga',
+        description: 'No se pudo descargar el documento.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      'pending': 'bg-yellow-100 text-yellow-800',
+      'in_review': 'bg-blue-100 text-blue-800',
+      'approved_origin': 'bg-green-100 text-green-800',
+      'approved_destination': 'bg-green-100 text-green-800',
+      'rejected': 'bg-red-100 text-red-800',
+      'completed': 'bg-purple-100 text-purple-800'
     };
-    
-    return statusMap[status as keyof typeof statusMap] || { 
-      variant: 'secondary' as const, 
-      color: 'bg-gray-100 text-gray-800', 
-      label: status 
+    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      'pending': 'Pendiente',
+      'in_review': 'En Revisión',
+      'approved_origin': 'Aprobada (Origen)',
+      'approved_destination': 'Aprobada (Destino)',
+      'rejected': 'Rechazada',
+      'completed': 'Completada'
     };
+    return labels[status as keyof typeof labels] || status;
   };
 
   const getTypeLabel = (type: string) => {
@@ -109,41 +143,6 @@ export default function MobilityApplications() {
       'training': 'Capacitación'
     };
     return labels[type as keyof typeof labels] || type;
-  };
-
-  const getEducationLevelLabel = (level: string) => {
-    const labels = {
-      'professional': 'Profesional',
-      'technologist': 'Tecnólogo',
-      'specialist': 'Especialista',
-      'master': 'Magíster',
-      'doctorate': 'Doctorado'
-    };
-    return labels[level as keyof typeof labels] || level;
-  };
-
-  const handleViewDetails = (application: MobilityApplication) => {
-    setSelectedApplication(application);
-    setIsDetailDialogOpen(true);
-  };
-
-  const downloadDocument = async (document: ApplicationDocument) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('professor-mobility-docs')
-        .download(document.file_path);
-      
-      if (error) throw error;
-      
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = document.file_name;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading document:', error);
-    }
   };
 
   if (isLoading) {
@@ -166,64 +165,64 @@ export default function MobilityApplications() {
           <FileText className="h-5 w-5 mr-2" />
           Mis Postulaciones de Movilidad
         </CardTitle>
+        <CardDescription>
+          Revisa el estado de tus postulaciones de movilidad académica
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        {applications.length > 0 ? (
-          <div className="space-y-4">
-            {applications.map((application) => {
-              const statusInfo = getStatusBadge(application.status);
-              return (
-                <Card key={application.id} className="border hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="font-semibold text-lg">
-                          Movilidad {getTypeLabel(application.mobility_type)}
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          {application.application_number}
-                        </p>
-                        <div className="flex items-center text-sm text-muted-foreground mt-1">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          Postulado el {new Date(application.created_at).toLocaleDateString('es-ES')}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge className={statusInfo.color}>
-                          {statusInfo.label}
-                        </Badge>
-                        <Button
-                          size="sm"
-                          onClick={() => handleViewDetails(application)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalles
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm">
-                        <FileText className="h-4 w-4 mr-2 text-green-600" />
-                        <span>{getTypeLabel(application.mobility_type)}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg mb-2">No tienes postulaciones de movilidad aún</p>
-            <p className="text-sm">
-              Explora las oportunidades disponibles y postúlate para iniciar tu proceso de movilidad académica.
-            </p>
-          </div>
-        )}
+      
+      <CardContent className="space-y-6">
+        <div className="text-sm text-muted-foreground">
+          {applications.length} postulación(es) encontrada(s)
+        </div>
 
-        {/* Dialog de detalles */}
+        <div className="grid gap-4">
+          {applications.map((application) => (
+            <div key={application.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold">{application.application_number}</h3>
+                    <Badge className={getStatusColor(application.status)} variant="secondary">
+                      {getStatusLabel(application.status)}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Creada: {new Date(application.created_at).toLocaleDateString('es-ES')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      <span>{getTypeLabel(application.mobility_type)}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedApplication(application);
+                    setIsDetailDialogOpen(true);
+                  }}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Ver Detalles
+                </Button>
+              </div>
+            </div>
+          ))}
+          
+          {applications.length === 0 && (
+            <div className="text-center py-8">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No tienes postulaciones aún</p>
+            </div>
+          )}
+        </div>
+
+        {/* Detail Dialog */}
         <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -234,76 +233,43 @@ export default function MobilityApplications() {
             
             {selectedApplication && (
               <div className="space-y-6">
-                {/* Información básica */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm font-medium">Estado</Label>
-                    <Badge className={getStatusBadge(selectedApplication.status).color}>
-                      {getStatusBadge(selectedApplication.status).label}
+                    <Badge className={getStatusColor(selectedApplication.status)} variant="secondary">
+                      {getStatusLabel(selectedApplication.status)}
                     </Badge>
                   </div>
                   <div>
                     <Label className="text-sm font-medium">Tipo de Movilidad</Label>
-                    <p className="text-sm">
-                      {getTypeLabel(selectedApplication.mobility_type)}
-                    </p>
+                    <p className="text-sm">{getTypeLabel(selectedApplication.mobility_type)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Fecha de Creación</Label>
+                    <p className="text-sm">{new Date(selectedApplication.created_at).toLocaleDateString('es-ES')}</p>
                   </div>
                 </div>
 
-                {/* Niveles de educación */}
-                {educationLevels.length > 0 && (
-                  <div>
-                    <Label className="text-sm font-medium mb-2 block">Niveles de Educación</Label>
+                {documents.length > 0 && (
+                  <div className="border-t pt-4">
+                    <Label className="text-sm font-medium mb-2 block">Documentos</Label>
                     <div className="space-y-2">
-                      {educationLevels.map((level) => (
-                        <div key={level.id} className="p-3 border rounded-lg">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="font-medium">Nivel:</span> {getEducationLevelLabel(level.education_level)}
-                            </div>
-                            <div>
-                              <span className="font-medium">Institución:</span> {level.institution}
-                            </div>
-                            <div>
-                              <span className="font-medium">Título:</span> {level.title}
-                            </div>
-                            <div>
-                              <span className="font-medium">Año:</span> {level.graduation_year}
-                            </div>
-                          </div>
+                      {documents.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between p-2 border rounded">
+                          <span className="text-sm">{doc.file_name}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDownloadDocument(doc)}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Descargar
+                          </Button>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-
-                {/* Documentos */}
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">Documentos Adjuntos</Label>
-                  <div className="grid gap-2">
-                    {documents.map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between p-2 border rounded">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          <span className="text-sm">{doc.file_name}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {doc.document_type}
-                          </Badge>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => downloadDocument(doc)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    {documents.length === 0 && (
-                      <p className="text-sm text-gray-500">No hay documentos adjuntos</p>
-                    )}
-                  </div>
-                </div>
               </div>
             )}
           </DialogContent>
@@ -311,4 +277,4 @@ export default function MobilityApplications() {
       </CardContent>
     </Card>
   );
-}
+};

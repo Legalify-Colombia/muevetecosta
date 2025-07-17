@@ -1,129 +1,166 @@
-import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FlaskConical, FileText, User, Search, FolderOpen, Plane, Users, GraduationCap, BookOpen, BarChart3 } from 'lucide-react';
-import AdminProfile from '@/components/admin/AdminProfile';
-import ProjectsOverview from '@/components/admin/ProjectsOverview';
-import ProjectManagement from '@/components/admin/ProjectManagement';
-import ProfessorManagement from '@/components/admin/ProfessorManagement';
-import UniversityManagement from '@/components/admin/UniversityManagement';
-import StudentManagement from '@/components/admin/StudentManagement';
-import ReportsDashboard from '@/components/admin/reports/ReportsDashboard';
-import { ProfessorMobilityManagement } from '@/components/admin/ProfessorMobilityManagement';
-import { CourseManagement } from '@/components/admin/CourseManagement';
-import { ProgramManagement } from '@/components/admin/ProgramManagement';
-import Header from '@/components/common/Header';
-import { useAuth } from '@/hooks/useAuth';
 
-export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = React.useState('overview');
-  const { profile } = useAuth();
+import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { UserManagement } from '@/components/admin/UserManagement';
+import { UniversityManagement } from '@/components/admin/UniversityManagement';
+import { ReportsDashboard } from '@/components/admin/reports/ReportsDashboard';
+import { EmailTemplateManager } from '@/components/admin/EmailTemplateManager';
+import { EmailConfiguration } from '@/components/admin/EmailConfiguration';
+import { EmailHistory } from '@/components/admin/EmailHistory';
+import { ContentManagement } from '@/components/admin/ContentManagement';
+import { ProfessorMobilityManagement } from '@/components/admin/ProfessorMobilityManagement';
+import { UniversityCoordinatorAssignment } from '@/components/admin/UniversityCoordinatorAssignment';
+import { 
+  Users, 
+  School, 
+  BarChart3, 
+  Mail, 
+  Settings, 
+  FileText, 
+  Plane,
+  User
+} from 'lucide-react';
+
+const AdminDashboard = () => {
+  const [activeTab, setActiveTab] = useState('overview');
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header 
-        showLogout={true}
-        userInfo={`Administrador: ${profile?.full_name}`}
-      />
-      
-      <div className="border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold">Panel de Administración</h1>
-              <p className="text-muted-foreground">
-                Gestiona usuarios, proyectos, universidades y más
-              </p>
-            </div>
+    <div className="container mx-auto p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Panel de Administración</h1>
+        <p className="text-muted-foreground">
+          Gestiona usuarios, universidades y configuraciones del sistema
+        </p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+          <TabsTrigger value="overview">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Resumen
+          </TabsTrigger>
+          <TabsTrigger value="users">
+            <Users className="h-4 w-4 mr-2" />
+            Usuarios
+          </TabsTrigger>
+          <TabsTrigger value="universities">
+            <School className="h-4 w-4 mr-2" />
+            Universidades
+          </TabsTrigger>
+          <TabsTrigger value="coordinators">
+            <User className="h-4 w-4 mr-2" />
+            Coordinadores
+          </TabsTrigger>
+          <TabsTrigger value="mobility">
+            <Plane className="h-4 w-4 mr-2" />
+            Movilidad
+          </TabsTrigger>
+          <TabsTrigger value="email">
+            <Mail className="h-4 w-4 mr-2" />
+            Email
+          </TabsTrigger>
+          <TabsTrigger value="content">
+            <FileText className="h-4 w-4 mr-2" />
+            Contenido
+          </TabsTrigger>
+          <TabsTrigger value="reports">
+            <BarChart3 className="h-4 w-4 mr-2" />
+            Reportes
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">--</div>
+                <p className="text-xs text-muted-foreground">
+                  Usuarios registrados en el sistema
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Universidades</CardTitle>
+                <School className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">--</div>
+                <p className="text-xs text-muted-foreground">
+                  Universidades activas
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Postulaciones</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">--</div>
+                <p className="text-xs text-muted-foreground">
+                  Total de postulaciones
+                </p>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      </div>
+        </TabsContent>
 
-      <div className="container mx-auto px-4 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 md:grid-cols-8">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Resumen
-            </TabsTrigger>
-            <TabsTrigger value="projects" className="flex items-center gap-2">
-              <FolderOpen className="h-4 w-4" />
-              Proyectos
-            </TabsTrigger>
-            <TabsTrigger value="professors" className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              Profesores
-            </TabsTrigger>
-            <TabsTrigger value="students" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Estudiantes
-            </TabsTrigger>
-            <TabsTrigger value="universities" className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              Universidades
-            </TabsTrigger>
-            <TabsTrigger value="programs" className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              Programas
-            </TabsTrigger>
-            <TabsTrigger value="courses" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Cursos
-            </TabsTrigger>
-            <TabsTrigger value="professor-mobility" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Movilidad Docente
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Reportes
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Mi Perfil
-            </TabsTrigger>
-          </TabsList>
+        <TabsContent value="users">
+          <UserManagement />
+        </TabsContent>
 
-          <TabsContent value="overview">
-            <ReportsDashboard />
-          </TabsContent>
+        <TabsContent value="universities">
+          <UniversityManagement />
+        </TabsContent>
 
-          <TabsContent value="projects">
-            <ProjectManagement />
-          </TabsContent>
+        <TabsContent value="coordinators">
+          <UniversityCoordinatorAssignment />
+        </TabsContent>
 
-          <TabsContent value="professors">
-            <ProfessorManagement />
-          </TabsContent>
+        <TabsContent value="mobility">
+          <ProfessorMobilityManagement />
+        </TabsContent>
 
-          <TabsContent value="students">
-            <StudentManagement />
-          </TabsContent>
+        <TabsContent value="email" className="space-y-6">
+          <Tabs defaultValue="templates">
+            <TabsList>
+              <TabsTrigger value="templates">Plantillas</TabsTrigger>
+              <TabsTrigger value="config">Configuración</TabsTrigger>
+              <TabsTrigger value="history">Historial</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="templates">
+              <EmailTemplateManager />
+            </TabsContent>
+            
+            <TabsContent value="config">
+              <EmailConfiguration />
+            </TabsContent>
+            
+            <TabsContent value="history">
+              <EmailHistory />
+            </TabsContent>
+          </Tabs>
+        </TabsContent>
 
-          <TabsContent value="universities">
-            <UniversityManagement />
-          </TabsContent>
+        <TabsContent value="content">
+          <ContentManagement />
+        </TabsContent>
 
-          <TabsContent value="programs">
-            <ProgramManagement />
-          </TabsContent>
-
-          <TabsContent value="courses">
-            <CourseManagement />
-          </TabsContent>
-
-          <TabsContent value="professor-mobility">
-            <ProfessorMobilityManagement />
-          </TabsContent>
-
-          <TabsContent value="reports">
-            <ReportsDashboard />
-          </TabsContent>
-
-          <TabsContent value="profile">
-            <AdminProfile />
-          </TabsContent>
-        </Tabs>
-      </div>
+        <TabsContent value="reports">
+          <ReportsDashboard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
+
+export default AdminDashboard;
