@@ -27,7 +27,7 @@ export const ProfessorMobilityReport = () => {
         return acc;
       }, {} as Record<string, number>);
 
-      return Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
+      return Object.entries(typeCounts).map(([name, value]) => ({ name, value: Number(value) }));
     }
   });
 
@@ -52,7 +52,7 @@ export const ProfessorMobilityReport = () => {
         return acc;
       }, {} as Record<string, number>);
 
-      return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+      return Object.entries(statusCounts).map(([name, value]) => ({ name, value: Number(value) }));
     }
   });
 
@@ -75,8 +75,8 @@ export const ProfessorMobilityReport = () => {
       }, {} as Record<string, number>);
 
       return Object.entries(universityCounts)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value)
+        .map(([name, value]) => ({ name, value: Number(value) }))
+        .sort((a, b) => Number(b.value) - Number(a.value))
         .slice(0, 10);
     }
   });
@@ -100,8 +100,8 @@ export const ProfessorMobilityReport = () => {
       }, {} as Record<string, number>);
 
       return Object.entries(professorCounts)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
+        .map(([name, count]) => ({ name, count: Number(count) }))
+        .sort((a, b) => Number(b.count) - Number(a.count))
         .slice(0, 10);
     }
   });

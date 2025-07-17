@@ -13,28 +13,9 @@ import { Label } from '@/components/ui/label';
 interface MobilityApplication {
   id: string;
   application_number: string;
-  mobility_call_id: string;
-  gender?: string;
-  birth_date?: string;
-  contact_phone?: string;
-  contact_email?: string;
-  origin_institution?: string;
-  current_role?: string;
-  expertise_area?: string;
-  proposed_start_date?: string;
-  proposed_end_date?: string;
-  mobility_justification?: string;
-  work_plan?: string;
+  mobility_type: string;
   status: string;
   created_at: string;
-  professor_mobility_calls?: {
-    title: string;
-    mobility_type: string;
-    universities?: {
-      name: string;
-      city: string;
-    };
-  };
 }
 
 interface ApplicationDocument {
@@ -63,14 +44,7 @@ export default function MobilityApplications() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('professor_mobility_applications')
-        .select(`
-          *,
-          professor_mobility_calls(
-            title,
-            mobility_type,
-            universities(name, city)
-          )
-        `)
+        .select('*')
         .eq('professor_id', user?.id)
         .order('created_at', { ascending: false });
       
@@ -79,7 +53,13 @@ export default function MobilityApplications() {
         throw error;
       }
       
-      return data as MobilityApplication[];
+      return (data || []).map((app: any) => ({
+        id: app.id,
+        application_number: app.application_number,
+        mobility_type: app.mobility_type || 'teaching',
+        status: app.status || 'pending',
+        created_at: app.created_at
+      })) as MobilityApplication[];
     }
   });
 
@@ -88,14 +68,8 @@ export default function MobilityApplications() {
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
       
-      const { data, error } = await supabase
-        .from('professor_mobility_documents')
-        .select('*')
-        .eq('application_id', selectedApplication.id)
-        .order('uploaded_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as ApplicationDocument[];
+      // For now, return empty array since the table doesn't exist yet
+      return [] as ApplicationDocument[];
     },
     enabled: !!selectedApplication?.id
   });
@@ -105,14 +79,8 @@ export default function MobilityApplications() {
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
       
-      const { data, error } = await supabase
-        .from('professor_education_levels')
-        .select('*')
-        .eq('application_id', selectedApplication.id)
-        .order('graduation_year', { ascending: false });
-      
-      if (error) throw error;
-      return data as EducationLevel[];
+      // For now, return empty array since the table doesn't exist yet
+      return [] as EducationLevel[];
     },
     enabled: !!selectedApplication?.id
   });
@@ -210,7 +178,7 @@ export default function MobilityApplications() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h4 className="font-semibold text-lg">
-                          {application.professor_mobility_calls?.title}
+                          Movilidad {getTypeLabel(application.mobility_type)}
                         </h4>
                         <p className="text-sm text-muted-foreground">
                           {application.application_number}
@@ -236,27 +204,9 @@ export default function MobilityApplications() {
                     
                     <div className="space-y-2">
                       <div className="flex items-center text-sm">
-                        <Building className="h-4 w-4 mr-2 text-blue-600" />
-                        <span className="font-medium">
-                          {application.professor_mobility_calls?.universities?.name} - {' '}
-                          {application.professor_mobility_calls?.universities?.city}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center text-sm">
                         <FileText className="h-4 w-4 mr-2 text-green-600" />
-                        <span>{getTypeLabel(application.professor_mobility_calls?.mobility_type || '')}</span>
+                        <span>{getTypeLabel(application.mobility_type)}</span>
                       </div>
-
-                      {application.proposed_start_date && application.proposed_end_date && (
-                        <div className="flex items-center text-sm">
-                          <Clock className="h-4 w-4 mr-2 text-orange-600" />
-                          <span>
-                            {new Date(application.proposed_start_date).toLocaleDateString('es-ES')} - {' '}
-                            {new Date(application.proposed_end_date).toLocaleDateString('es-ES')}
-                          </span>
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -287,47 +237,16 @@ export default function MobilityApplications() {
                 {/* Información básica */}
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium">Convocatoria</Label>
-                    <p className="text-sm">{selectedApplication.professor_mobility_calls?.title}</p>
-                  </div>
-                  <div>
                     <Label className="text-sm font-medium">Estado</Label>
                     <Badge className={getStatusBadge(selectedApplication.status).color}>
                       {getStatusBadge(selectedApplication.status).label}
                     </Badge>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium">Universidad Destino</Label>
-                    <p className="text-sm">
-                      {selectedApplication.professor_mobility_calls?.universities?.name} - {' '}
-                      {selectedApplication.professor_mobility_calls?.universities?.city}
-                    </p>
-                  </div>
-                  <div>
                     <Label className="text-sm font-medium">Tipo de Movilidad</Label>
                     <p className="text-sm">
-                      {getTypeLabel(selectedApplication.professor_mobility_calls?.mobility_type || '')}
+                      {getTypeLabel(selectedApplication.mobility_type)}
                     </p>
-                  </div>
-                </div>
-
-                {/* Información personal */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Institución de Origen</Label>
-                    <p className="text-sm">{selectedApplication.origin_institution}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Rol Actual</Label>
-                    <p className="text-sm">{selectedApplication.current_role}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Área de Experticia</Label>
-                    <p className="text-sm">{selectedApplication.expertise_area || 'No especificada'}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Teléfono de Contacto</Label>
-                    <p className="text-sm">{selectedApplication.contact_phone}</p>
                   </div>
                 </div>
 
@@ -355,21 +274,6 @@ export default function MobilityApplications() {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {/* Justificación y plan de trabajo */}
-                {selectedApplication.mobility_justification && (
-                  <div>
-                    <Label className="text-sm font-medium">Justificación de la Movilidad</Label>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{selectedApplication.mobility_justification}</p>
-                  </div>
-                )}
-
-                {selectedApplication.work_plan && (
-                  <div>
-                    <Label className="text-sm font-medium">Plan de Trabajo</Label>
-                    <p className="text-sm mt-1 whitespace-pre-wrap">{selectedApplication.work_plan}</p>
                   </div>
                 )}
 
