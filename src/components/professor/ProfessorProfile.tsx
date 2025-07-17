@@ -12,6 +12,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Upload, Plus, X } from "lucide-react";
 
+interface Publication {
+  title: string;
+  year: string;
+  url?: string;
+}
+
 const ProfessorProfile = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
@@ -22,7 +28,7 @@ const ProfessorProfile = () => {
     faculty_department: "",
     expertise_areas: [] as string[],
     research_interests: "",
-    relevant_publications: [] as Array<{ title: string; year: string; url?: string }>,
+    relevant_publications: [] as Publication[],
     project_experience: "",
     cv_url: "",
     profile_photo_url: ""
@@ -57,7 +63,9 @@ const ProfessorProfile = () => {
         faculty_department: professorInfo.faculty_department || "",
         expertise_areas: professorInfo.expertise_areas || [],
         research_interests: professorInfo.research_interests || "",
-        relevant_publications: professorInfo.relevant_publications || [],
+        relevant_publications: Array.isArray(professorInfo.relevant_publications) 
+          ? professorInfo.relevant_publications as Publication[]
+          : [],
         project_experience: professorInfo.project_experience || "",
         cv_url: professorInfo.cv_url || "",
         profile_photo_url: professorInfo.profile_photo_url || ""
