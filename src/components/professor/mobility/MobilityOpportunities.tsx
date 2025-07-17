@@ -1,149 +1,144 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, Clock, Building, Users, Eye } from 'lucide-react';
+import { Calendar, MapPin, Search, Plane, ArrowRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { MobilityOpportunityDetail } from './MobilityOpportunityDetail';
 
 interface MobilityOpportunity {
   id: string;
   title: string;
-  hostInstitution: string;
-  mobilityType: 'Docencia' | 'Investigación' | 'Capacitación' | 'Observación';
-  applicationDeadline: string;
-  estimatedDuration: string;
-  description: string;
-  requirements: string[];
-  funding: boolean;
+  description?: string;
+  host_institution_id?: string;
+  mobility_type: string;
+  application_deadline: string;
+  estimated_duration?: string;
+  collaboration_area?: string;
+  funding_available: boolean;
+  requirements?: string[];
+  universities?: {
+    name: string;
+    city: string;
+  };
 }
 
-const mockOpportunities: MobilityOpportunity[] = [
-  {
-    id: '1',
-    title: 'Estancia de Investigación en Biotecnología Marina',
-    hostInstitution: 'Universidad del Norte',
-    mobilityType: 'Investigación',
-    applicationDeadline: '2024-03-15',
-    estimatedDuration: '3 meses',
-    description: 'Oportunidad de investigación en el laboratorio de biotecnología marina, colaborando en proyectos de conservación.',
-    requirements: ['PhD en Biología o áreas afines', 'Experiencia en investigación marina', 'Inglés intermedio'],
-    funding: true
-  },
-  {
-    id: '2',
-    title: 'Intercambio Docente - Área de Ingeniería',
-    hostInstitution: 'Universidad Tecnológica de Bolívar',
-    mobilityType: 'Docencia',
-    applicationDeadline: '2024-04-20',
-    estimatedDuration: '1 semestre',
-    description: 'Programa de intercambio docente para impartir clases en programas de ingeniería.',
-    requirements: ['Maestría mínima en Ingeniería', '5 años de experiencia docente', 'Disponibilidad completa'],
-    funding: false
-  },
-  {
-    id: '3',
-    title: 'Capacitación en Metodologías Pedagógicas',
-    hostInstitution: 'Universidad del Atlántico',
-    mobilityType: 'Capacitación',
-    applicationDeadline: '2024-02-28',
-    estimatedDuration: '2 semanas',
-    description: 'Curso intensivo sobre nuevas metodologías pedagógicas y tecnologías educativas.',
-    requirements: ['Docente activo', 'Interés en innovación pedagógica'],
-    funding: true
-  }
-];
-
 export default function MobilityOpportunities() {
-  const [opportunities] = useState<MobilityOpportunity[]>(mockOpportunities);
-  const [filteredOpportunities, setFilteredOpportunities] = useState<MobilityOpportunity[]>(mockOpportunities);
-  const [selectedOpportunity, setSelectedOpportunity] = useState<MobilityOpportunity | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [mobilityTypeFilter, setMobilityTypeFilter] = useState<string>('all');
-  const [institutionFilter, setInstitutionFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [selectedOpportunity, setSelectedOpportunity] = useState<MobilityOpportunity | null>(null);
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    applyFilters(term, mobilityTypeFilter, institutionFilter);
-  };
-
-  const handleMobilityTypeFilter = (type: string) => {
-    setMobilityTypeFilter(type);
-    applyFilters(searchTerm, type, institutionFilter);
-  };
-
-  const handleInstitutionFilter = (institution: string) => {
-    setInstitutionFilter(institution);
-    applyFilters(searchTerm, mobilityTypeFilter, institution);
-  };
-
-  const applyFilters = (term: string, type: string, institution: string) => {
-    let filtered = opportunities;
-
-    if (term) {
-      filtered = filtered.filter(opp => 
-        opp.title.toLowerCase().includes(term.toLowerCase()) ||
-        opp.description.toLowerCase().includes(term.toLowerCase())
-      );
+  // Fetch active mobility opportunities
+  const { data: opportunities = [], isLoading } = useQuery({
+    queryKey: ['mobility-opportunities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('professor_mobility_calls')
+        .select(`
+          *,
+          universities(name, city)
+        `)
+        .eq('is_active', true)
+        .gte('application_deadline', new Date().toISOString().split('T')[0])
+        .order('application_deadline', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching opportunities:', error);
+        throw error;
+      }
+      
+      return data as MobilityOpportunity[];
     }
+  });
 
-    if (type !== 'all') {
-      filtered = filtered.filter(opp => opp.mobilityType === type);
-    }
-
-    if (institution !== 'all') {
-      filtered = filtered.filter(opp => opp.hostInstitution === institution);
-    }
-
-    setFilteredOpportunities(filtered);
+  const handleApplyToOpportunity = (opportunity: MobilityOpportunity) => {
+    // This would typically open an application form or navigate to it
+    console.log('Applying to opportunity:', opportunity.id);
+    // For now, we'll just show a message
   };
 
-  const handleViewDetails = (opportunity: MobilityOpportunity) => {
-    setSelectedOpportunity(opportunity);
+  const filteredOpportunities = opportunities.filter(opp => {
+    const matchesSearch = 
+      opp.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      opp.universities?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      opp.collaboration_area?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesType = typeFilter === 'all' || opp.mobility_type === typeFilter;
+    
+    return matchesSearch && matchesType;
+  });
+
+  const getTypeColor = (type: string) => {
+    const colors = {
+      'Docencia': 'bg-blue-100 text-blue-800',
+      'Investigación': 'bg-purple-100 text-purple-800',
+      'Capacitación': 'bg-orange-100 text-orange-800',
+      'Observación': 'bg-teal-100 text-teal-800'
+    };
+    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  const handleBackToList = () => {
-    setSelectedOpportunity(null);
-  };
-
-  const handleApply = (opportunity: MobilityOpportunity) => {
-    // TODO: Implement navigation to application form
-    console.log('Apply to opportunity:', opportunity);
+  const isDeadlineSoon = (deadline: string) => {
+    const deadlineDate = new Date(deadline);
+    const today = new Date();
+    const diffTime = deadlineDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
   };
 
   if (selectedOpportunity) {
     return (
-      <MobilityOpportunityDetail 
+      <MobilityOpportunityDetail
         opportunity={selectedOpportunity}
-        onBack={handleBackToList}
-        onApply={handleApply}
+        onBack={() => setSelectedOpportunity(null)}
+        onApply={handleApplyToOpportunity}
       />
     );
   }
 
-  const uniqueInstitutions = [...new Set(opportunities.map(opp => opp.hostInstitution))];
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center">
-          <Users className="h-5 w-5 mr-2" />
+          <Plane className="h-5 w-5 mr-2" />
           Oportunidades de Movilidad
         </CardTitle>
+        <CardDescription>
+          Explora las convocatorias de movilidad disponibles para profesores
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Input
-            placeholder="Buscar oportunidades..."
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          <Select value={mobilityTypeFilter} onValueChange={handleMobilityTypeFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Tipo de movilidad" />
+      
+      <CardContent className="space-y-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Buscar por título, universidad o área..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filtrar por tipo" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los tipos</SelectItem>
@@ -153,89 +148,73 @@ export default function MobilityOpportunities() {
               <SelectItem value="Observación">Observación</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={institutionFilter} onValueChange={handleInstitutionFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Institución anfitriona" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las instituciones</SelectItem>
-              {uniqueInstitutions.map(institution => (
-                <SelectItem key={institution} value={institution}>
-                  {institution}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
-        {/* Opportunities List */}
-        <div className="space-y-4">
-          {filteredOpportunities.length > 0 ? (
-            filteredOpportunities.map((opportunity) => (
-              <Card key={opportunity.id} className="border hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold mb-2">{opportunity.title}</h3>
-                      <div className="flex items-center text-sm text-muted-foreground mb-2">
-                        <Building className="h-4 w-4 mr-1" />
-                        {opportunity.hostInstitution}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end space-y-2">
-                      <Badge variant="secondary">
-                        {opportunity.mobilityType}
+        <div className="text-sm text-muted-foreground">
+          {filteredOpportunities.length} oportunidad(es) encontrada(s)
+        </div>
+
+        <div className="grid gap-4">
+          {filteredOpportunities.map((opportunity) => (
+            <div key={opportunity.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-lg font-semibold">{opportunity.title}</h3>
+                    <Badge className={getTypeColor(opportunity.mobility_type)} variant="secondary">
+                      {opportunity.mobility_type}
+                    </Badge>
+                    {opportunity.funding_available && (
+                      <Badge className="bg-green-100 text-green-800" variant="secondary">
+                        Con Financiamiento
                       </Badge>
-                      {opportunity.funding && (
-                        <Badge variant="default" className="bg-green-100 text-green-800">
-                          Con financiación
-                        </Badge>
-                      )}
+                    )}
+                    {isDeadlineSoon(opportunity.application_deadline) && (
+                      <Badge className="bg-red-100 text-red-800" variant="secondary">
+                        Fecha límite próxima
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      <span>{opportunity.universities?.name} - {opportunity.universities?.city}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>Fecha límite: {new Date(opportunity.application_deadline).toLocaleDateString('es-ES')}</span>
                     </div>
                   </div>
-
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                    {opportunity.description}
-                  </p>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Límite: {new Date(opportunity.applicationDeadline).toLocaleDateString('es-ES')}
+                  
+                  {opportunity.description && (
+                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">{opportunity.description}</p>
+                  )}
+                  
+                  {opportunity.collaboration_area && (
+                    <div className="text-sm">
+                      <span className="font-medium">Área: </span>
+                      <span className="text-gray-600">{opportunity.collaboration_area}</span>
                     </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4 mr-2" />
-                      Duración: {opportunity.estimatedDuration}
-                    </div>
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      Modalidad: Presencial
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <div className="text-xs text-muted-foreground">
-                      {opportunity.requirements.length} requisitos específicos
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewDetails(opportunity)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver Detalles
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg mb-2">No se encontraron oportunidades</p>
-              <p className="text-sm">
-                Intenta ajustar los filtros de búsqueda para encontrar más opciones.
-              </p>
+                  )}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedOpportunity(opportunity)}
+                  className="ml-4"
+                >
+                  Ver Detalles
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          
+          {filteredOpportunities.length === 0 && (
+            <div className="text-center py-8">
+              <Plane className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No se encontraron oportunidades de movilidad</p>
             </div>
           )}
         </div>

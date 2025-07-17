@@ -1,20 +1,21 @@
 
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Calendar, Upload, FileText, Save } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Upload, FileText } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-interface MobilityCall {
+interface MobilityOpportunity {
   id: string;
   title: string;
+  description?: string;
   mobility_type: string;
   application_deadline: string;
   universities?: {
@@ -23,92 +24,110 @@ interface MobilityCall {
   };
 }
 
-export const MobilityApplicationForm = () => {
+interface MobilityApplicationFormProps {
+  opportunity: MobilityOpportunity;
+  onBack: () => void;
+}
+
+export default function MobilityApplicationForm({ opportunity, onBack }: MobilityApplicationFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [selectedCall, setSelectedCall] = useState<string>('');
-  const [formData, setFormData] = useState({
-    gender: '',
-    birth_date: '',
-    birth_place: '',
-    birth_country: '',
-    blood_type: '',
-    health_insurance: '',
-    contact_phone: '',
-    contact_email: '',
-    origin_institution: '',
-    faculty_department: '',
-    current_role: '',
-    expertise_area: '',
-    years_experience: '',
-    employee_code: '',
-    collaboration_department: '',
-    proposed_start_date: '',
-    proposed_end_date: '',
-    mobility_justification: '',
-    work_plan: ''
-  });
+  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
-  // Mock data for mobility calls
-  const mockCalls: MobilityCall[] = [
-    {
-      id: '1',
-      title: 'Estancia de Investigación en Biotecnología Marina',
-      mobility_type: 'Investigación',
-      application_deadline: '2024-03-15',
-      universities: {
-        name: 'Universidad del Norte',
-        city: 'Barranquilla'
-      }
-    }
-  ];
-
-  // Fetch available mobility calls - using mock data for now
-  const { data: mobilityCalls = [] } = useQuery({
-    queryKey: ['mobility-calls-available'],
+  // Fetch user profile info
+  const { data: profile } = useQuery({
+    queryKey: ['user-profile', user?.id],
     queryFn: async () => {
-      // TODO: Replace with actual Supabase query once tables are created
-      return mockCalls;
-    }
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id
   });
 
-  // Submit application mutation
-  const submitApplicationMutation = useMutation({
-    mutationFn: async (applicationData: any) => {
-      // TODO: Implement actual database operations once tables are created
-      console.log('Would submit application:', applicationData);
-      return Promise.resolve({ id: 'mock-id' });
+  // Fetch professor info if available
+  const { data: professorInfo } = useQuery({
+    queryKey: ['professor-info', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('professor_info')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+    enabled: !!user?.id
+  });
+
+  const submitApplication = useMutation({
+    mutationFn: async (formData: any) => {
+      if (!user?.id) throw new Error('Usuario no autenticado');
+
+      // Insert application
+      const { data: application, error: appError } = await supabase
+        .from('professor_mobility_applications')
+        .insert({
+          professor_id: user.id,
+          mobility_call_id: opportunity.id,
+          ...formData
+        })
+        .select()
+        .single();
+
+      if (appError) throw appError;
+
+      // Upload documents if any
+      if (uploadedFiles.length > 0) {
+        for (const file of uploadedFiles) {
+          const fileName = `${application.id}/${Date.now()}-${file.name}`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('professor-mobility-docs')
+            .upload(fileName, file);
+
+          if (uploadError) throw uploadError;
+
+          // Insert document record
+          const { error: docError } = await supabase
+            .from('professor_mobility_documents')
+            .insert({
+              application_id: application.id,
+              document_type: 'general',
+              file_name: file.name,
+              file_path: fileName,
+              file_size: file.size,
+              uploaded_by: user.id
+            });
+
+          if (docError) throw docError;
+        }
+      }
+
+      return application;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['professor-mobility-applications'] });
       toast({
         title: 'Postulación enviada',
-        description: 'Tu postulación ha sido enviada exitosamente.'
+        description: 'Tu postulación se ha enviado exitosamente.'
       });
-      // Reset form
-      setFormData({
-        gender: '',
-        birth_date: '',
-        birth_place: '',
-        birth_country: '',
-        blood_type: '',
-        health_insurance: '',
-        contact_phone: '',
-        contact_email: '',
-        origin_institution: '',
-        faculty_department: '',
-        current_role: '',
-        expertise_area: '',
-        years_experience: '',
-        employee_code: '',
-        collaboration_department: '',
-        proposed_start_date: '',
-        proposed_end_date: '',
-        mobility_justification: '',
-        work_plan: ''
-      });
-      setSelectedCall('');
+      onBack();
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Error submitting application:', error);
       toast({
         title: 'Error',
         description: 'No se pudo enviar la postulación.',
@@ -117,176 +136,125 @@ export const MobilityApplicationForm = () => {
     }
   });
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!selectedCall) {
-      toast({
-        title: 'Error',
-        description: 'Por favor selecciona una convocatoria.',
-        variant: 'destructive'
-      });
-      return;
-    }
+    setIsSubmitting(true);
 
+    const formData = new FormData(e.target as HTMLFormElement);
+    
     const applicationData = {
-      ...formData,
-      mobility_call_id: selectedCall,
-      professor_id: user?.id,
-      status: 'pending'
+      gender: formData.get('gender'),
+      birth_date: formData.get('birth_date'),
+      birth_place: formData.get('birth_place'),
+      birth_country: formData.get('birth_country'),
+      blood_type: formData.get('blood_type'),
+      health_insurance: formData.get('health_insurance'),
+      contact_phone: formData.get('contact_phone'),
+      contact_email: formData.get('contact_email'),
+      origin_institution: formData.get('origin_institution'),
+      faculty_department: formData.get('faculty_department'),
+      current_role: formData.get('current_role'),
+      expertise_area: formData.get('expertise_area'),
+      years_experience: parseInt(formData.get('years_experience') as string) || null,
+      employee_code: formData.get('employee_code'),
+      collaboration_department: formData.get('collaboration_department'),
+      proposed_start_date: formData.get('proposed_start_date'),
+      proposed_end_date: formData.get('proposed_end_date'),
+      mobility_justification: formData.get('mobility_justification'),
+      work_plan: formData.get('work_plan')
     };
 
-    submitApplicationMutation.mutate(applicationData);
+    await submitApplication.mutateAsync(applicationData);
+    setIsSubmitting(false);
   };
 
-  const selectedCallData = mobilityCalls.find(call => call.id === selectedCall);
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setUploadedFiles(prev => [...prev, ...files]);
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <FileText className="h-5 w-5 mr-2" />
-          Formulario de Postulación - Movilidad Profesores
-        </CardTitle>
-        <CardDescription>
-          Completa todos los campos para postularte a una convocatoria de movilidad
-        </CardDescription>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Volver
+          </Button>
+          <div>
+            <CardTitle>Postulación a Movilidad</CardTitle>
+            <CardDescription>{opportunity.title}</CardDescription>
+          </div>
+        </div>
       </CardHeader>
       
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Convocatoria Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="mobility_call">Convocatoria *</Label>
-            <Select value={selectedCall} onValueChange={setSelectedCall}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona una convocatoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {mobilityCalls.map((call) => (
-                  <SelectItem key={call.id} value={call.id}>
-                    {call.title} - {call.universities?.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedCallData && (
-              <div className="text-sm text-gray-600 p-3 bg-blue-50 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>Fecha límite: {new Date(selectedCallData.application_deadline).toLocaleDateString('es-ES')}</span>
-                </div>
-                <p>Tipo: {selectedCallData.mobility_type}</p>
-                <p>Universidad anfitriona: {selectedCallData.universities?.name} - {selectedCallData.universities?.city}</p>
-              </div>
-            )}
-          </div>
-
           {/* Personal Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Información Personal</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="gender">Género</Label>
-                <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                <Select name="gender">
                   <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar" />
+                    <SelectValue placeholder="Seleccionar género" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="M">Masculino</SelectItem>
-                    <SelectItem value="F">Femenino</SelectItem>
-                    <SelectItem value="O">Otro</SelectItem>
+                    <SelectItem value="masculino">Masculino</SelectItem>
+                    <SelectItem value="femenino">Femenino</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="birth_date">Fecha de Nacimiento</Label>
-                <Input
-                  id="birth_date"
-                  type="date"
-                  value={formData.birth_date}
-                  onChange={(e) => handleInputChange('birth_date', e.target.value)}
-                />
+                <Input id="birth_date" name="birth_date" type="date" />
               </div>
               
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="birth_place">Lugar de Nacimiento</Label>
-                <Input
-                  id="birth_place"
-                  value={formData.birth_place}
-                  onChange={(e) => handleInputChange('birth_place', e.target.value)}
-                />
+                <Input id="birth_place" name="birth_place" />
               </div>
               
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="birth_country">País de Nacimiento</Label>
-                <Input
-                  id="birth_country"
-                  value={formData.birth_country}
-                  onChange={(e) => handleInputChange('birth_country', e.target.value)}
-                />
+                <Input id="birth_country" name="birth_country" />
               </div>
               
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="blood_type">Tipo de Sangre</Label>
-                <Select value={formData.blood_type} onValueChange={(value) => handleInputChange('blood_type', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="O+">O+</SelectItem>
-                    <SelectItem value="O-">O-</SelectItem>
-                    <SelectItem value="A+">A+</SelectItem>
-                    <SelectItem value="A-">A-</SelectItem>
-                    <SelectItem value="B+">B+</SelectItem>
-                    <SelectItem value="B-">B-</SelectItem>
-                    <SelectItem value="AB+">AB+</SelectItem>
-                    <SelectItem value="AB-">AB-</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input id="blood_type" name="blood_type" placeholder="Ej. O+" />
               </div>
               
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="health_insurance">Seguro de Salud</Label>
-                <Input
-                  id="health_insurance"
-                  value={formData.health_insurance}
-                  onChange={(e) => handleInputChange('health_insurance', e.target.value)}
-                />
+                <Input id="health_insurance" name="health_insurance" />
               </div>
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Información de Contacto</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="contact_phone">Teléfono de Contacto *</Label>
-                <Input
-                  id="contact_phone"
-                  value={formData.contact_phone}
-                  onChange={(e) => handleInputChange('contact_phone', e.target.value)}
-                  required
+              
+              <div>
+                <Label htmlFor="contact_phone">Teléfono de Contacto</Label>
+                <Input 
+                  id="contact_phone" 
+                  name="contact_phone" 
+                  defaultValue={profile?.phone || ''}
+                  required 
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="contact_email">Correo Electrónico *</Label>
-                <Input
-                  id="contact_email"
+              <div>
+                <Label htmlFor="contact_email">Email de Contacto</Label>
+                <Input 
+                  id="contact_email" 
+                  name="contact_email" 
                   type="email"
-                  value={formData.contact_email}
-                  onChange={(e) => handleInputChange('contact_email', e.target.value)}
-                  required
+                  defaultValue={user?.email || ''}
+                  required 
                 />
               </div>
             </div>
@@ -294,63 +262,49 @@ export const MobilityApplicationForm = () => {
 
           {/* Academic Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Información Académica</h3>
+            <h3 className="text-lg font-semibold">Información Académica/Laboral</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="origin_institution">Institución de Origen *</Label>
-                <Input
-                  id="origin_institution"
-                  value={formData.origin_institution}
-                  onChange={(e) => handleInputChange('origin_institution', e.target.value)}
-                  required
+              <div>
+                <Label htmlFor="origin_institution">Institución de Origen</Label>
+                <Input 
+                  id="origin_institution" 
+                  name="origin_institution"
+                  defaultValue={professorInfo?.university || ''}
+                  required 
                 />
               </div>
               
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="faculty_department">Facultad/Departamento</Label>
-                <Input
-                  id="faculty_department"
-                  value={formData.faculty_department}
-                  onChange={(e) => handleInputChange('faculty_department', e.target.value)}
+                <Input 
+                  id="faculty_department" 
+                  name="faculty_department"
+                  defaultValue={professorInfo?.faculty_department || ''}
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="current_role">Cargo Actual *</Label>
-                <Input
-                  id="current_role"
-                  value={formData.current_role}
-                  onChange={(e) => handleInputChange('current_role', e.target.value)}
-                  required
-                />
+              <div>
+                <Label htmlFor="current_role">Rol Actual</Label>
+                <Input id="current_role" name="current_role" placeholder="Ej. Profesor Asociado" />
               </div>
               
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="expertise_area">Área de Experticia</Label>
-                <Input
-                  id="expertise_area"
-                  value={formData.expertise_area}
-                  onChange={(e) => handleInputChange('expertise_area', e.target.value)}
+                <Input 
+                  id="expertise_area" 
+                  name="expertise_area"
+                  defaultValue={professorInfo?.expertise_areas?.join(', ') || ''}
                 />
               </div>
               
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="years_experience">Años de Experiencia</Label>
-                <Input
-                  id="years_experience"
-                  type="number"
-                  value={formData.years_experience}
-                  onChange={(e) => handleInputChange('years_experience', e.target.value)}
-                />
+                <Input id="years_experience" name="years_experience" type="number" />
               </div>
               
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="employee_code">Código de Empleado</Label>
-                <Input
-                  id="employee_code"
-                  value={formData.employee_code}
-                  onChange={(e) => handleInputChange('employee_code', e.target.value)}
-                />
+                <Input id="employee_code" name="employee_code" />
               </div>
             </div>
           </div>
@@ -359,91 +313,97 @@ export const MobilityApplicationForm = () => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Detalles de la Movilidad</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="collaboration_department">Departamento de Colaboración</Label>
-                <Input
-                  id="collaboration_department"
-                  value={formData.collaboration_department}
-                  onChange={(e) => handleInputChange('collaboration_department', e.target.value)}
+                <Input id="collaboration_department" name="collaboration_department" />
+              </div>
+              
+              <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="proposed_start_date">Fecha de Inicio Propuesta</Label>
+                  <Input id="proposed_start_date" name="proposed_start_date" type="date" />
+                </div>
+                
+                <div>
+                  <Label htmlFor="proposed_end_date">Fecha de Fin Propuesta</Label>
+                  <Input id="proposed_end_date" name="proposed_end_date" type="date" />
+                </div>
+              </div>
+              
+              <div className="md:col-span-2">
+                <Label htmlFor="mobility_justification">Justificación de la Movilidad</Label>
+                <Textarea 
+                  id="mobility_justification" 
+                  name="mobility_justification"
+                  rows={4}
+                  placeholder="Explique por qué desea participar en esta movilidad y cómo contribuirá a su desarrollo profesional..."
+                  required
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="proposed_start_date">Fecha de Inicio Propuesta</Label>
-                <Input
-                  id="proposed_start_date"
-                  type="date"
-                  value={formData.proposed_start_date}
-                  onChange={(e) => handleInputChange('proposed_start_date', e.target.value)}
+              <div className="md:col-span-2">
+                <Label htmlFor="work_plan">Plan de Trabajo</Label>
+                <Textarea 
+                  id="work_plan" 
+                  name="work_plan"
+                  rows={6}
+                  placeholder="Describa las actividades que planea realizar durante la movilidad..."
+                  required
                 />
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="proposed_end_date">Fecha de Fin Propuesta</Label>
-                <Input
-                  id="proposed_end_date"
-                  type="date"
-                  value={formData.proposed_end_date}
-                  onChange={(e) => handleInputChange('proposed_end_date', e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="mobility_justification">Justificación de la Movilidad *</Label>
-              <Textarea
-                id="mobility_justification"
-                rows={4}
-                value={formData.mobility_justification}
-                onChange={(e) => handleInputChange('mobility_justification', e.target.value)}
-                placeholder="Explica las razones y objetivos de tu movilidad..."
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="work_plan">Plan de Trabajo</Label>
-              <Textarea
-                id="work_plan"
-                rows={4}
-                value={formData.work_plan}
-                onChange={(e) => handleInputChange('work_plan', e.target.value)}
-                placeholder="Describe las actividades que planeas realizar..."
-              />
             </div>
           </div>
 
-          {/* Document Upload Section */}
+          {/* Document Upload */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Documentos Requeridos</h3>
-            <div className="grid gap-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                <p className="text-sm text-gray-600 mb-2">
-                  La sección de carga de documentos estará disponible próximamente
-                </p>
-                <p className="text-xs text-gray-500">
-                  Documentos requeridos: CV, Carta de Invitación (opcional), Propuesta de Investigación/Docencia, Carta de Aval Institucional
-                </p>
-              </div>
+            <h3 className="text-lg font-semibold">Documentos</h3>
+            <div>
+              <Label htmlFor="documents">Adjuntar Documentos</Label>
+              <Input 
+                id="documents" 
+                type="file" 
+                multiple 
+                onChange={handleFileUpload}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Formatos aceptados: PDF, DOC, DOCX, JPG, PNG
+              </p>
             </div>
+            
+            {uploadedFiles.length > 0 && (
+              <div className="space-y-2">
+                <Label>Archivos Seleccionados:</Label>
+                {uploadedFiles.map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 border rounded">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      <span className="text-sm">{file.name}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeFile(index)}
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end space-x-4">
-            <Button type="button" variant="outline">
-              Guardar Borrador
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={onBack}>
+              Cancelar
             </Button>
-            <Button 
-              type="submit" 
-              disabled={submitApplicationMutation.isPending || !selectedCall}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {submitApplicationMutation.isPending ? 'Enviando...' : 'Enviar Postulación'}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Enviando...' : 'Enviar Postulación'}
             </Button>
           </div>
         </form>
       </CardContent>
     </Card>
   );
-};
+}

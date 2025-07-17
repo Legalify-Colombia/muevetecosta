@@ -15,7 +15,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-// Temporary interfaces until database tables are created
 interface MobilityCall {
   id: string;
   title: string;
@@ -46,28 +45,6 @@ interface University {
   city: string;
 }
 
-// Mock data for demonstration
-const mockMobilityCalls: MobilityCall[] = [
-  {
-    id: '1',
-    title: 'Estancia de Investigación en Biotecnología Marina',
-    description: 'Oportunidad de investigación en el laboratorio de biotecnología marina',
-    host_institution_id: '1',
-    mobility_type: 'Investigación',
-    application_deadline: '2024-03-15',
-    estimated_duration: '3 meses',
-    collaboration_area: 'Biotecnología',
-    funding_available: true,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    universities: {
-      name: 'Universidad del Norte',
-      city: 'Barranquilla'
-    }
-  }
-];
-
 export const ProfessorMobilityManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -76,12 +53,25 @@ export const ProfessorMobilityManagement = () => {
   const [editingCall, setEditingCall] = useState<MobilityCall | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch mobility calls - using mock data for now
+  // Fetch mobility calls from database
   const { data: mobilityCalls = [], isLoading } = useQuery({
     queryKey: ['professor-mobility-calls'],
     queryFn: async () => {
-      // TODO: Replace with actual Supabase query once tables are created
-      return mockMobilityCalls;
+      const { data, error } = await supabase
+        .from('professor_mobility_calls')
+        .select(`
+          *,
+          universities(name, city),
+          profiles(full_name)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching mobility calls:', error);
+        throw error;
+      }
+      
+      return data as MobilityCall[];
     }
   });
 
@@ -102,10 +92,26 @@ export const ProfessorMobilityManagement = () => {
   // Create/Update mutation
   const createUpdateMutation = useMutation({
     mutationFn: async (callData: any) => {
-      // TODO: Implement actual database operations once tables are created
-      console.log('Would save:', callData);
-      // Simulate success
-      return Promise.resolve();
+      if (editingCall) {
+        const { error } = await supabase
+          .from('professor_mobility_calls')
+          .update({
+            ...callData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', editingCall.id);
+        
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('professor_mobility_calls')
+          .insert({
+            ...callData,
+            created_by: user?.id
+          });
+        
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['professor-mobility-calls'] });
@@ -117,6 +123,7 @@ export const ProfessorMobilityManagement = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Error saving mobility call:', error);
       toast({
         title: 'Error',
         description: 'No se pudo guardar la convocatoria.',
@@ -128,9 +135,12 @@ export const ProfessorMobilityManagement = () => {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      // TODO: Implement actual database operations once tables are created
-      console.log('Would delete:', id);
-      return Promise.resolve();
+      const { error } = await supabase
+        .from('professor_mobility_calls')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['professor-mobility-calls'] });
@@ -152,6 +162,10 @@ export const ProfessorMobilityManagement = () => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     
+    const requirementsText = formData.get('requirements') as string;
+    const requirements = requirementsText ? 
+      requirementsText.split('\n').filter(req => req.trim()) : [];
+    
     const callData = {
       title: formData.get('title'),
       description: formData.get('description'),
@@ -162,8 +176,7 @@ export const ProfessorMobilityManagement = () => {
       collaboration_area: formData.get('collaboration_area'),
       funding_available: formData.get('funding_available') === 'on',
       is_active: formData.get('is_active') === 'on',
-      requirements: formData.get('requirements') ? 
-        (formData.get('requirements') as string).split('\n').filter(req => req.trim()) : []
+      requirements
     };
 
     createUpdateMutation.mutate(callData);
