@@ -1,12 +1,14 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FlaskConical, FileText, User, Search, FolderOpen } from 'lucide-react';
+import { FlaskConical, FileText, User, Search, FolderOpen, Plane } from 'lucide-react';
 import ProfessorProfile from '@/components/professor/ProfessorProfile';
 import ProjectsOverview from '@/components/professor/ProjectsOverview';
 import MyProjects from '@/components/professor/MyProjects';
 import ProjectSearch from '@/components/professor/ProjectSearch';
 import ProjectCreation from '@/components/professor/ProjectCreation';
+import MobilityOpportunities from '@/components/professor/mobility/MobilityOpportunities';
+import MobilityApplications from '@/components/professor/mobility/MobilityApplications';
 import Header from '@/components/common/Header';
 
 export default function ProfessorDashboard() {
@@ -19,7 +21,7 @@ export default function ProfessorDashboard() {
 
   const handleCloseProjectCreation = () => {
     setShowProjectCreation(false);
-    setActiveTab('my-projects'); // Redirect to my projects after creation
+    setActiveTab('my-projects');
   };
 
   if (showProjectCreation) {
@@ -49,7 +51,7 @@ export default function ProfessorDashboard() {
             <div>
               <h1 className="text-2xl font-bold">Panel del Profesor</h1>
               <p className="text-muted-foreground">
-                Gestiona tu perfil académico y proyectos de investigación
+                Gestiona tu perfil académico, proyectos de investigación y oportunidades de movilidad
               </p>
             </div>
           </div>
@@ -58,7 +60,7 @@ export default function ProfessorDashboard() {
 
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <FlaskConical className="h-4 w-4" />
               Resumen
@@ -70,6 +72,14 @@ export default function ProfessorDashboard() {
             <TabsTrigger value="search" className="flex items-center gap-2">
               <Search className="h-4 w-4" />
               Buscar Proyectos
+            </TabsTrigger>
+            <TabsTrigger value="mobility" className="flex items-center gap-2">
+              <Plane className="h-4 w-4" />
+              Movilidad
+            </TabsTrigger>
+            <TabsTrigger value="my-mobility" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Mis Postulaciones
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -87,6 +97,14 @@ export default function ProfessorDashboard() {
 
           <TabsContent value="search">
             <ProjectSearch />
+          </TabsContent>
+
+          <TabsContent value="mobility">
+            <MobilityOpportunities />
+          </TabsContent>
+
+          <TabsContent value="my-mobility">
+            <MobilityApplications />
           </TabsContent>
 
           <TabsContent value="profile">
