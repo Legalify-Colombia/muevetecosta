@@ -78,11 +78,11 @@ export default function ProfessorDashboard() {
           </TabsList>
 
           <TabsContent value="overview">
-            <ProjectsOverview onCreateProject={handleCreateProject} />
+            <ProjectsOverview />
           </TabsContent>
 
           <TabsContent value="my-projects">
-            <MyProjects onCreateProject={handleCreateProject} />
+            <MyProjects />
           </TabsContent>
 
           <TabsContent value="search">
