@@ -880,6 +880,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_coordinator_to_university: {
+        Args: { coordinator_user_id: string; university_id: string }
+        Returns: boolean
+      }
       generate_application_number: {
         Args: Record<PropertyKey, never>
         Returns: string
