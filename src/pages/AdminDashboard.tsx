@@ -5,7 +5,7 @@ import { UserManagement } from '@/components/admin/UserManagement';
 import { UniversityManagement } from '@/components/admin/UniversityManagement';
 import { ProjectManagement } from '@/components/admin/ProjectManagement';
 import { ProfessorMobilityManagement } from '@/components/admin/ProfessorMobilityManagement';
-import { ContentManagement } from '@/components/admin/ContentManagement';
+import ContentManagement from '@/components/admin/ContentManagement';
 import { EmailConfiguration } from '@/components/admin/EmailConfiguration';
 import { Users, Building2, Briefcase, Plane, FileText, Mail } from 'lucide-react';
 

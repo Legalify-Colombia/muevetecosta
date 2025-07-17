@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Mail, Settings, Template, History } from 'lucide-react';
+import { Loader2, Mail, Settings, FileText, History } from 'lucide-react';
 import { EmailTemplateManager } from './EmailTemplateManager';
 import { EmailHistory } from './EmailHistory';
 
@@ -138,7 +138,7 @@ export const EmailConfiguration = () => {
             Configuración
           </TabsTrigger>
           <TabsTrigger value="templates" className="flex items-center gap-2">
-            <Template className="h-4 w-4" />
+            <FileText className="h-4 w-4" />
             Plantillas
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">

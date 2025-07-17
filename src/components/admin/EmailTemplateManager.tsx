@@ -54,7 +54,9 @@ export const EmailTemplateManager = () => {
         ...template,
         available_variables: Array.isArray(template.available_variables) 
           ? template.available_variables 
-          : JSON.parse(template.available_variables || '[]')
+          : typeof template.available_variables === 'string'
+            ? JSON.parse(template.available_variables)
+            : []
       })));
     } catch (error) {
       console.error('Error loading templates:', error);
