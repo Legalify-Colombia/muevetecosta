@@ -331,6 +331,8 @@ export default function MobilityApplication() {
           <DocumentUploadSection 
             formData={formData}
             setFormData={setFormData}
+            destinationUniversityId={universityId}
+            mobilityType="student"
           />
 
           <Card>

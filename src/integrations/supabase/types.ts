@@ -880,7 +880,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           document_title: string
-          document_type: string
+          document_type: string | null
           id: string
           is_mandatory: boolean | null
           mobility_type: string | null
@@ -893,7 +893,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           document_title: string
-          document_type: string
+          document_type?: string | null
           id?: string
           is_mandatory?: boolean | null
           mobility_type?: string | null
@@ -906,7 +906,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           document_title?: string
-          document_type?: string
+          document_type?: string | null
           id?: string
           is_mandatory?: boolean | null
           mobility_type?: string | null

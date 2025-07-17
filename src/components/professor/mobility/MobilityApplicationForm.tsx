@@ -11,6 +11,7 @@ import { ArrowLeft, Send, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { DocumentUploadSection } from '@/components/mobility/DocumentUploadSection';
 
 interface MobilityOpportunity {
   id: string;
@@ -44,7 +45,7 @@ export const MobilityApplicationForm: React.FC<MobilityApplicationFormProps> = (
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [documents, setDocuments] = useState<File[]>([]);
+  const [formData, setFormData] = useState({});
 
   const createApplicationMutation = useMutation({
     mutationFn: async (applicationData: any) => {
@@ -82,28 +83,29 @@ export const MobilityApplicationForm: React.FC<MobilityApplicationFormProps> = (
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData(e.target as HTMLFormElement);
+      const form = new FormData(e.target as HTMLFormElement);
       
       const applicationData = {
-        gender: formData.get('gender'),
-        birth_date: formData.get('birth_date'),
-        birth_place: formData.get('birth_place'),
-        birth_country: formData.get('birth_country'),
-        blood_type: formData.get('blood_type'),
-        health_insurance: formData.get('health_insurance'),
-        contact_phone: formData.get('contact_phone'),
-        contact_email: formData.get('contact_email'),
-        origin_institution: formData.get('origin_institution'),
-        faculty_department: formData.get('faculty_department'),
-        current_role: formData.get('current_role'),
-        expertise_area: formData.get('expertise_area'),
-        years_experience: parseInt(formData.get('years_experience') as string) || 0,
-        employee_code: formData.get('employee_code'),
-        collaboration_department: formData.get('collaboration_department'),
-        proposed_start_date: formData.get('proposed_start_date'),
-        proposed_end_date: formData.get('proposed_end_date'),
-        mobility_justification: formData.get('mobility_justification'),
-        work_plan: formData.get('work_plan')
+        gender: form.get('gender'),
+        birth_date: form.get('birth_date'),
+        birth_place: form.get('birth_place'),
+        birth_country: form.get('birth_country'),
+        blood_type: form.get('blood_type'),
+        health_insurance: form.get('health_insurance'),
+        contact_phone: form.get('contact_phone'),
+        contact_email: form.get('contact_email'),
+        origin_institution: form.get('origin_institution'),
+        faculty_department: form.get('faculty_department'),
+        current_role: form.get('current_role'),
+        expertise_area: form.get('expertise_area'),
+        years_experience: parseInt(form.get('years_experience') as string) || 0,
+        employee_code: form.get('employee_code'),
+        collaboration_department: form.get('collaboration_department'),
+        proposed_start_date: form.get('proposed_start_date'),
+        proposed_end_date: form.get('proposed_end_date'),
+        mobility_justification: form.get('mobility_justification'),
+        work_plan: form.get('work_plan'),
+        ...formData // Include document uploads
       };
 
       await createApplicationMutation.mutateAsync(applicationData);
@@ -111,12 +113,6 @@ export const MobilityApplicationForm: React.FC<MobilityApplicationFormProps> = (
       console.error('Error submitting application:', error);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setDocuments([...documents, ...Array.from(e.target.files)]);
     }
   };
 
@@ -273,38 +269,13 @@ export const MobilityApplicationForm: React.FC<MobilityApplicationFormProps> = (
             </div>
           </div>
 
-          {/* Documentos */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Documentos</h3>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-              <div className="text-center">
-                <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <Label htmlFor="documents" className="cursor-pointer">
-                  <span className="text-sm text-gray-600">
-                    Haz clic para subir documentos o arrastra y suelta
-                  </span>
-                  <Input
-                    id="documents"
-                    type="file"
-                    multiple
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </Label>
-              </div>
-              {documents.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium">Archivos seleccionados:</p>
-                  <ul className="text-sm text-gray-600">
-                    {documents.map((file, index) => (
-                      <li key={index}>{file.name}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Documentos Requeridos */}
+          <DocumentUploadSection 
+            formData={formData}
+            setFormData={setFormData}
+            destinationUniversityId={opportunity.host_institution_id}
+            mobilityType="professor"
+          />
 
           <div className="flex justify-end space-x-4">
             <Button type="button" variant="outline" onClick={onBack}>
