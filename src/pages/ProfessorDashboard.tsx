@@ -2,10 +2,10 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FlaskConical, FileText, User, Search, FolderOpen } from 'lucide-react';
-import { ProfessorProfile } from '@/components/professor/ProfessorProfile';
-import { ProjectsOverview } from '@/components/professor/ProjectsOverview';
-import { MyProjects } from '@/components/professor/MyProjects';
-import { ProjectSearch } from '@/components/professor/ProjectSearch';
+import ProfessorProfile from '@/components/professor/ProfessorProfile';
+import ProjectsOverview from '@/components/professor/ProjectsOverview';
+import MyProjects from '@/components/professor/MyProjects';
+import ProjectSearch from '@/components/professor/ProjectSearch';
 import ProjectCreation from '@/components/professor/ProjectCreation';
 import Header from '@/components/common/Header';
 

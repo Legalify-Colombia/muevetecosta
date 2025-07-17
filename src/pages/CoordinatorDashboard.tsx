@@ -118,7 +118,7 @@ export default function CoordinatorDashboard() {
           </TabsContent>
 
           <TabsContent value="programs">
-            <ProgramManagement onManageCourses={handleManageCourses} />
+            <ProgramManagement />
           </TabsContent>
 
           <TabsContent value="courses">
