@@ -21,7 +21,7 @@ export const useUniversityRequiredDocuments = (universityId?: string) => {
       if (!universityId) return [];
       
       const { data, error } = await supabase
-        .from('university_required_documents')
+        .from('university_required_documents' as any)
         .select('*')
         .eq('university_id', universityId)
         .order('created_at', { ascending: false });
@@ -40,7 +40,7 @@ export const useCreateUniversityRequiredDocument = () => {
   return useMutation({
     mutationFn: async (data: Omit<UniversityRequiredDocument, 'id' | 'created_at' | 'updated_at'>) => {
       const { data: result, error } = await supabase
-        .from('university_required_documents')
+        .from('university_required_documents' as any)
         .insert([data])
         .select()
         .single();
@@ -72,7 +72,7 @@ export const useUpdateUniversityRequiredDocument = () => {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string, data: Partial<UniversityRequiredDocument> }) => {
       const { data: result, error } = await supabase
-        .from('university_required_documents')
+        .from('university_required_documents' as any)
         .update(data)
         .eq('id', id)
         .select()
@@ -105,7 +105,7 @@ export const useDeleteUniversityRequiredDocument = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('university_required_documents')
+        .from('university_required_documents' as any)
         .delete()
         .eq('id', id);
       
