@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-// Interfaces temporales
+// Temporary interfaces until database tables are created
 interface ProfessorMobilityApplication {
   id: string;
   application_number: string;
@@ -66,6 +66,38 @@ interface MobilityDocument {
   uploaded_at: string;
 }
 
+// Mock data for demonstration
+const mockApplications: ProfessorMobilityApplication[] = [
+  {
+    id: '1',
+    application_number: 'MOV-000001',
+    professor_id: '1',
+    mobility_call_id: '1',
+    contact_phone: '+57 300 123 4567',
+    contact_email: 'profesor@university.edu',
+    origin_institution: 'Universidad Nacional',
+    current_role: 'Profesor Asociado',
+    expertise_area: 'Biotecnología Marina',
+    years_experience: 10,
+    status: 'pending',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    profiles: {
+      full_name: 'Dr. Carlos Rodríguez',
+      document_number: '12345678',
+      phone: '+57 300 123 4567'
+    },
+    professor_mobility_calls: {
+      title: 'Estancia de Investigación en Biotecnología Marina',
+      mobility_type: 'Investigación',
+      universities: {
+        name: 'Universidad del Norte',
+        city: 'Barranquilla'
+      }
+    }
+  }
+];
+
 export const ProfessorMobilityApplications = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -75,40 +107,23 @@ export const ProfessorMobilityApplications = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Fetch mobility applications
+  // Fetch mobility applications - using mock data for now
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ['professor-mobility-applications'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('professor_mobility_applications' as any)
-        .select(`
-          *,
-          profiles!professor_mobility_applications_professor_id_fkey(full_name, document_number, phone),
-          professor_mobility_calls!professor_mobility_applications_mobility_call_id_fkey(
-            title,
-            mobility_type,
-            universities!professor_mobility_calls_host_institution_id_fkey(name, city)
-          )
-        `);
-      
-      if (error) throw error;
-      return (data || []) as ProfessorMobilityApplication[];
+      // TODO: Replace with actual Supabase query once tables are created
+      return mockApplications;
     }
   });
 
-  // Fetch documents for selected application
+  // Fetch documents for selected application - using mock data for now
   const { data: documents = [] } = useQuery({
     queryKey: ['professor-mobility-documents', selectedApplication?.id],
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
       
-      const { data, error } = await supabase
-        .from('professor_mobility_documents' as any)
-        .select('*')
-        .eq('application_id', selectedApplication.id);
-      
-      if (error) throw error;
-      return (data || []) as MobilityDocument[];
+      // TODO: Replace with actual Supabase query once tables are created
+      return [] as MobilityDocument[];
     },
     enabled: !!selectedApplication?.id
   });
@@ -116,29 +131,9 @@ export const ProfessorMobilityApplications = () => {
   // Update application status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ applicationId, status, note }: { applicationId: string; status: string; note?: string }) => {
-      const { error } = await supabase
-        .from('professor_mobility_applications' as any)
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', applicationId);
-      
-      if (error) throw error;
-
-      // Add note if provided
-      if (note) {
-        const { error: noteError } = await supabase
-          .from('professor_mobility_notes' as any)
-          .insert({
-            application_id: applicationId,
-            coordinator_id: user?.id,
-            note,
-            is_internal: false
-          });
-        
-        if (noteError) throw noteError;
-      }
+      // TODO: Implement actual database operations once tables are created
+      console.log('Would update status:', { applicationId, status, note });
+      return Promise.resolve();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['professor-mobility-applications'] });
@@ -158,25 +153,10 @@ export const ProfessorMobilityApplications = () => {
 
   const handleDownloadDocument = async (document: MobilityDocument) => {
     try {
-      const { data, error } = await supabase.storage
-        .from('professor-mobility-docs')
-        .download(document.file_path);
-
-      if (error) throw error;
-
-      // Create download link
-      const url = URL.createObjectURL(data);
-      const a = window.document.createElement('a');
-      a.href = url;
-      a.download = document.file_name;
-      window.document.body.appendChild(a);
-      a.click();
-      window.document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+      // TODO: Implement actual document download once storage is set up
       toast({
-        title: 'Descarga iniciada',
-        description: `Descargando ${document.file_name}`
+        title: 'Función en desarrollo',
+        description: 'La descarga de documentos estará disponible próximamente.'
       });
     } catch (error) {
       toast({

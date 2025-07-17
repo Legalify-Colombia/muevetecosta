@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -107,11 +108,17 @@ export default function MobilityOpportunities() {
     setSelectedOpportunity(null);
   };
 
+  const handleApply = (opportunity: MobilityOpportunity) => {
+    // TODO: Implement navigation to application form
+    console.log('Apply to opportunity:', opportunity);
+  };
+
   if (selectedOpportunity) {
     return (
       <MobilityOpportunityDetail 
         opportunity={selectedOpportunity}
         onBack={handleBackToList}
+        onApply={handleApply}
       />
     );
   }
