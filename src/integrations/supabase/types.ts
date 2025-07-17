@@ -230,6 +230,138 @@ export type Database = {
           },
         ]
       }
+      email_configuration: {
+        Row: {
+          created_at: string
+          default_sender_email: string
+          default_sender_name: string
+          id: string
+          is_active: boolean
+          resend_api_key: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          default_sender_email?: string
+          default_sender_name?: string
+          id?: string
+          is_active?: boolean
+          resend_api_key?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          default_sender_email?: string
+          default_sender_name?: string
+          id?: string
+          is_active?: boolean
+          resend_api_key?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_configuration_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_history: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          recipient_email: string
+          sent_at: string | null
+          status: string
+          subject: string
+          template_name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          template_name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          recipient_email?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          template_name?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          available_variables: Json | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          template_html_content: string
+          template_name: string
+          template_subject: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          available_variables?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          template_html_content: string
+          template_name: string
+          template_subject: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          available_variables?: Json | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          template_html_content?: string
+          template_name?: string
+          template_subject?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mobility_applications: {
         Row: {
           application_number: string | null

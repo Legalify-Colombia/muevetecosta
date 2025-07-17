@@ -1,301 +1,313 @@
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, EyeOff } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { cn } from "@/lib/utils"
+import { Icons } from "@/components/icons"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { toast } from "@/hooks/use-toast"
+import { useAuth } from "@/hooks/useAuth"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEmail } from '@/hooks/useEmail';
 
-const Register = () => {
-  const [formData, setFormData] = useState({
-    fullName: "",
-    documentType: "",
-    documentNumber: "",
-    phone: "",
-    email: "",
-    originUniversity: "",
-    academicProgram: "",
-    currentSemester: "",
-    password: "",
-    confirmPassword: ""
-  });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const { signUp, user } = useAuth();
+const formSchema = z.object({
+  fullName: z.string().min(2, {
+    message: "El nombre debe tener al menos 2 caracteres.",
+  }),
+  documentType: z.enum(["cc", "ti", "passport", "ce"]),
+  documentNumber: z.string().min(5, {
+    message: "El número de documento debe tener al menos 5 caracteres.",
+  }),
+  phone: z.string().min(7, {
+    message: "El número de teléfono debe tener al menos 7 caracteres.",
+  }),
+  email: z.string().email({
+    message: "Por favor, introduce un correo electrónico válido.",
+  }),
+  password: z.string().min(6, {
+    message: "La contraseña debe tener al menos 6 caracteres.",
+  }),
+  role: z.enum(["admin", "coordinator", "professor", "student"]),
+  originUniversity: z.string().optional(),
+  academicProgram: z.string().optional(),
+  currentSemester: z.string().optional(),
+})
 
-  useEffect(() => {
-    if (user) {
-      navigate("/dashboard/student");
-    }
-  }, [user, navigate]);
+export default function Register() {
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const { signUp } = useAuth()
+  const { sendWelcomeEmail } = useEmail();
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      fullName: "",
+      documentType: "cc",
+      documentNumber: "",
+      phone: "",
+      email: "",
+      password: "",
+      role: "student",
+      originUniversity: "",
+      academicProgram: "",
+      currentSemester: "",
+    },
+  })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Basic validation
-    if (Object.values(formData).some(value => !value)) {
+  function isValidRole(role: string): role is "admin" | "coordinator" | "professor" | "student" {
+    return ["admin", "coordinator", "professor", "student"].includes(role)
+  }
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
+    console.log('Starting registration process with:', { email: values.email, role: values.role });
+
+    try {
+      const userData = {
+        full_name: values.fullName,
+        document_type: values.documentType,
+        document_number: values.documentNumber,
+        phone: values.phone,
+        role: values.role,
+        origin_university: values.role === 'student' ? values.originUniversity : undefined,
+        academic_program: values.role === 'student' ? values.academicProgram : undefined,
+        current_semester: values.role === 'student' ? parseInt(values.currentSemester) : undefined
+      };
+
+      console.log('Calling signUp with userData:', userData);
+
+      const { error } = await signUp(values.email, values.password, userData);
+      
+      if (error) {
+        console.error('Registration error:', error);
+        setError(error.message);
+        toast({
+          title: "Error en el registro",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Send welcome email
+      await sendWelcomeEmail(values.email, values.fullName);
+
+      console.log('Registration successful');
+      
       toast({
-        title: "Error",
-        description: "Por favor completa todos los campos",
+        title: "Registro exitoso",
+        description: "Tu cuenta ha sido creada. Revisa tu correo electrónico para activarla.",
+      });
+
+      navigate('/login');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      setError('Error en el proceso de registro');
+      toast({
+        title: "Error en el registro",
+        description: "Ocurrió un error inesperado durante el registro",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Las contraseñas no coinciden",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      toast({
-        title: "Error",
-        description: "La contraseña debe tener al menos 6 caracteres",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-
-    // Prepare user metadata
-    const userData = {
-      full_name: formData.fullName,
-      document_type: formData.documentType,
-      document_number: formData.documentNumber,
-      phone: formData.phone,
-      role: 'student',
-      origin_university: formData.originUniversity,
-      academic_program: formData.academicProgram,
-      current_semester: parseInt(formData.currentSemester)
-    };
-
-    const { error } = await signUp(formData.email, formData.password, userData);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message || "Error al registrarse",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "¡Registro exitoso!",
-        description: "Revisa tu email para confirmar tu cuenta",
-      });
-    }
-
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2">
-            <img 
-              src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
-              alt="Muévete por la Costa" 
-              className="h-12 w-auto mx-auto"
-            />
-          </Link>
-        </div>
-
-        <Card className="shadow-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Registro de Estudiante</CardTitle>
-            <CardDescription>
-              Completa tu información para comenzar tu proceso de movilidad
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center">Crear una cuenta</CardTitle>
+            <CardDescription className="text-center">
+              Ingresa tus datos para registrarte
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nombre Completo</Label>
-                  <Input
-                    id="fullName"
-                    value={formData.fullName}
-                    onChange={(e) => handleInputChange("fullName", e.target.value)}
-                    placeholder="Tu nombre completo"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="documentType">Tipo de Documento</Label>
-                  <Select value={formData.documentType} onValueChange={(value) => handleInputChange("documentType", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cc">Cédula de Ciudadanía</SelectItem>
-                      <SelectItem value="ti">Tarjeta de Identidad</SelectItem>
-                      <SelectItem value="passport">Pasaporte</SelectItem>
-                      <SelectItem value="ce">Cédula de Extranjería</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="documentNumber">Número de Documento</Label>
-                  <Input
-                    id="documentNumber"
-                    value={formData.documentNumber}
-                    onChange={(e) => handleInputChange("documentNumber", e.target.value)}
-                    placeholder="123456789"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono de Contacto</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange("phone", e.target.value)}
-                    placeholder="+57 300 123 4567"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="tu@email.com"
-                  required
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre Completo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ingresa tu nombre completo" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="originUniversity">Universidad de Origen</Label>
-                <Input
-                  id="originUniversity"
-                  value={formData.originUniversity}
-                  onChange={(e) => handleInputChange("originUniversity", e.target.value)}
-                  placeholder="Nombre de tu universidad actual"
-                  required
+                <FormField
+                  control={form.control}
+                  name="documentType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Documento</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un tipo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="cc">Cédula de Ciudadanía</SelectItem>
+                          <SelectItem value="ti">Tarjeta de Identidad</SelectItem>
+                          <SelectItem value="passport">Pasaporte</SelectItem>
+                          <SelectItem value="ce">Cédula de Extranjería</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
+                <FormField
+                  control={form.control}
+                  name="documentNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número de Documento</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ingresa tu número de documento" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Teléfono</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ingresa tu número de teléfono" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Correo Electrónico</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ingresa tu correo electrónico" type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contraseña</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ingresa tu contraseña" type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rol</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un rol" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="student">Estudiante</SelectItem>
+                          <SelectItem value="professor">Profesor</SelectItem>
+                          <SelectItem value="coordinator">Coordinador</SelectItem>
+                          <SelectItem value="admin">Administrador</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="academicProgram">Programa Académico</Label>
-                  <Input
-                    id="academicProgram"
-                    value={formData.academicProgram}
-                    onChange={(e) => handleInputChange("academicProgram", e.target.value)}
-                    placeholder="Ej: Ingeniería de Sistemas"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="currentSemester">Semestre en Curso</Label>
-                  <Select value={formData.currentSemester} onValueChange={(value) => handleInputChange("currentSemester", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[...Array(10)].map((_, i) => (
-                        <SelectItem key={i + 1} value={`${i + 1}`}>
-                          Semestre {i + 1}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) => handleInputChange("password", e.target.value)}
-                      placeholder="Mínimo 6 caracteres"
-                      required
+                {form.getValues("role") === "student" && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="originUniversity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Universidad de Origen</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ingresa tu universidad de origen" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={formData.confirmPassword}
-                      onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                      placeholder="Repite tu contraseña"
-                      required
+                    <FormField
+                      control={form.control}
+                      name="academicProgram"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Programa Académico</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ingresa tu programa académico" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+                    <FormField
+                      control={form.control}
+                      name="currentSemester"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Semestre Actual</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ingresa tu semestre actual" type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </>
+                )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creando cuenta..." : "Crear Cuenta"}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                ¿Ya tienes cuenta?{" "}
-                <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
-                  Inicia sesión aquí
-                </Link>
-              </p>
-            </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && (
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Crear cuenta
+                </Button>
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </div>
     </div>
-  );
-};
-
-export default Register;
+  )
+}
