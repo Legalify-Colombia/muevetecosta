@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,10 +13,12 @@ import { Search, Users, UserPlus, Filter, Edit, Eye, Building } from "lucide-rea
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+type UserRole = "admin" | "coordinator" | "professor" | "student";
+
 const AdminUsers = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | UserRole>("all");
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showEditUser, setShowEditUser] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -193,7 +194,7 @@ const AdminUsers = () => {
                       className="w-full"
                     />
                   </div>
-                  <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <Select value={roleFilter} onValueChange={(value: "all" | UserRole) => setRoleFilter(value)}>
                     <SelectTrigger className="w-48">
                       <Filter className="h-4 w-4 mr-2" />
                       <SelectValue placeholder="Filtrar por rol" />
