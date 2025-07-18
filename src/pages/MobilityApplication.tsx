@@ -4,21 +4,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
-import PersonalInfoSection from '@/components/mobility/PersonalInfoSection';
-import AcademicInfoSection from '@/components/mobility/AcademicInfoSection';
-import MobilityDetailsSection from '@/components/mobility/MobilityDetailsSection';
-import DocumentUploadSection from '@/components/mobility/DocumentUploadSection';
-import CourseHomologationSection from '@/components/mobility/CourseHomologationSection';
+import { PersonalInfoSection } from '@/components/mobility/PersonalInfoSection';
+import { AcademicInfoSection } from '@/components/mobility/AcademicInfoSection';
+import { MobilityDetailsSection } from '@/components/mobility/MobilityDetailsSection';
+import { DocumentUploadSection } from '@/components/mobility/DocumentUploadSection';
+import { CourseHomologationSection } from '@/components/mobility/CourseHomologationSection';
 
 const MobilityApplication = () => {
   const { universityId, programId } = useParams();
@@ -26,12 +22,51 @@ const MobilityApplication = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
-  const [applicationData, setApplicationData] = useState({
-    personalInfo: {},
-    academicInfo: {},
-    mobilityDetails: {},
-    documents: [],
-    courseHomologation: []
+  const [formData, setFormData] = useState({
+    // Personal Info
+    gender: '',
+    birthDate: '',
+    birthPlace: '',
+    birthCountry: '',
+    bloodType: '',
+    healthInsurance: '',
+    
+    // Academic Info
+    originInstitution: '',
+    originCampus: '',
+    originCareer: '',
+    originFaculty: '',
+    studentCode: '',
+    currentSemester: '',
+    cumulativeGPA: '',
+    academicDirector: '',
+    directorPhone: '',
+    directorEmail: '',
+    
+    // Mobility Details
+    destinationProgramId: programId || '',
+    mobilityDestinationSemester: '',
+    
+    // Course Homologation
+    courseEquivalences: []
+  });
+
+  // Fetch user profile
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile', user?.id],
+    queryFn: async () => {
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user
   });
 
   // Fetch university details
@@ -49,6 +84,12 @@ const MobilityApplication = () => {
             name,
             description,
             duration_semesters
+          ),
+          courses (
+            id,
+            name,
+            code,
+            credits
           )
         `)
         .eq('id', universityId)
@@ -90,7 +131,8 @@ const MobilityApplication = () => {
           student_id: user.id,
           destination_university_id: universityId,
           destination_program_id: programId || null,
-          status: 'pending'
+          status: 'pending',
+          application_data: data
         });
       
       if (error) throw error;
@@ -133,13 +175,36 @@ const MobilityApplication = () => {
   };
 
   const handleSubmit = () => {
-    submitApplicationMutation.mutate(applicationData);
+    submitApplicationMutation.mutate(formData);
   };
 
-  const updateApplicationData = (section: string, data: any) => {
-    setApplicationData(prev => ({
+  const addCourseEquivalence = () => {
+    setFormData(prev => ({
       ...prev,
-      [section]: data
+      courseEquivalences: [
+        ...prev.courseEquivalences,
+        {
+          destinationCourseId: '',
+          originCourseName: '',
+          originCourseCode: ''
+        }
+      ]
+    }));
+  };
+
+  const removeCourseEquivalence = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      courseEquivalences: prev.courseEquivalences.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateCourseEquivalence = (index: number, field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      courseEquivalences: prev.courseEquivalences.map((eq, i) => 
+        i === index ? { ...eq, [field]: value } : eq
+      )
     }));
   };
 
@@ -177,7 +242,47 @@ const MobilityApplication = () => {
     );
   }
 
+  const getCurrentStepProps = () => {
+    const baseProps = {
+      formData,
+      setFormData,
+      university,
+      program
+    };
+
+    switch (currentStep) {
+      case 0: // PersonalInfoSection
+        return {
+          ...baseProps,
+          userProfile
+        };
+      case 1: // AcademicInfoSection
+        return baseProps;
+      case 2: // MobilityDetailsSection
+        return {
+          ...baseProps,
+          programs: university.academic_programs || []
+        };
+      case 3: // DocumentUploadSection
+        return {
+          ...baseProps,
+          destinationUniversityId: universityId
+        };
+      case 4: // CourseHomologationSection
+        return {
+          ...baseProps,
+          courses: university.courses || [],
+          onAddCourse: addCourseEquivalence,
+          onRemoveCourse: removeCourseEquivalence,
+          onUpdateCourse: updateCourseEquivalence
+        };
+      default:
+        return baseProps;
+    }
+  };
+
   const CurrentStepComponent = steps[currentStep].component;
+  const stepProps = getCurrentStepProps();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -248,12 +353,7 @@ const MobilityApplication = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CurrentStepComponent
-              data={applicationData}
-              onUpdate={updateApplicationData}
-              university={university}
-              program={program}
-            />
+            <CurrentStepComponent {...stepProps} />
           </CardContent>
         </Card>
 

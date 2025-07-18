@@ -19,8 +19,8 @@ import MobilityApplication from "./pages/MobilityApplication";
 import DynamicPage from "./pages/DynamicPage";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
-import AuthCallback from "./components/auth/AuthCallback";
-import ResetPassword from "./components/auth/ResetPassword";
+import { AuthCallback } from "./components/auth/AuthCallback";
+import { ResetPassword } from "./components/auth/ResetPassword";
 
 const queryClient = new QueryClient();
 
