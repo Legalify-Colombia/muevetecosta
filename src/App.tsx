@@ -85,9 +85,7 @@ const App = () => {
             } />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/terms" element={<Terms
-
-AndConditions />} />
+            <Route path="/terms" element={<TermsAndConditions />} />
             <Route path="/pages/:slug" element={<DynamicPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
