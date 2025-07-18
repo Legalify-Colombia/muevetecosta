@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
@@ -72,6 +71,7 @@ export default function Register() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
+    setError(null);
     console.log('Starting registration process with:', { email: values.email, role: values.role });
 
     try {
@@ -83,7 +83,7 @@ export default function Register() {
         role: values.role,
         origin_university: values.role === 'student' ? values.originUniversity : undefined,
         academic_program: values.role === 'student' ? values.academicProgram : undefined,
-        current_semester: values.role === 'student' ? parseInt(values.currentSemester) : undefined
+        current_semester: values.role === 'student' ? parseInt(values.currentSemester || '0') : undefined
       };
 
       console.log('Calling signUp with userData:', userData);
@@ -102,7 +102,12 @@ export default function Register() {
       }
 
       // Send welcome email
-      await sendWelcomeEmail(values.email, values.fullName);
+      try {
+        await sendWelcomeEmail(values.email, values.fullName);
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        // Don't block registration if email fails
+      }
 
       console.log('Registration successful');
       
@@ -143,6 +148,11 @@ export default function Register() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField

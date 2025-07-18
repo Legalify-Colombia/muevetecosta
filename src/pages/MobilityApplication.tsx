@@ -137,7 +137,6 @@ export default function MobilityApplication() {
         originInstitution: userProfile.studentInfo.origin_university || "",
         originCareer: userProfile.studentInfo.academic_program || "",
         currentSemester: userProfile.studentInfo.current_semester?.toString() || "",
-        // Pre-fill other fields from studentInfo if they exist
         gender: userProfile.studentInfo.gender || "",
         birthDate: userProfile.studentInfo.birth_date || "",
         birthPlace: userProfile.studentInfo.birth_place || "",
@@ -157,11 +156,17 @@ export default function MobilityApplication() {
 
   const submitApplicationMutation = useMutation({
     mutationFn: async (applicationData: any) => {
+      if (!user?.id) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      console.log('Submitting application with data:', applicationData);
+
       // First, create/update student_info if it doesn't exist
       const { error: upsertError } = await supabase
         .from('student_info')
         .upsert({
-          id: user?.id,
+          id: user.id,
           gender: formData.gender,
           birth_date: formData.birthDate || null,
           birth_place: formData.birthPlace || null,
@@ -183,13 +188,16 @@ export default function MobilityApplication() {
           onConflict: 'id'
         });
 
-      if (upsertError) throw upsertError;
+      if (upsertError) {
+        console.error('Error upserting student info:', upsertError);
+        throw upsertError;
+      }
 
       // Create the mobility application
       const { data: application, error: appError } = await supabase
         .from('mobility_applications')
         .insert({
-          student_id: user?.id,
+          student_id: user.id,
           destination_university_id: universityId,
           destination_program_id: formData.destinationProgramId || null,
           status: 'pending'
@@ -197,7 +205,10 @@ export default function MobilityApplication() {
         .select()
         .single();
 
-      if (appError) throw appError;
+      if (appError) {
+        console.error('Error creating application:', appError);
+        throw appError;
+      }
 
       // Insert course equivalences
       const courseEquivalenceData = formData.courseEquivalences
@@ -214,7 +225,10 @@ export default function MobilityApplication() {
           .from('course_equivalences')
           .insert(courseEquivalenceData);
 
-        if (ceError) throw ceError;
+        if (ceError) {
+          console.error('Error inserting course equivalences:', ceError);
+          throw ceError;
+        }
       }
 
       return application;
@@ -238,6 +252,9 @@ export default function MobilityApplication() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('Form submit triggered');
+    console.log('Current form data:', formData);
     
     // Basic validation
     if (!formData.destinationProgramId) {
@@ -306,7 +323,7 @@ export default function MobilityApplication() {
               Formulario de Postulación de Movilidad Estudiantil
             </CardTitle>
             <p className="text-center text-muted-foreground">
-              Universidad destino: <span className="font-semibold">{university.name}</span>
+              Universidad destino: <span className="font-semibold">{university?.name}</span>
             </p>
           </CardHeader>
         </Card>
@@ -315,7 +332,7 @@ export default function MobilityApplication() {
           <PersonalInfoSection 
             formData={formData}
             setFormData={setFormData}
-            userProfile={userProfile.profile}
+            userProfile={userProfile?.profile}
           />
 
           <AcademicInfoSection 

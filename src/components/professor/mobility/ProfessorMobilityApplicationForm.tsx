@@ -67,7 +67,7 @@ export const ProfessorMobilityApplicationForm: React.FC<ProfessorMobilityApplica
   });
 
   const createApplicationMutation = useMutation({
-    mutationFn: async (formData: any) => {
+    mutationFn: async (formDataValues: any) => {
       if (!user?.id) {
         throw new Error('Usuario no autenticado');
       }
@@ -76,14 +76,16 @@ export const ProfessorMobilityApplicationForm: React.FC<ProfessorMobilityApplica
         throw new Error('Ya tienes el máximo de 2 postulaciones activas permitidas');
       }
 
+      console.log('Creating professor application with data:', formDataValues);
+
       // Crear/actualizar información del profesor
       const { error: professorInfoError } = await supabase
         .from('professor_info')
         .upsert({
           id: user.id,
-          university: formData.origin_institution || '',
-          faculty_department: formData.faculty_department || '',
-          expertise_areas: formData.expertise_area ? [formData.expertise_area] : [],
+          university: formDataValues.origin_institution || '',
+          faculty_department: formDataValues.faculty_department || '',
+          expertise_areas: formDataValues.expertise_area ? [formDataValues.expertise_area] : [],
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'id'
@@ -91,7 +93,6 @@ export const ProfessorMobilityApplicationForm: React.FC<ProfessorMobilityApplica
 
       if (professorInfoError) {
         console.error('Error updating professor info:', professorInfoError);
-        // No lanzamos error aquí, solo registramos
       }
 
       // Crear la aplicación de movilidad
@@ -101,15 +102,18 @@ export const ProfessorMobilityApplicationForm: React.FC<ProfessorMobilityApplica
           professor_id: user.id,
           mobility_type: mobilityCall.mobility_type,
           destination_university_id: mobilityCall.host_university_id,
-          purpose: formData.mobility_justification || formData.work_plan,
-          start_date: formData.proposed_start_date || null,
-          end_date: formData.proposed_end_date || null,
+          purpose: formDataValues.mobility_justification || formDataValues.work_plan,
+          start_date: formDataValues.proposed_start_date || null,
+          end_date: formDataValues.proposed_end_date || null,
           status: 'pending'
         })
         .select()
         .single();
 
-      if (appError) throw appError;
+      if (appError) {
+        console.error('Error creating professor application:', appError);
+        throw appError;
+      }
 
       return application;
     },
@@ -156,9 +160,18 @@ export const ProfessorMobilityApplicationForm: React.FC<ProfessorMobilityApplica
     setIsSubmitting(true);
 
     try {
-      const form = new FormData(e.target as HTMLFormElement);
-      const formData = Object.fromEntries(form.entries());
-      await createApplicationMutation.mutateAsync(formData);
+      const formElement = e.target as HTMLFormElement;
+      const formData = new FormData(formElement);
+      
+      // Convert FormData to plain object
+      const formDataValues: { [key: string]: any } = {};
+      for (const [key, value] of formData.entries()) {
+        formDataValues[key] = value;
+      }
+      
+      console.log('Form data values:', formDataValues);
+      
+      await createApplicationMutation.mutateAsync(formDataValues);
     } catch (error) {
       console.error('Error submitting application:', error);
     } finally {
