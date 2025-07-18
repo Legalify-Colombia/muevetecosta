@@ -16,13 +16,39 @@ import { MobilityDetailsSection } from '@/components/mobility/MobilityDetailsSec
 import { DocumentUploadSection } from '@/components/mobility/DocumentUploadSection';
 import { CourseHomologationSection } from '@/components/mobility/CourseHomologationSection';
 
+interface FormData {
+  gender: string;
+  birthDate: string;
+  birthPlace: string;
+  birthCountry: string;
+  bloodType: string;
+  healthInsurance: string;
+  originInstitution: string;
+  originCampus: string;
+  originCareer: string;
+  originFaculty: string;
+  studentCode: string;
+  currentSemester: string;
+  cumulativeGPA: string;
+  academicDirector: string;
+  directorPhone: string;
+  directorEmail: string;
+  destinationProgramId: string;
+  mobilityDestinationSemester: string;
+  courseEquivalences: Array<{
+    destinationCourseId: string;
+    originCourseName: string;
+    originCourseCode: string;
+  }>;
+}
+
 const MobilityApplication = () => {
-  const { universityId, programId } = useParams();
+  const { universityId, programId } = useParams<{ universityId: string; programId?: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     // Personal Info
     gender: '',
     birthDate: '',
@@ -122,7 +148,7 @@ const MobilityApplication = () => {
 
   // Submit application mutation
   const submitApplicationMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: FormData) => {
       if (!user) throw new Error('User not authenticated');
       
       const { error } = await supabase

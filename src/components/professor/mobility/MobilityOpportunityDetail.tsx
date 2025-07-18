@@ -14,12 +14,36 @@ interface MobilityOpportunityDetailProps {
   callId: string;
 }
 
+type MobilityCall = {
+  id: string;
+  title: string;
+  description: string | null;
+  mobility_type: string;
+  application_deadline: string;
+  max_participants: number;
+  duration_weeks: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  requirements: string | null;
+  benefits: string | null;
+  universities: {
+    name: string;
+    city: string;
+    logo_url: string | null;
+  } | null;
+};
+
+type ExistingApplication = {
+  id: string;
+  status: string;
+} | null;
+
 export const MobilityOpportunityDetail = ({ callId }: MobilityOpportunityDetailProps) => {
   const { user } = useAuth();
   const [isApplicationDialogOpen, setIsApplicationDialogOpen] = useState(false);
 
   // Fetch mobility call details
-  const { data: mobilityCall, isLoading } = useQuery({
+  const { data: mobilityCall, isLoading } = useQuery<MobilityCall>({
     queryKey: ['professor-mobility-call', callId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -38,7 +62,7 @@ export const MobilityOpportunityDetail = ({ callId }: MobilityOpportunityDetailP
   });
 
   // Check if user has already applied
-  const { data: existingApplication } = useQuery({
+  const { data: existingApplication } = useQuery<ExistingApplication>({
     queryKey: ['professor-application-check', callId, user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -56,40 +80,40 @@ export const MobilityOpportunityDetail = ({ callId }: MobilityOpportunityDetailP
     enabled: !!user && !!callId
   });
 
-  const getTypeColor = (type: string) => {
-    const colors = {
+  const getTypeColor = (type: string): string => {
+    const colors: Record<string, string> = {
       'teaching': 'bg-blue-100 text-blue-800',
       'research': 'bg-purple-100 text-purple-800',
       'training': 'bg-orange-100 text-orange-800'
     };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
-  const getTypeLabel = (type: string) => {
-    const labels = {
+  const getTypeLabel = (type: string): string => {
+    const labels: Record<string, string> = {
       'teaching': 'Docencia',
       'research': 'Investigación',
       'training': 'Capacitación'
     };
-    return labels[type as keyof typeof labels] || type;
+    return labels[type] || type;
   };
 
-  const getStatusColor = (status: string) => {
-    const colors = {
+  const getStatusColor = (status: string): string => {
+    const colors: Record<string, string> = {
       'pending': 'bg-yellow-100 text-yellow-800',
       'approved': 'bg-green-100 text-green-800',
       'rejected': 'bg-red-100 text-red-800'
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getStatusLabel = (status: string) => {
-    const labels = {
+  const getStatusLabel = (status: string): string => {
+    const labels: Record<string, string> = {
       'pending': 'Pendiente',
       'approved': 'Aprobada',
       'rejected': 'Rechazada'
     };
-    return labels[status as keyof typeof labels] || status;
+    return labels[status] || status;
   };
 
   if (isLoading) {
@@ -129,7 +153,7 @@ export const MobilityOpportunityDetail = ({ callId }: MobilityOpportunityDetailP
               <Badge className={getTypeColor(mobilityCall.mobility_type)} variant="secondary">
                 {getTypeLabel(mobilityCall.mobility_type)}
               </Badge>
-              {hasApplied && (
+              {hasApplied && existingApplication && (
                 <Badge className={getStatusColor(existingApplication.status)} variant="secondary">
                   Aplicación: {getStatusLabel(existingApplication.status)}
                 </Badge>
