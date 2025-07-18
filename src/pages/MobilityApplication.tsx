@@ -157,8 +157,7 @@ const MobilityApplication = () => {
           student_id: user.id,
           destination_university_id: universityId,
           destination_program_id: programId || null,
-          status: 'pending',
-          application_data: data
+          status: 'pending'
         });
       
       if (error) throw error;
@@ -273,15 +272,13 @@ const MobilityApplication = () => {
       formData,
       setFormData,
       university,
-      program
+      program,
+      userProfile // Always include userProfile
     };
 
     switch (currentStep) {
-      case 0: // PersonalInfoSection
-        return {
-          ...baseProps,
-          userProfile
-        };
+      case 0: // PersonalInfoSection - needs userProfile
+        return baseProps;
       case 1: // AcademicInfoSection
         return baseProps;
       case 2: // MobilityDetailsSection
