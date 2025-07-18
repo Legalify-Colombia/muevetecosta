@@ -619,6 +619,68 @@ export type Database = {
           },
         ]
       }
+      professor_mobility_calls: {
+        Row: {
+          application_deadline: string
+          benefits: string | null
+          created_at: string
+          description: string | null
+          duration_weeks: number | null
+          end_date: string | null
+          host_university_id: string | null
+          id: string
+          is_active: boolean
+          max_participants: number
+          mobility_type: string
+          requirements: string | null
+          start_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          application_deadline: string
+          benefits?: string | null
+          created_at?: string
+          description?: string | null
+          duration_weeks?: number | null
+          end_date?: string | null
+          host_university_id?: string | null
+          id?: string
+          is_active?: boolean
+          max_participants?: number
+          mobility_type?: string
+          requirements?: string | null
+          start_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          application_deadline?: string
+          benefits?: string | null
+          created_at?: string
+          description?: string | null
+          duration_weeks?: number | null
+          end_date?: string | null
+          host_university_id?: string | null
+          id?: string
+          is_active?: boolean
+          max_participants?: number
+          mobility_type?: string
+          requirements?: string | null
+          start_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professor_mobility_calls_host_university_id_fkey"
+            columns: ["host_university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -1124,6 +1186,10 @@ export type Database = {
         Returns: boolean
       }
       generate_application_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_professor_application_number: {
         Args: Record<PropertyKey, never>
         Returns: string
       }

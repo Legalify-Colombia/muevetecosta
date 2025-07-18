@@ -1,259 +1,243 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  MapPin, 
-  Clock, 
-  DollarSign, 
-  FileText, 
-  Building,
-  User
-} from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Calendar, MapPin, Users, Clock, FileText, Award } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { ProfessorMobilityApplicationForm } from './ProfessorMobilityApplicationForm';
 
 interface MobilityOpportunityDetailProps {
-  opportunity: any;
-  onBack: () => void;
-  onApply: (opportunity: any) => void;
+  callId: string;
 }
 
-export const MobilityOpportunityDetail = ({ 
-  opportunity, 
-  onBack, 
-  onApply 
-}: MobilityOpportunityDetailProps) => {
+export const MobilityOpportunityDetail = ({ callId }: MobilityOpportunityDetailProps) => {
+  const { user } = useAuth();
+  const [isApplicationDialogOpen, setIsApplicationDialogOpen] = useState(false);
+
+  // Fetch mobility call details
+  const { data: mobilityCall, isLoading } = useQuery({
+    queryKey: ['professor-mobility-call', callId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('professor_mobility_calls')
+        .select(`
+          *,
+          universities!host_university_id(name, city, logo_url)
+        `)
+        .eq('id', callId)
+        .eq('is_active', true)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Check if user has already applied
+  const { data: existingApplication } = useQuery({
+    queryKey: ['professor-application-check', callId, user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      const { data, error } = await supabase
+        .from('professor_mobility_applications')
+        .select('id, status')
+        .eq('mobility_call_id', callId)
+        .eq('professor_id', user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!callId
+  });
+
   const getTypeColor = (type: string) => {
     const colors = {
-      'Docencia': 'bg-blue-100 text-blue-800',
-      'Investigación': 'bg-purple-100 text-purple-800',
-      'Capacitación': 'bg-orange-100 text-orange-800',
-      'Observación': 'bg-teal-100 text-teal-800'
+      'teaching': 'bg-blue-100 text-blue-800',
+      'research': 'bg-purple-100 text-purple-800',
+      'training': 'bg-orange-100 text-orange-800'
     };
     return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
+  const getTypeLabel = (type: string) => {
+    const labels = {
+      'teaching': 'Docencia',
+      'research': 'Investigación',
+      'training': 'Capacitación'
+    };
+    return labels[type as keyof typeof labels] || type;
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      'pending': 'bg-yellow-100 text-yellow-800',
+      'approved': 'bg-green-100 text-green-800',
+      'rejected': 'bg-red-100 text-red-800'
+    };
+    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels = {
+      'pending': 'Pendiente',
+      'approved': 'Aprobada',
+      'rejected': 'Rechazada'
+    };
+    return labels[status as keyof typeof labels] || status;
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="animate-pulse space-y-4">
+            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-20 bg-gray-200 rounded"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!mobilityCall) {
+    return (
+      <Card>
+        <CardContent className="text-center py-8">
+          <p className="text-gray-600">Convocatoria no encontrada</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isDeadlinePassed = new Date(mobilityCall.application_deadline) < new Date();
+  const hasApplied = !!existingApplication;
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{opportunity.title}</h1>
-          <p className="text-muted-foreground">Convocatoria de Movilidad</p>
-        </div>
-        <Button onClick={() => onApply(opportunity)} size="lg">
-          Postularme a esta Convocatoria
-        </Button>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Información General</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                <Badge className={getTypeColor(opportunity.mobility_type)} variant="secondary">
-                  {opportunity.mobility_type}
+    <Card>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="text-xl mb-2">{mobilityCall.title}</CardTitle>
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Badge className={getTypeColor(mobilityCall.mobility_type)} variant="secondary">
+                {getTypeLabel(mobilityCall.mobility_type)}
+              </Badge>
+              {hasApplied && (
+                <Badge className={getStatusColor(existingApplication.status)} variant="secondary">
+                  Aplicación: {getStatusLabel(existingApplication.status)}
                 </Badge>
-                {opportunity.funding_available && (
-                  <Badge className="bg-green-100 text-green-800" variant="secondary">
-                    Con Financiamiento
-                  </Badge>
-                )}
-                <Badge className="bg-blue-100 text-blue-800" variant="secondary">
-                  Activa
-                </Badge>
+              )}
+            </div>
+            {mobilityCall.universities && (
+              <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                <MapPin className="h-4 w-4" />
+                <span>{mobilityCall.universities.name} - {mobilityCall.universities.city}</span>
               </div>
+            )}
+          </div>
+          {mobilityCall.universities?.logo_url && (
+            <img
+              src={mobilityCall.universities.logo_url}
+              alt={mobilityCall.universities.name}
+              className="w-16 h-16 object-contain"
+            />
+          )}
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        {mobilityCall.description && (
+          <div>
+            <h3 className="font-semibold mb-2">Descripción</h3>
+            <p className="text-gray-700">{mobilityCall.description}</p>
+          </div>
+        )}
 
-              {opportunity.description && (
-                <>
-                  <Separator />
-                  <div>
-                    <h3 className="font-semibold mb-2">Descripción</h3>
-                    <p className="text-gray-700 leading-relaxed">{opportunity.description}</p>
-                  </div>
-                </>
-              )}
-
-              {opportunity.collaboration_area && (
-                <>
-                  <Separator />
-                  <div>
-                    <h3 className="font-semibold mb-2">Área de Colaboración</h3>
-                    <p className="text-gray-700">{opportunity.collaboration_area}</p>
-                  </div>
-                </>
-              )}
-
-              {opportunity.requirements && opportunity.requirements.length > 0 && (
-                <>
-                  <Separator />
-                  <div>
-                    <h3 className="font-semibold mb-2">Requisitos</h3>
-                    <ul className="list-disc list-inside space-y-1 text-gray-700">
-                      {opportunity.requirements.map((req: string, index: number) => (
-                        <li key={index}>{req}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Proceso de Postulación</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
-                    1
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Completar Formulario</h4>
-                    <p className="text-sm text-gray-600">Llena todos los campos requeridos con tu información personal, académica y profesional.</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
-                    2
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Adjuntar Documentos</h4>
-                    <p className="text-sm text-gray-600">Sube tu CV, cartas de recomendación y otros documentos requeridos.</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Revisión por Coordinadores</h4>
-                    <p className="text-sm text-gray-600">Tu postulación será evaluada por los coordinadores de ambas universidades.</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm font-semibold">
-                    4
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Notificación de Resultado</h4>
-                    <p className="text-sm text-gray-600">Recibirás la decisión sobre tu postulación por correo electrónico.</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-gray-500" />
+            <span className="text-sm">
+              <strong>Fecha límite:</strong> {new Date(mobilityCall.application_deadline).toLocaleDateString('es-ES')}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-gray-500" />
+            <span className="text-sm">
+              <strong>Máx. participantes:</strong> {mobilityCall.max_participants}
+            </span>
+          </div>
+          {mobilityCall.duration_weeks && (
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-gray-500" />
+              <span className="text-sm">
+                <strong>Duración:</strong> {mobilityCall.duration_weeks} semanas
+              </span>
+            </div>
+          )}
+          {mobilityCall.start_date && mobilityCall.end_date && (
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <span className="text-sm">
+                <strong>Periodo:</strong> {new Date(mobilityCall.start_date).toLocaleDateString('es-ES')} - {new Date(mobilityCall.end_date).toLocaleDateString('es-ES')}
+              </span>
+            </div>
+          )}
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Detalles Importantes</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Building className="h-5 w-5 text-gray-400" />
-                <div className="flex-1">
-                  <p className="font-medium">Universidad Anfitriona</p>
-                  <p className="text-sm text-gray-600">
-                    {opportunity.universities?.name}
-                    {opportunity.universities?.city && ` - ${opportunity.universities.city}`}
-                  </p>
-                </div>
-              </div>
+        {mobilityCall.requirements && (
+          <div>
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Requisitos
+            </h3>
+            <p className="text-gray-700 whitespace-pre-wrap">{mobilityCall.requirements}</p>
+          </div>
+        )}
 
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-gray-400" />
-                <div className="flex-1">
-                  <p className="font-medium">Fecha Límite</p>
-                  <p className="text-sm text-gray-600">
-                    {new Date(opportunity.application_deadline).toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-              </div>
+        {mobilityCall.benefits && (
+          <div>
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Award className="h-4 w-4" />
+              Beneficios
+            </h3>
+            <p className="text-gray-700 whitespace-pre-wrap">{mobilityCall.benefits}</p>
+          </div>
+        )}
 
-              {opportunity.estimated_duration && (
-                <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-gray-400" />
-                  <div className="flex-1">
-                    <p className="font-medium">Duración Estimada</p>
-                    <p className="text-sm text-gray-600">{opportunity.estimated_duration}</p>
-                  </div>
-                </div>
-              )}
-
-              {opportunity.funding_available && (
-                <div className="flex items-center gap-3">
-                  <DollarSign className="h-5 w-5 text-gray-400" />
-                  <div className="flex-1">
-                    <p className="font-medium">Financiamiento</p>
-                    <p className="text-sm text-gray-600">Disponible</p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Documentos Requeridos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm">Currículum Vitae (CV)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm">Carta de Invitación (opcional)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm">Propuesta de Investigación/Docencia</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm">Carta de Aval Institucional</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-orange-200 bg-orange-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-orange-800 mb-2">
-                <Calendar className="h-4 w-4" />
-                <span className="font-medium">Fecha Límite</span>
-              </div>
-              <p className="text-sm text-orange-700">
-                Asegúrate de enviar tu postulación antes del{' '}
-                <strong>
-                  {new Date(opportunity.application_deadline).toLocaleDateString('es-ES')}
-                </strong>
-              </p>
-            </CardContent>
-          </Card>
+        <div className="flex justify-end pt-4">
+          {hasApplied ? (
+            <Button disabled variant="outline">
+              Ya has aplicado a esta convocatoria
+            </Button>
+          ) : isDeadlinePassed ? (
+            <Button disabled variant="outline">
+              Fecha límite vencida
+            </Button>
+          ) : (
+            <Dialog open={isApplicationDialogOpen} onOpenChange={setIsApplicationDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>Aplicar a esta Convocatoria</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Aplicar a: {mobilityCall.title}</DialogTitle>
+                </DialogHeader>
+                <ProfessorMobilityApplicationForm
+                  callId={callId}
+                  onSuccess={() => setIsApplicationDialogOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
