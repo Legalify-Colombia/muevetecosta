@@ -61,8 +61,12 @@ const Universities = () => {
               </Link>
             </div>
             <div className="flex items-center space-x-2">
-              <Globe className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">MobiCaribe</span>
+              <img 
+                src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+                alt="Muévete por la Costa" 
+                className="h-8 w-auto"
+              />
+              <span className="text-xl font-bold text-gray-900">Muévete por la Costa</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/login">

@@ -29,23 +29,6 @@ interface MobilityCall {
   };
 }
 
-interface EducationLevel {
-  education_level: string;
-  institution: string;
-  graduation_year: number;
-  title: string;
-}
-
-interface RequiredDocument {
-  id: string;
-  document_title: string;
-  document_type: string;
-  description?: string;
-  is_mandatory: boolean;
-  template_file_url?: string;
-  template_file_name?: string;
-}
-
 interface ProfessorMobilityApplicationFormProps {
   mobilityCall: MobilityCall;
   onBack: () => void;
@@ -61,62 +44,72 @@ export const ProfessorMobilityApplicationForm: React.FC<ProfessorMobilityApplica
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [educationLevels, setEducationLevels] = useState<EducationLevel[]>([]);
-  const [uploadedDocuments, setUploadedDocuments] = useState<{[key: string]: File}>({});
 
   // Verificar cuántas aplicaciones activas tiene el profesor
   const { data: activeApplicationsCount = 0 } = useQuery({
-    queryKey: ['professor-active-applications-count'],
+    queryKey: ['professor-active-applications-count', user?.id],
     queryFn: async () => {
+      if (!user?.id) return 0;
+      
       const { data, error } = await supabase
         .from('professor_mobility_applications')
         .select('id')
-        .eq('professor_id', user?.id)
+        .eq('professor_id', user.id)
         .in('status', ['pending', 'in_review', 'approved_origin', 'approved_destination']);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching active applications:', error);
+        return 0;
+      }
       return data?.length || 0;
-    }
-  });
-
-  // Obtener documentos requeridos para esta universidad
-  const { data: requiredDocuments = [] } = useQuery({
-    queryKey: ['university-required-documents', mobilityCall.host_university_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('university_required_documents')
-        .select('*')
-        .eq('university_id', mobilityCall.host_university_id)
-        .eq('mobility_type', 'professor');
-      
-      if (error) throw error;
-      return data as RequiredDocument[];
-    }
+    },
+    enabled: !!user?.id
   });
 
   const createApplicationMutation = useMutation({
     mutationFn: async (formData: any) => {
+      if (!user?.id) {
+        throw new Error('Usuario no autenticado');
+      }
+
       if (activeApplicationsCount >= 2) {
         throw new Error('Ya tienes el máximo de 2 postulaciones activas permitidas');
       }
 
-      // Crear la aplicación usando la tabla existente
+      // Crear/actualizar información del profesor
+      const { error: professorInfoError } = await supabase
+        .from('professor_info')
+        .upsert({
+          id: user.id,
+          university: formData.origin_institution || '',
+          faculty_department: formData.faculty_department || '',
+          expertise_areas: formData.expertise_area ? [formData.expertise_area] : [],
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'id'
+        });
+
+      if (professorInfoError) {
+        console.error('Error updating professor info:', professorInfoError);
+        // No lanzamos error aquí, solo registramos
+      }
+
+      // Crear la aplicación de movilidad
       const { data: application, error: appError } = await supabase
         .from('professor_mobility_applications')
         .insert({
-          professor_id: user?.id,
+          professor_id: user.id,
           mobility_type: mobilityCall.mobility_type,
           destination_university_id: mobilityCall.host_university_id,
-          purpose: formData.mobility_justification,
+          purpose: formData.mobility_justification || formData.work_plan,
+          start_date: formData.proposed_start_date || null,
+          end_date: formData.proposed_end_date || null,
           status: 'pending'
         })
         .select()
         .single();
 
       if (appError) throw appError;
-
-      // Note: Skip education levels and documents for now since tables don't exist
-      // These would be handled when the proper database schema is in place
 
       return application;
     },
@@ -139,54 +132,18 @@ export const ProfessorMobilityApplicationForm: React.FC<ProfessorMobilityApplica
     }
   });
 
-  const addEducationLevel = () => {
-    setEducationLevels([...educationLevels, {
-      education_level: '',
-      institution: '',
-      graduation_year: new Date().getFullYear(),
-      title: ''
-    }]);
-  };
-
-  const removeEducationLevel = (index: number) => {
-    setEducationLevels(educationLevels.filter((_, i) => i !== index));
-  };
-
-  const updateEducationLevel = (index: number, field: string, value: any) => {
-    const updated = [...educationLevels];
-    updated[index] = { ...updated[index], [field]: value };
-    setEducationLevels(updated);
-  };
-
-  const handleFileUpload = (docType: string, file: File) => {
-    setUploadedDocuments(prev => ({ ...prev, [docType]: file }));
-  };
-
-  const downloadTemplate = async (templateUrl: string, fileName: string) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('document-templates')
-        .download(templateUrl);
-      
-      if (error) throw error;
-      
-      const url = URL.createObjectURL(data);
-      const link = window.document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'No se pudo descargar la plantilla.',
-        variant: 'destructive'
-      });
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user?.id) {
+      toast({
+        title: 'Error de autenticación',
+        description: 'Debes estar autenticado para enviar una postulación.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     if (activeApplicationsCount >= 2) {
       toast({
         title: 'Límite alcanzado',
@@ -361,8 +318,8 @@ export const ProfessorMobilityApplicationForm: React.FC<ProfessorMobilityApplica
             <Button type="button" variant="outline" onClick={onBack}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Enviando...' : (
+            <Button type="submit" disabled={isSubmitting || createApplicationMutation.isPending}>
+              {isSubmitting || createApplicationMutation.isPending ? 'Enviando...' : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
                   Enviar Postulación
