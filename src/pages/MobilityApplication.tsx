@@ -145,8 +145,7 @@ const MobilityApplication = () => {
         .from('universities')
         .select(`
           *,
-          academic_programs (*),
-          courses (*)
+          academic_programs (*)
         `)
         .eq('id', universityId)
         .single();
@@ -155,6 +154,23 @@ const MobilityApplication = () => {
       return data;
     },
     enabled: !!universityId
+  });
+
+  const { data: courses = [] } = useQuery({
+    queryKey: ['courses', programId],
+    queryFn: async () => {
+      if (!programId) return [];
+      
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('program_id', programId)
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!programId
   });
 
   const { data: program } = useQuery({
@@ -298,7 +314,7 @@ const MobilityApplication = () => {
 
             <CourseHomologationSection
               formData={formData}
-              courses={university.courses || []}
+              courses={courses}
               onAddCourse={handleAddCourse}
               onRemoveCourse={handleRemoveCourse}
               onUpdateCourse={handleUpdateCourse}

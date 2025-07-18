@@ -27,7 +27,6 @@ export const MobilityOpportunityDetail: React.FC<MobilityOpportunityDetailProps>
           universities (
             id,
             name,
-            country,
             city
           )
         `)
@@ -74,7 +73,7 @@ export const MobilityOpportunityDetail: React.FC<MobilityOpportunityDetailProps>
                 <MapPin className="h-4 w-4" />
                 <span>{mobilityCall.universities?.name}</span>
                 <span>•</span>
-                <span>{mobilityCall.universities?.city}, {mobilityCall.universities?.country}</span>
+                <span>{mobilityCall.universities?.city}</span>
               </div>
             </div>
             <Badge variant={mobilityCall.is_active ? 'default' : 'secondary'}>
@@ -89,7 +88,7 @@ export const MobilityOpportunityDetail: React.FC<MobilityOpportunityDetailProps>
               <div>
                 <p className="text-xs text-gray-500">Fecha de inicio</p>
                 <p className="text-sm font-medium">
-                  {new Date(mobilityCall.start_date).toLocaleDateString('es-ES')}
+                  {mobilityCall.start_date ? new Date(mobilityCall.start_date).toLocaleDateString('es-ES') : 'No especificada'}
                 </p>
               </div>
             </div>
@@ -113,15 +112,15 @@ export const MobilityOpportunityDetail: React.FC<MobilityOpportunityDetailProps>
 
           <div className="prose max-w-none">
             <h3 className="text-lg font-semibold mb-2">Descripción</h3>
-            <p className="text-gray-700 mb-4">{mobilityCall.description}</p>
+            <p className="text-gray-700 mb-4">{mobilityCall.description || 'No se ha proporcionado descripción'}</p>
 
             <h3 className="text-lg font-semibold mb-2">Requisitos</h3>
             <div className="text-gray-700 mb-4" 
-                 dangerouslySetInnerHTML={{ __html: mobilityCall.requirements }} />
+                 dangerouslySetInnerHTML={{ __html: mobilityCall.requirements || 'No se han especificado requisitos' }} />
 
             <h3 className="text-lg font-semibold mb-2">Beneficios</h3>
             <div className="text-gray-700 mb-6" 
-                 dangerouslySetInnerHTML={{ __html: mobilityCall.benefits }} />
+                 dangerouslySetInnerHTML={{ __html: mobilityCall.benefits || 'No se han especificado beneficios' }} />
           </div>
 
           <div className="flex justify-end">
