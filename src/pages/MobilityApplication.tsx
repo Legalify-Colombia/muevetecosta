@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -310,14 +309,6 @@ const MobilityApplication = () => {
               setFormData={setFormData}
               university={university}
               programs={university.academic_programs || []}
-            />
-
-            <CourseHomologationSection
-              formData={formData}
-              courses={courses}
-              onAddCourse={handleAddCourse}
-              onRemoveCourse={handleRemoveCourse}
-              onUpdateCourse={handleUpdateCourse}
             />
 
             <DocumentUploadSection

@@ -12,8 +12,6 @@ interface MobilityDetailsSectionProps {
 }
 
 export const MobilityDetailsSection = ({ formData, setFormData, university, programs }: MobilityDetailsSectionProps) => {
-  const semesters = Array.from({ length: 10 }, (_, i) => i + 1);
-
   return (
     <Card>
       <CardHeader>
@@ -29,35 +27,20 @@ export const MobilityDetailsSection = ({ formData, setFormData, university, prog
           />
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="destinationProgram">Programa a cursar</Label>
-            <Select value={formData.destinationProgramId} onValueChange={(value) => setFormData(prev => ({ ...prev, destinationProgramId: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar programa" />
-              </SelectTrigger>
-              <SelectContent>
-                {programs.map((program) => (
-                  <SelectItem key={program.id} value={program.id}>
-                    {program.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="mobilityDestinationSemester">Semestre a cursar</Label>
-            <Select value={formData.mobilityDestinationSemester} onValueChange={(value) => setFormData(prev => ({ ...prev, mobilityDestinationSemester: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccionar semestre" />
-              </SelectTrigger>
-              <SelectContent>
-                {semesters.map((semester) => (
-                  <SelectItem key={semester} value={semester.toString()}>{semester}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div>
+          <Label htmlFor="destinationProgram">Programa académico</Label>
+          <Select value={formData.destinationProgramId} onValueChange={(value) => setFormData(prev => ({ ...prev, destinationProgramId: value }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Seleccionar programa" />
+            </SelectTrigger>
+            <SelectContent>
+              {programs.map((program) => (
+                <SelectItem key={program.id} value={program.id}>
+                  {program.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </CardContent>
     </Card>

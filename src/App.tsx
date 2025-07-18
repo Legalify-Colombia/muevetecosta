@@ -17,6 +17,7 @@ import Universities from "./pages/Universities";
 import UniversityDetail from "./pages/UniversityDetail";
 import MobilityApplication from "./pages/MobilityApplication";
 import ProfessorMobilityDetail from "./pages/ProfessorMobilityDetail";
+import ProfessorMobilityApplication from "./pages/ProfessorMobilityApplication";
 import DynamicPage from "./pages/DynamicPage";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -69,6 +70,11 @@ const App = () => {
             <Route path="/professor/mobility/detail/:callId" element={
               <ProtectedRoute>
                 <ProfessorMobilityDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/professor/mobility/apply/:callId" element={
+              <ProtectedRoute>
+                <ProfessorMobilityApplication />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/student" element={
