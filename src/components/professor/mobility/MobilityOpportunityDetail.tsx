@@ -14,7 +14,7 @@ interface MobilityOpportunityDetailProps {
   callId: string;
 }
 
-interface MobilityCall {
+interface MobilityCallData {
   id: string;
   title: string;
   description: string | null;
@@ -33,7 +33,7 @@ interface MobilityCall {
   } | null;
 }
 
-interface ExistingApplication {
+interface ApplicationData {
   id: string;
   status: string;
 }
@@ -45,7 +45,7 @@ export const MobilityOpportunityDetail = ({ callId }: MobilityOpportunityDetailP
   // Fetch mobility call details
   const { data: mobilityCall, isLoading } = useQuery({
     queryKey: ['professor-mobility-call', callId],
-    queryFn: async (): Promise<MobilityCall> => {
+    queryFn: async (): Promise<MobilityCallData> => {
       const { data, error } = await supabase
         .from('professor_mobility_calls')
         .select(`
@@ -57,14 +57,14 @@ export const MobilityOpportunityDetail = ({ callId }: MobilityOpportunityDetailP
         .single();
       
       if (error) throw error;
-      return data as MobilityCall;
+      return data as MobilityCallData;
     }
   });
 
   // Check if user has already applied
   const { data: existingApplication } = useQuery({
     queryKey: ['professor-application-check', callId, user?.id],
-    queryFn: async (): Promise<ExistingApplication | null> => {
+    queryFn: async (): Promise<ApplicationData | null> => {
       if (!user) return null;
       
       const { data, error } = await supabase
@@ -75,7 +75,7 @@ export const MobilityOpportunityDetail = ({ callId }: MobilityOpportunityDetailP
         .maybeSingle();
       
       if (error) throw error;
-      return data as ExistingApplication | null;
+      return data as ApplicationData | null;
     },
     enabled: !!user && !!callId
   });

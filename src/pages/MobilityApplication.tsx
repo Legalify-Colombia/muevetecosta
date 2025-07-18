@@ -273,11 +273,11 @@ const MobilityApplication = () => {
       setFormData,
       university,
       program,
-      userProfile // Always include userProfile
+      userProfile
     };
 
     switch (currentStep) {
-      case 0: // PersonalInfoSection - needs userProfile
+      case 0: // PersonalInfoSection
         return baseProps;
       case 1: // AcademicInfoSection
         return baseProps;

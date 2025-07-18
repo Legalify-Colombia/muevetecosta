@@ -16,6 +16,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Universities from "./pages/Universities";
 import UniversityDetail from "./pages/UniversityDetail";
 import MobilityApplication from "./pages/MobilityApplication";
+import ProfessorMobilityDetail from "./pages/ProfessorMobilityDetail";
 import DynamicPage from "./pages/DynamicPage";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
@@ -57,6 +58,11 @@ const App = () => {
                 <MobilityApplication />
               </ProtectedRoute>
             } />
+            <Route path="/professor/mobility/detail/:callId" element={
+              <ProtectedRoute>
+                <ProfessorMobilityDetail />
+              </ProtectedRoute>
+            } />
             <Route path="/dashboard/student" element={
               <ProtectedRoute>
                 <StudentDashboard />
@@ -79,7 +85,9 @@ const App = () => {
             } />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
-            <Route path="/terms" element={<TermsAndConditions />} />
+            <Route path="/terms" element={<Terms
+
+AndConditions />} />
             <Route path="/pages/:slug" element={<DynamicPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -32,9 +32,22 @@ export default function MobilityOpportunities() {
 
   const { data: opportunities = [], isLoading, error } = useQuery({
     queryKey: ['professor-mobility-opportunities'],
-    queryFn: async () => {
-      // For now, return empty array since the table doesn't exist yet
-      return [] as MobilityCall[];
+    queryFn: async (): Promise<MobilityCall[]> => {
+      const { data, error } = await supabase
+        .from('professor_mobility_calls')
+        .select(`
+          *,
+          universities!host_university_id(name, city)
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching mobility opportunities:', error);
+        throw error;
+      }
+      
+      return data || [];
     }
   });
 
@@ -75,6 +88,14 @@ export default function MobilityOpportunities() {
 
   const isApplicationOpen = (deadline: string) => {
     return new Date(deadline) > new Date();
+  };
+
+  const handleViewDetails = (opportunityId: string) => {
+    navigate(`/professor/mobility/detail/${opportunityId}`);
+  };
+
+  const handleApply = (opportunityId: string) => {
+    navigate(`/professor/mobility/apply/${opportunityId}`);
   };
 
   if (isLoading) {
@@ -208,14 +229,14 @@ export default function MobilityOpportunities() {
 
                 <div className="flex gap-2 pt-4">
                   <Button
-                    onClick={() => navigate(`/professor/mobility/detail/${opportunity.id}`)}
+                    onClick={() => handleViewDetails(opportunity.id)}
                     variant="outline"
                   >
                     Ver Detalles
                   </Button>
                   {isApplicationOpen(opportunity.application_deadline) && (
                     <Button
-                      onClick={() => navigate(`/professor/mobility/apply/${opportunity.id}`)}
+                      onClick={() => handleApply(opportunity.id)}
                     >
                       Postular
                     </Button>
