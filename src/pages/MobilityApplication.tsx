@@ -52,21 +52,29 @@ interface FormData {
     motivationLetter: File | null;
     passport: File | null;
   };
-  courses: Array<{
+  courseEquivalences: Array<{
     id: string;
-    localCourse: string;
-    foreignCourse: string;
-    credits: number;
-    semester: string;
+    destinationCourseId: string;
+    originCourseName: string;
+    originCourseCode: string;
   }>;
-}
-
-interface Course {
-  id: string;
-  localCourse: string;
-  foreignCourse: string;
-  credits: number;
-  semester: string;
+  destinationProgramId: string;
+  mobilityDestinationSemester: string;
+  gender: string;
+  birthPlace: string;
+  birthCountry: string;
+  bloodType: string;
+  healthInsurance: string;
+  originInstitution: string;
+  originCampus: string;
+  originCareer: string;
+  originFaculty: string;
+  studentCode: string;
+  currentSemester: string;
+  cumulativeGPA: string;
+  academicDirector: string;
+  directorPhone: string;
+  directorEmail: string;
 }
 
 const MobilityApplication = () => {
@@ -110,7 +118,24 @@ const MobilityApplication = () => {
       motivationLetter: null,
       passport: null,
     },
-    courses: [],
+    courseEquivalences: [],
+    destinationProgramId: programId || '',
+    mobilityDestinationSemester: '',
+    gender: '',
+    birthPlace: '',
+    birthCountry: '',
+    bloodType: '',
+    healthInsurance: '',
+    originInstitution: '',
+    originCampus: '',
+    originCareer: '',
+    originFaculty: '',
+    studentCode: '',
+    currentSemester: '',
+    cumulativeGPA: '',
+    academicDirector: '',
+    directorPhone: '',
+    directorEmail: '',
   });
 
   const { data: university, isLoading: universityLoading } = useQuery({
@@ -120,7 +145,7 @@ const MobilityApplication = () => {
         .from('universities')
         .select(`
           *,
-          programs (*),
+          academic_programs (*),
           courses (*)
         `)
         .eq('id', universityId)
@@ -136,7 +161,7 @@ const MobilityApplication = () => {
     queryKey: ['program', programId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('programs')
+        .from('academic_programs')
         .select('*')
         .eq('id', programId)
         .single();
@@ -148,38 +173,36 @@ const MobilityApplication = () => {
   });
 
   const handleAddCourse = () => {
-    const newCourse: Course = {
+    const newCourse = {
       id: Date.now().toString(),
-      localCourse: '',
-      foreignCourse: '',
-      credits: 0,
-      semester: '',
+      destinationCourseId: '',
+      originCourseName: '',
+      originCourseCode: '',
     };
     setFormData(prev => ({
       ...prev,
-      courses: [...prev.courses, newCourse]
+      courseEquivalences: [...prev.courseEquivalences, newCourse]
     }));
   };
 
-  const handleRemoveCourse = (courseId: string) => {
+  const handleRemoveCourse = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      courses: prev.courses.filter(course => course.id !== courseId)
+      courseEquivalences: prev.courseEquivalences.filter((_, i) => i !== index)
     }));
   };
 
-  const handleUpdateCourse = (courseId: string, field: keyof Course, value: string | number) => {
+  const handleUpdateCourse = (index: number, field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      courses: prev.courses.map(course =>
-        course.id === courseId ? { ...course, [field]: value } : course
+      courseEquivalences: prev.courseEquivalences.map((course, i) =>
+        i === index ? { ...course, [field]: value } : course
       )
     }));
   };
 
   const handleSaveDraft = async () => {
     try {
-      // Save as draft logic
       toast.success('Borrador guardado exitosamente');
     } catch (error) {
       toast.error('Error al guardar el borrador');
@@ -188,7 +211,6 @@ const MobilityApplication = () => {
 
   const handleSubmit = async () => {
     try {
-      // Submit application logic
       toast.success('Aplicación enviada exitosamente');
       navigate('/dashboard/student');
     } catch (error) {
@@ -271,13 +293,12 @@ const MobilityApplication = () => {
               formData={formData}
               setFormData={setFormData}
               university={university}
-              program={program}
+              programs={university.academic_programs || []}
             />
 
             <CourseHomologationSection
               formData={formData}
-              setFormData={setFormData}
-              courses={formData.courses}
+              courses={university.courses || []}
               onAddCourse={handleAddCourse}
               onRemoveCourse={handleRemoveCourse}
               onUpdateCourse={handleUpdateCourse}
@@ -286,6 +307,8 @@ const MobilityApplication = () => {
             <DocumentUploadSection
               formData={formData}
               setFormData={setFormData}
+              destinationUniversityId={universityId}
+              mobilityType="student"
             />
 
             <Card>

@@ -22,11 +22,19 @@ import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
 import { AuthCallback } from "./components/auth/AuthCallback";
 import { ResetPassword } from "./components/auth/ResetPassword";
-
-const queryClient = new QueryClient();
+import { useMemo } from "react";
 
 const App = () => {
   const { loading } = useAuth();
+
+  const queryClient = useMemo(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 3,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      },
+    },
+  }), []);
 
   if (loading) {
     return (

@@ -12,27 +12,6 @@ interface MobilityOpportunityDetailProps {
   callId: string;
 }
 
-interface MobilityCall {
-  id: string;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  application_deadline: string;
-  requirements: string;
-  benefits: string;
-  status: string;
-  max_participants: number;
-  created_at: string;
-  updated_at: string;
-  universities: {
-    id: string;
-    name: string;
-    country: string;
-    city: string;
-  };
-}
-
 export const MobilityOpportunityDetail: React.FC<MobilityOpportunityDetailProps> = ({ 
   callId 
 }) => {
@@ -40,7 +19,7 @@ export const MobilityOpportunityDetail: React.FC<MobilityOpportunityDetailProps>
 
   const { data: mobilityCall, isLoading, error } = useQuery({
     queryKey: ['mobility-call', callId],
-    queryFn: async (): Promise<MobilityCall> => {
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('professor_mobility_calls')
         .select(`
@@ -81,7 +60,6 @@ export const MobilityOpportunityDetail: React.FC<MobilityOpportunityDetailProps>
   }
 
   const handleApply = () => {
-    // Navigate to application form - you may need to adjust this route
     navigate(`/professor/mobility/apply/${callId}`);
   };
 
@@ -94,13 +72,13 @@ export const MobilityOpportunityDetail: React.FC<MobilityOpportunityDetailProps>
               <CardTitle className="text-2xl mb-2">{mobilityCall.title}</CardTitle>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <MapPin className="h-4 w-4" />
-                <span>{mobilityCall.universities.name}</span>
+                <span>{mobilityCall.universities?.name}</span>
                 <span>•</span>
-                <span>{mobilityCall.universities.city}, {mobilityCall.universities.country}</span>
+                <span>{mobilityCall.universities?.city}, {mobilityCall.universities?.country}</span>
               </div>
             </div>
-            <Badge variant={mobilityCall.status === 'active' ? 'default' : 'secondary'}>
-              {mobilityCall.status === 'active' ? 'Activa' : 'Inactiva'}
+            <Badge variant={mobilityCall.is_active ? 'default' : 'secondary'}>
+              {mobilityCall.is_active ? 'Activa' : 'Inactiva'}
             </Badge>
           </div>
         </CardHeader>
@@ -149,7 +127,7 @@ export const MobilityOpportunityDetail: React.FC<MobilityOpportunityDetailProps>
           <div className="flex justify-end">
             <Button 
               onClick={handleApply}
-              disabled={mobilityCall.status !== 'active'}
+              disabled={!mobilityCall.is_active}
               size="lg"
             >
               <FileText className="h-4 w-4 mr-2" />
