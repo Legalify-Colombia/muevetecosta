@@ -1,16 +1,16 @@
 
 import React, { useState } from 'react';
 import AdminSidebar from '@/components/admin/AdminSidebar';
-import UserManagement from '@/components/admin/UserManagement';
-import UniversityManagement from '@/components/admin/UniversityManagement';
-import UniversityCoordinatorAssignment from '@/components/admin/UniversityCoordinatorAssignment';
-import ProfessorMobilityManagement from '@/components/admin/ProfessorMobilityManagement';
+import { UserManagement } from '@/components/admin/UserManagement';
+import { UniversityManagement } from '@/components/admin/UniversityManagement';
+import { UniversityCoordinatorAssignment } from '@/components/admin/UniversityCoordinatorAssignment';
+import { ProfessorMobilityManagement } from '@/components/admin/ProfessorMobilityManagement';
 import ConvenioAdminPanel from '@/components/admin/ConvenioAdminPanel';
-import ProjectManagement from '@/components/admin/ProjectManagement';
+import { ProjectManagement } from '@/components/admin/ProjectManagement';
 import ContentManagement from '@/components/admin/ContentManagement';
-import EmailConfiguration from '@/components/admin/EmailConfiguration';
-import EmailHistory from '@/components/admin/EmailHistory';
-import EmailTemplateManager from '@/components/admin/EmailTemplateManager';
+import { EmailConfiguration } from '@/components/admin/EmailConfiguration';
+import { EmailHistory } from '@/components/admin/EmailHistory';
+import { EmailTemplateManager } from '@/components/admin/EmailTemplateManager';
 import ReportsAnalytics from '@/components/admin/ReportsAnalytics';
 
 const AdminDashboard = () => {
