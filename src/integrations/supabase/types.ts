@@ -138,6 +138,230 @@ export type Database = {
           },
         ]
       }
+      convenio_configuracion: {
+        Row: {
+          beneficios: string | null
+          correo_notificacion_admin: string | null
+          descripcion_convenio: string
+          id: string
+          mensaje_bienvenida: string | null
+          mensaje_confirmacion: string
+          nombre_convenio: string
+          proceso_habilitado: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          beneficios?: string | null
+          correo_notificacion_admin?: string | null
+          descripcion_convenio?: string
+          id?: string
+          mensaje_bienvenida?: string | null
+          mensaje_confirmacion?: string
+          nombre_convenio?: string
+          proceso_habilitado?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          beneficios?: string | null
+          correo_notificacion_admin?: string | null
+          descripcion_convenio?: string
+          id?: string
+          mensaje_bienvenida?: string | null
+          mensaje_confirmacion?: string
+          nombre_convenio?: string
+          proceso_habilitado?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      convenio_documentos_universidad: {
+        Row: {
+          archivo_nombre: string
+          archivo_tamaño: number | null
+          archivo_url: string
+          convenio_id: string
+          estado_revision: string | null
+          id: string
+          observaciones_revision: string | null
+          plantilla_documento_id: string | null
+          revisado_at: string | null
+          revisado_por: string | null
+          tipo_documento: string
+          uploaded_at: string
+        }
+        Insert: {
+          archivo_nombre: string
+          archivo_tamaño?: number | null
+          archivo_url: string
+          convenio_id: string
+          estado_revision?: string | null
+          id?: string
+          observaciones_revision?: string | null
+          plantilla_documento_id?: string | null
+          revisado_at?: string | null
+          revisado_por?: string | null
+          tipo_documento: string
+          uploaded_at?: string
+        }
+        Update: {
+          archivo_nombre?: string
+          archivo_tamaño?: number | null
+          archivo_url?: string
+          convenio_id?: string
+          estado_revision?: string | null
+          id?: string
+          observaciones_revision?: string | null
+          plantilla_documento_id?: string | null
+          revisado_at?: string | null
+          revisado_por?: string | null
+          tipo_documento?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convenio_documentos_universidad_convenio_id_fkey"
+            columns: ["convenio_id"]
+            isOneToOne: false
+            referencedRelation: "convenios_universidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convenio_documentos_universidad_plantilla_documento_id_fkey"
+            columns: ["plantilla_documento_id"]
+            isOneToOne: false
+            referencedRelation: "convenio_plantillas_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      convenio_notificaciones: {
+        Row: {
+          asunto: string
+          convenio_id: string
+          created_at: string
+          destinatario_email: string
+          enviado: boolean | null
+          enviado_at: string | null
+          error_envio: string | null
+          id: string
+          mensaje: string
+          tipo_notificacion: string
+        }
+        Insert: {
+          asunto: string
+          convenio_id: string
+          created_at?: string
+          destinatario_email: string
+          enviado?: boolean | null
+          enviado_at?: string | null
+          error_envio?: string | null
+          id?: string
+          mensaje: string
+          tipo_notificacion: string
+        }
+        Update: {
+          asunto?: string
+          convenio_id?: string
+          created_at?: string
+          destinatario_email?: string
+          enviado?: boolean | null
+          enviado_at?: string | null
+          error_envio?: string | null
+          id?: string
+          mensaje?: string
+          tipo_notificacion?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convenio_notificaciones_convenio_id_fkey"
+            columns: ["convenio_id"]
+            isOneToOne: false
+            referencedRelation: "convenios_universidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      convenio_plantillas_documentos: {
+        Row: {
+          archivo_nombre: string
+          archivo_url: string
+          created_at: string
+          created_by: string | null
+          descripcion: string | null
+          es_activa: boolean
+          es_obligatoria: boolean
+          id: string
+          nombre: string
+          tipo: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          archivo_nombre: string
+          archivo_url: string
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          es_activa?: boolean
+          es_obligatoria?: boolean
+          id?: string
+          nombre: string
+          tipo: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          archivo_nombre?: string
+          archivo_url?: string
+          created_at?: string
+          created_by?: string | null
+          descripcion?: string | null
+          es_activa?: boolean
+          es_obligatoria?: boolean
+          id?: string
+          nombre?: string
+          tipo?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      convenio_terminos_condiciones: {
+        Row: {
+          contenido: string
+          created_at: string
+          created_by: string | null
+          es_activo: boolean
+          id: string
+          titulo: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          contenido: string
+          created_at?: string
+          created_by?: string | null
+          es_activo?: boolean
+          id?: string
+          titulo?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          contenido?: string
+          created_at?: string
+          created_by?: string | null
+          es_activo?: boolean
+          id?: string
+          titulo?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       convenios_historial: {
         Row: {
           cambiado_por: string | null
@@ -183,12 +407,15 @@ export type Database = {
           contrato_firmado_url: string | null
           correo_institucional: string
           created_at: string
+          descripcion_universidad: string | null
           direccion: string
           estado: string
           fecha_aprobacion: string | null
           fecha_revision: string | null
           fecha_solicitud: string
           id: string
+          ip_registro: unknown | null
+          metodo_creacion: string | null
           motivo_rechazo: string | null
           nit_rut: string
           nombre_universidad: string
@@ -202,7 +429,9 @@ export type Database = {
           revisado_por: string | null
           sitio_web: string | null
           telefono: string
+          terminos_version_aceptados: number | null
           updated_at: string
+          user_agent: string | null
         }
         Insert: {
           acepta_terminos?: boolean
@@ -210,12 +439,15 @@ export type Database = {
           contrato_firmado_url?: string | null
           correo_institucional: string
           created_at?: string
+          descripcion_universidad?: string | null
           direccion: string
           estado?: string
           fecha_aprobacion?: string | null
           fecha_revision?: string | null
           fecha_solicitud?: string
           id?: string
+          ip_registro?: unknown | null
+          metodo_creacion?: string | null
           motivo_rechazo?: string | null
           nit_rut: string
           nombre_universidad: string
@@ -229,7 +461,9 @@ export type Database = {
           revisado_por?: string | null
           sitio_web?: string | null
           telefono: string
+          terminos_version_aceptados?: number | null
           updated_at?: string
+          user_agent?: string | null
         }
         Update: {
           acepta_terminos?: boolean
@@ -237,12 +471,15 @@ export type Database = {
           contrato_firmado_url?: string | null
           correo_institucional?: string
           created_at?: string
+          descripcion_universidad?: string | null
           direccion?: string
           estado?: string
           fecha_aprobacion?: string | null
           fecha_revision?: string | null
           fecha_solicitud?: string
           id?: string
+          ip_registro?: unknown | null
+          metodo_creacion?: string | null
           motivo_rechazo?: string | null
           nit_rut?: string
           nombre_universidad?: string
@@ -256,7 +493,9 @@ export type Database = {
           revisado_por?: string | null
           sitio_web?: string | null
           telefono?: string
+          terminos_version_aceptados?: number | null
           updated_at?: string
+          user_agent?: string | null
         }
         Relationships: []
       }
