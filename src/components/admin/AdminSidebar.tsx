@@ -1,16 +1,18 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { 
   Users, 
   GraduationCap, 
-  Building, 
-  Mail, 
+  Plane, 
   FileText, 
-  BarChart3, 
-  Settings,
-  BookOpen,
-  Handshake
+  FolderOpen, 
+  Mail, 
+  History, 
+  Template,
+  BarChart3,
+  FileContract 
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -20,48 +22,102 @@ interface AdminSidebarProps {
 
 const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
   const menuItems = [
-    { id: 'users', label: 'Gestión de Usuarios', icon: Users },
-    { id: 'universities', label: 'Universidades', icon: Building },
-    { id: 'coordinators', label: 'Asignar Coordinadores', icon: GraduationCap },
-    { id: 'professor-mobility', label: 'Movilidad Profesores', icon: BookOpen },
-    { id: 'convenios-muevete', label: 'Convenios "Muévete"', icon: Handshake },
-    { id: 'projects', label: 'Proyectos Investigación', icon: FileText },
-    { id: 'content', label: 'Gestión de Contenido', icon: FileText },
-    { id: 'email-config', label: 'Configuración Email', icon: Mail },
-    { id: 'email-history', label: 'Historial de Emails', icon: Mail },
-    { id: 'email-templates', label: 'Plantillas de Email', icon: Mail },
-    { id: 'reports', label: 'Reportes y Analytics', icon: BarChart3 },
+    {
+      id: 'users',
+      label: 'Usuarios',
+      icon: Users,
+      description: 'Gestionar usuarios y coordinadores'
+    },
+    {
+      id: 'universities',
+      label: 'Universidades',
+      icon: GraduationCap,
+      description: 'Gestionar universidades'
+    },
+    {
+      id: 'professor-mobility',
+      label: 'Movilidad Docente',
+      icon: Plane,
+      description: 'Gestionar movilidad de profesores'
+    },
+    {
+      id: 'convenios-muevete',
+      label: 'Convenio Muévete',
+      icon: FileContract,
+      description: 'Gestionar convenios y postulaciones'
+    },
+    {
+      id: 'projects',
+      label: 'Proyectos',
+      icon: FolderOpen,
+      description: 'Gestionar proyectos de investigación'
+    },
+    {
+      id: 'content',
+      label: 'Contenido',
+      icon: FileText,
+      description: 'Gestionar contenido del sitio'
+    },
+    {
+      id: 'email-config',
+      label: 'Config. Email',
+      icon: Mail,
+      description: 'Configurar correo electrónico'
+    },
+    {
+      id: 'email-history',
+      label: 'Historial Email',
+      icon: History,
+      description: 'Ver historial de correos'
+    },
+    {
+      id: 'email-templates',
+      label: 'Plantillas Email',
+      icon: Template,
+      description: 'Gestionar plantillas de correo'
+    },
+    {
+      id: 'reports',
+      label: 'Reportes',
+      icon: BarChart3,
+      description: 'Ver reportes y análisis'
+    }
   ];
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 h-full">
-      <div className="p-4">
-        <h2 className="text-lg font-semibold text-gray-900">Panel de Administración</h2>
+    <aside className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+      <div className="p-6">
+        <h2 className="text-xl font-bold text-gray-900">Admin Panel</h2>
+        <p className="text-sm text-gray-600 mt-1">Panel de administración</p>
       </div>
-      <nav className="mt-4">
-        <ul className="space-y-2 px-4">
+      
+      <nav className="px-4 pb-6">
+        <div className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
-              <li key={item.id}>
-                <button
-                  onClick={() => onTabChange(item.id)}
-                  className={cn(
-                    "w-full flex items-center space-x-3 px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                    activeTab === item.id
-                      ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </button>
-              </li>
+              <Button
+                key={item.id}
+                variant={activeTab === item.id ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full justify-start h-auto p-3 text-left",
+                  activeTab === item.id && "bg-blue-50 text-blue-700 border-blue-200"
+                )}
+                onClick={() => onTabChange(item.id)}
+              >
+                <Icon className="h-4 w-4 mr-3 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{item.label}</div>
+                  <div className="text-xs text-gray-500 mt-0.5 truncate">
+                    {item.description}
+                  </div>
+                </div>
+              </Button>
             );
           })}
-        </ul>
+        </div>
       </nav>
-    </div>
+    </aside>
   );
 };
 
