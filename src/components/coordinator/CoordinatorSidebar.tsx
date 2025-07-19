@@ -1,22 +1,15 @@
 
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
-import { useIsMobile } from "@/hooks/use-mobile";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { 
   School, 
   GraduationCap, 
   BookOpen, 
   Users, 
   Briefcase,
-  Settings
+  Settings,
+  BarChart3
 } from 'lucide-react';
 
 interface CoordinatorSidebarProps {
@@ -24,50 +17,93 @@ interface CoordinatorSidebarProps {
   onTabChange: (tab: string) => void;
 }
 
-const sidebarItems = [
-  { id: 'overview', label: 'Resumen', icon: School },
-  { id: 'university', label: 'Universidad', icon: School },
-  { id: 'programs', label: 'Programas', icon: GraduationCap },
-  { id: 'courses', label: 'Cursos', icon: BookOpen },
-  { id: 'students', label: 'Estudiantes', icon: Users },
-  { id: 'professors', label: 'Profesores', icon: Users },
-  { id: 'projects', label: 'Proyectos', icon: Briefcase },
-  { id: 'documents', label: 'Documentos', icon: Settings },
-];
-
-export function CoordinatorSidebar({ activeTab, onTabChange }: CoordinatorSidebarProps) {
-  const isMobile = useIsMobile();
-  const { setOpenMobile } = useSidebar();
-
-  const handleTabClick = (tabId: string) => {
-    onTabChange(tabId);
-    if (isMobile) {
-      setOpenMobile(false);
+const CoordinatorSidebar = ({ activeTab, onTabChange }: CoordinatorSidebarProps) => {
+  const menuItems = [
+    {
+      id: 'overview',
+      label: 'Resumen',
+      icon: BarChart3,
+      description: 'Vista general del dashboard'
+    },
+    {
+      id: 'university',
+      label: 'Universidad',
+      icon: School,
+      description: 'Gestionar perfil universitario'
+    },
+    {
+      id: 'programs',
+      label: 'Programas',
+      icon: GraduationCap,
+      description: 'Gestionar programas académicos'
+    },
+    {
+      id: 'courses',
+      label: 'Cursos',
+      icon: BookOpen,
+      description: 'Gestionar cursos'
+    },
+    {
+      id: 'students',
+      label: 'Estudiantes',
+      icon: Users,
+      description: 'Postulaciones de estudiantes'
+    },
+    {
+      id: 'professors',
+      label: 'Profesores',
+      icon: Users,
+      description: 'Movilidad de profesores'
+    },
+    {
+      id: 'projects',
+      label: 'Proyectos',
+      icon: Briefcase,
+      description: 'Proyectos de investigación'
+    },
+    {
+      id: 'documents',
+      label: 'Documentos',
+      icon: Settings,
+      description: 'Documentos requeridos'
     }
-  };
+  ];
 
   return (
-    <Sidebar collapsible={isMobile ? "offcanvas" : "none"}>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {sidebarItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    isActive={activeTab === item.id}
-                    onClick={() => handleTabClick(item.id)}
-                    className="w-full justify-start"
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+    <aside className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+      <div className="p-6">
+        <h2 className="text-xl font-bold text-gray-900">Panel Coordinador</h2>
+        <p className="text-sm text-gray-600 mt-1">Panel de coordinación</p>
+      </div>
+      
+      <nav className="px-4 pb-6">
+        <div className="space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Button
+                key={item.id}
+                variant={activeTab === item.id ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full justify-start h-auto p-3 text-left",
+                  activeTab === item.id && "bg-blue-50 text-blue-700 border-blue-200"
+                )}
+                onClick={() => onTabChange(item.id)}
+              >
+                <Icon className="h-4 w-4 mr-3 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-sm">{item.label}</div>
+                  <div className="text-xs text-gray-500 mt-0.5 truncate">
+                    {item.description}
+                  </div>
+                </div>
+              </Button>
+            );
+          })}
+        </div>
+      </nav>
+    </aside>
   );
-}
+};
+
+export default CoordinatorSidebar;
