@@ -10,9 +10,9 @@ import {
   FolderOpen, 
   Mail, 
   History, 
-  Template,
+  Layout,
   BarChart3,
-  FileContract 
+  FileCheck 
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -43,7 +43,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     {
       id: 'convenios-muevete',
       label: 'Convenio Muévete',
-      icon: FileContract,
+      icon: FileCheck,
       description: 'Gestionar convenios y postulaciones'
     },
     {
@@ -73,7 +73,7 @@ const AdminSidebar = ({ activeTab, onTabChange }: AdminSidebarProps) => {
     {
       id: 'email-templates',
       label: 'Plantillas Email',
-      icon: Template,
+      icon: Layout,
       description: 'Gestionar plantillas de correo'
     },
     {
