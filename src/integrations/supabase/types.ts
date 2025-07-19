@@ -138,6 +138,128 @@ export type Database = {
           },
         ]
       }
+      convenios_historial: {
+        Row: {
+          cambiado_por: string | null
+          convenio_id: string
+          created_at: string
+          estado_anterior: string | null
+          estado_nuevo: string
+          id: string
+          observaciones: string | null
+        }
+        Insert: {
+          cambiado_por?: string | null
+          convenio_id: string
+          created_at?: string
+          estado_anterior?: string | null
+          estado_nuevo: string
+          id?: string
+          observaciones?: string | null
+        }
+        Update: {
+          cambiado_por?: string | null
+          convenio_id?: string
+          created_at?: string
+          estado_anterior?: string | null
+          estado_nuevo?: string
+          id?: string
+          observaciones?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convenios_historial_convenio_id_fkey"
+            columns: ["convenio_id"]
+            isOneToOne: false
+            referencedRelation: "convenios_universidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      convenios_universidades: {
+        Row: {
+          acepta_terminos: boolean
+          carta_adhesion_url: string | null
+          contrato_firmado_url: string | null
+          correo_institucional: string
+          created_at: string
+          direccion: string
+          estado: string
+          fecha_aprobacion: string | null
+          fecha_revision: string | null
+          fecha_solicitud: string
+          id: string
+          motivo_rechazo: string | null
+          nit_rut: string
+          nombre_universidad: string
+          observaciones: string | null
+          razon_social: string
+          responsable_cargo: string
+          responsable_correo: string
+          responsable_identificacion: string
+          responsable_nombre: string
+          responsable_telefono: string
+          revisado_por: string | null
+          sitio_web: string | null
+          telefono: string
+          updated_at: string
+        }
+        Insert: {
+          acepta_terminos?: boolean
+          carta_adhesion_url?: string | null
+          contrato_firmado_url?: string | null
+          correo_institucional: string
+          created_at?: string
+          direccion: string
+          estado?: string
+          fecha_aprobacion?: string | null
+          fecha_revision?: string | null
+          fecha_solicitud?: string
+          id?: string
+          motivo_rechazo?: string | null
+          nit_rut: string
+          nombre_universidad: string
+          observaciones?: string | null
+          razon_social: string
+          responsable_cargo: string
+          responsable_correo: string
+          responsable_identificacion: string
+          responsable_nombre: string
+          responsable_telefono: string
+          revisado_por?: string | null
+          sitio_web?: string | null
+          telefono: string
+          updated_at?: string
+        }
+        Update: {
+          acepta_terminos?: boolean
+          carta_adhesion_url?: string | null
+          contrato_firmado_url?: string | null
+          correo_institucional?: string
+          created_at?: string
+          direccion?: string
+          estado?: string
+          fecha_aprobacion?: string | null
+          fecha_revision?: string | null
+          fecha_solicitud?: string
+          id?: string
+          motivo_rechazo?: string | null
+          nit_rut?: string
+          nombre_universidad?: string
+          observaciones?: string | null
+          razon_social?: string
+          responsable_cargo?: string
+          responsable_correo?: string
+          responsable_identificacion?: string
+          responsable_nombre?: string
+          responsable_telefono?: string
+          revisado_por?: string | null
+          sitio_web?: string | null
+          telefono?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       course_equivalences: {
         Row: {
           application_id: string | null

@@ -9,6 +9,7 @@ import { EmailConfiguration } from '@/components/admin/EmailConfiguration';
 import { EmailHistory } from '@/components/admin/EmailHistory';
 import ContentManagement from '@/components/admin/ContentManagement';
 import { ProfessorMobilityManagement } from '@/components/admin/ProfessorMobilityManagement';
+import ConveniosManagement from '@/components/admin/ConveniosManagement';
 import Header from '@/components/common/Header';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { useAuth } from '@/hooks/useAuth';
@@ -120,6 +121,10 @@ const AdminDashboard = () => {
 
               <TabsContent value="mobility">
                 <ProfessorMobilityManagement />
+              </TabsContent>
+
+              <TabsContent value="convenios">
+                <ConveniosManagement />
               </TabsContent>
 
               <TabsContent value="email" className="space-y-6">

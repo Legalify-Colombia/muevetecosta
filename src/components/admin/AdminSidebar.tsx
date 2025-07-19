@@ -20,7 +20,8 @@ import {
   Settings, 
   FileText, 
   Plane,
-  User
+  User,
+  Handshake
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -34,6 +35,7 @@ const sidebarItems = [
   { id: 'universities', label: 'Universidades', icon: School },
   { id: 'coordinators', label: 'Coordinadores', icon: User },
   { id: 'mobility', label: 'Movilidad', icon: Plane },
+  { id: 'convenios', label: 'Convenios "Muévete"', icon: Handshake },
   { id: 'email', label: 'Email', icon: Mail },
   { id: 'content', label: 'Contenido', icon: FileText },
   { id: 'reports', label: 'Reportes', icon: BarChart3 },
