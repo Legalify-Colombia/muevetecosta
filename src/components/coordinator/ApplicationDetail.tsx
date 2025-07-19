@@ -26,9 +26,13 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
   const [isPublicNote, setIsPublicNote] = useState(false);
   const [newStatus, setNewStatus] = useState("");
 
-  const { data: application, isLoading } = useQuery({
+  console.log('ApplicationDetail - Loading application ID:', applicationId);
+
+  const { data: application, isLoading, error } = useQuery({
     queryKey: ['application-detail', applicationId],
     queryFn: async () => {
+      console.log('Fetching application details for ID:', applicationId);
+      
       const { data, error } = await supabase
         .from('mobility_applications')
         .select(`
@@ -40,30 +44,52 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         .eq('id', applicationId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching application:', error);
+        throw error;
+      }
+      
+      console.log('Application data fetched:', data);
       return data;
-    }
+    },
+    retry: 1,
+    enabled: !!applicationId
   });
 
-  const { data: studentInfo } = useQuery({
+  const { data: studentInfo, isLoading: isLoadingStudentInfo } = useQuery({
     queryKey: ['student-info', application?.student_id],
     queryFn: async () => {
-      if (!application?.student_id) return null;
+      if (!application?.student_id) {
+        console.log('No student ID available');
+        return null;
+      }
+      
+      console.log('Fetching student info for ID:', application.student_id);
+      
       const { data, error } = await supabase
         .from('student_info')
         .select('*')
         .eq('id', application.student_id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching student info:', error);
+        // Don't throw error, just return null to handle gracefully
+        return null;
+      }
+      
+      console.log('Student info fetched:', data);
       return data;
     },
-    enabled: !!application?.student_id
+    enabled: !!application?.student_id,
+    retry: 1
   });
 
   const { data: courseEquivalences = [] } = useQuery({
     queryKey: ['course-equivalences', applicationId],
     queryFn: async () => {
+      console.log('Fetching course equivalences for application ID:', applicationId);
+      
       const { data, error } = await supabase
         .from('course_equivalences')
         .select(`
@@ -72,14 +98,22 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         `)
         .eq('application_id', applicationId);
       
-      if (error) throw error;
-      return data;
-    }
+      if (error) {
+        console.error('Error fetching course equivalences:', error);
+        return [];
+      }
+      
+      console.log('Course equivalences fetched:', data);
+      return data || [];
+    },
+    enabled: !!applicationId
   });
 
   const { data: notes = [] } = useQuery({
     queryKey: ['application-notes', applicationId],
     queryFn: async () => {
+      console.log('Fetching notes for application ID:', applicationId);
+      
       const { data, error } = await supabase
         .from('application_notes')
         .select(`
@@ -89,19 +123,35 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         .eq('application_id', applicationId)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data;
-    }
+      if (error) {
+        console.error('Error fetching notes:', error);
+        return [];
+      }
+      
+      console.log('Notes fetched:', data);
+      return data || [];
+    },
+    enabled: !!applicationId
   });
 
   const updateStatusMutation = useMutation({
     mutationFn: async (status: string) => {
+      console.log('Updating status to:', status);
+      
       const { error } = await supabase
         .from('mobility_applications')
-        .update({ status: status as any })
+        .update({ 
+          status: status as any,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', applicationId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating status:', error);
+        throw error;
+      }
+      
+      console.log('Status updated successfully');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['application-detail', applicationId] });
@@ -110,11 +160,21 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         title: "Estado actualizado",
         description: "El estado de la postulación se ha actualizado correctamente.",
       });
+    },
+    onError: (error) => {
+      console.error('Error in status update mutation:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado de la postulación.",
+        variant: "destructive",
+      });
     }
   });
 
   const addNoteMutation = useMutation({
     mutationFn: async ({ note, isPublic }: { note: string; isPublic: boolean }) => {
+      console.log('Adding note:', { note, isPublic });
+      
       const { error } = await supabase
         .from('application_notes')
         .insert({
@@ -124,9 +184,13 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
           is_internal: !isPublic
         });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding note:', error);
+        throw error;
+      }
 
       if (isPublic && application?.student_id) {
+        console.log('Creating notification for student');
         await supabase
           .from('notifications')
           .insert({
@@ -137,6 +201,8 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
             related_application_id: applicationId
           });
       }
+      
+      console.log('Note added successfully');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['application-notes', applicationId] });
@@ -146,11 +212,24 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         title: "Comentario agregado",
         description: "El comentario se ha agregado correctamente.",
       });
+    },
+    onError: (error) => {
+      console.error('Error in add note mutation:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo agregar el comentario.",
+        variant: "destructive",
+      });
     }
   });
 
   const exportToCsv = () => {
-    if (!application || !studentInfo) return;
+    if (!application) {
+      console.log('No application data to export');
+      return;
+    }
+
+    console.log('Exporting application to CSV');
 
     const csvData = [
       ['Campo', 'Valor'],
@@ -159,15 +238,15 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
       ['Fecha de Postulación', new Date(application.created_at).toLocaleDateString('es-ES')],
       ['Nombre del Estudiante', application.profiles?.full_name || ''],
       ['Documento', `${application.profiles?.document_type?.toUpperCase()} ${application.profiles?.document_number}`],
-      ['Universidad de Origen', studentInfo.origin_university || ''],
-      ['Programa Actual', studentInfo.academic_program || ''],
-      ['Semestre Actual', studentInfo.current_semester?.toString() || ''],
-      ['GPA Acumulado', studentInfo.cumulative_gpa?.toString() || ''],
+      ['Universidad de Origen', studentInfo?.origin_university || ''],
+      ['Programa Actual', studentInfo?.academic_program || ''],
+      ['Semestre Actual', studentInfo?.current_semester?.toString() || ''],
+      ['GPA Acumulado', studentInfo?.cumulative_gpa?.toString() || ''],
       ['Programa de Destino', application.academic_programs?.name || ''],
       ['Universidad de Destino', application.universities?.name || ''],
-      ['Director Académico', studentInfo.academic_director_name || ''],
-      ['Email Director', studentInfo.academic_director_email || ''],
-      ['Teléfono Director', studentInfo.academic_director_phone || '']
+      ['Director Académico', studentInfo?.academic_director_name || ''],
+      ['Email Director', studentInfo?.academic_director_email || ''],
+      ['Teléfono Director', studentInfo?.academic_director_phone || '']
     ];
 
     const csvContent = csvData.map(row => row.map(field => `"${field}"`).join(',')).join('\n');
@@ -213,6 +292,32 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
     }
   };
 
+  if (error) {
+    console.error('ApplicationDetail error:', error);
+    return (
+      <div className="space-y-6">
+        <Button onClick={onBack} variant="outline">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver
+        </Button>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-red-600 mb-2">Error al cargar la postulación</p>
+              <p className="text-sm text-gray-500">{error.message}</p>
+              <Button 
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['application-detail', applicationId] })}
+                className="mt-4"
+              >
+                Reintentar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -225,6 +330,7 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
             <div className="animate-pulse space-y-4">
               <div className="h-4 bg-gray-200 rounded w-3/4"></div>
               <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
             </div>
           </CardContent>
         </Card>
@@ -241,7 +347,10 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         </Button>
         <Card>
           <CardContent className="p-6">
-            <p className="text-gray-600">No se encontró la postulación.</p>
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">No se encontró la postulación.</p>
+              <Button onClick={onBack}>Volver al listado</Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -309,18 +418,32 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
             </div>
             
             <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium text-gray-500">Género</p>
-                <p>{studentInfo?.gender || 'No disponible'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Fecha de Nacimiento</p>
-                <p>{studentInfo?.birth_date ? new Date(studentInfo.birth_date).toLocaleDateString('es-ES') : 'No disponible'}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-500">Lugar de Nacimiento</p>
-                <p>{studentInfo?.birth_place || 'No disponible'}, {studentInfo?.birth_country || ''}</p>
-              </div>
+              {isLoadingStudentInfo ? (
+                <div className="animate-pulse space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              ) : studentInfo ? (
+                <>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Género</p>
+                    <p>{studentInfo.gender || 'No disponible'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Fecha de Nacimiento</p>
+                    <p>{studentInfo.birth_date ? new Date(studentInfo.birth_date).toLocaleDateString('es-ES') : 'No disponible'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Lugar de Nacimiento</p>
+                    <p>{studentInfo.birth_place || 'No disponible'}{studentInfo.birth_country ? `, ${studentInfo.birth_country}` : ''}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-gray-500">Información adicional no disponible</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -328,36 +451,64 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
             <h4 className="text-lg font-semibold mb-4">Información Académica</h4>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Universidad de Origen</p>
-                  <p className="font-semibold">{studentInfo?.origin_university || 'No disponible'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Programa Actual</p>
-                  <p>{studentInfo?.academic_program || 'No disponible'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Código Estudiantil</p>
-                  <p>{studentInfo?.student_code || 'No disponible'}</p>
-                </div>
+                {isLoadingStudentInfo ? (
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                ) : studentInfo ? (
+                  <>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Universidad de Origen</p>
+                      <p className="font-semibold">{studentInfo.origin_university || 'No disponible'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Programa Actual</p>
+                      <p>{studentInfo.academic_program || 'No disponible'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Código Estudiantil</p>
+                      <p>{studentInfo.student_code || 'No disponible'}</p>
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-gray-500">Información académica no disponible</p>
+                  </div>
+                )}
               </div>
               
               <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Semestre Actual</p>
-                  <p>{studentInfo?.current_semester || 'No disponible'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">GPA Acumulado</p>
-                  <p>{studentInfo?.cumulative_gpa || 'No disponible'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Director Académico</p>
-                  <p>{studentInfo?.academic_director_name || 'No disponible'}</p>
-                  {studentInfo?.academic_director_email && (
-                    <p className="text-sm text-gray-600">{studentInfo.academic_director_email}</p>
-                  )}
-                </div>
+                {isLoadingStudentInfo ? (
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                ) : studentInfo ? (
+                  <>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Semestre Actual</p>
+                      <p>{studentInfo.current_semester || 'No disponible'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">GPA Acumulado</p>
+                      <p>{studentInfo.cumulative_gpa || 'No disponible'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Director Académico</p>
+                      <p>{studentInfo.academic_director_name || 'No disponible'}</p>
+                      {studentInfo.academic_director_email && (
+                        <p className="text-sm text-gray-600">{studentInfo.academic_director_email}</p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-gray-500">Información académica adicional no disponible</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -370,7 +521,9 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
                 <p className="font-semibold text-blue-900">{application.academic_programs?.name || 'No disponible'}</p>
               </div>
               <p className="text-sm text-blue-700">{application.universities?.name}</p>
-              <p className="text-sm text-blue-600">{application.academic_programs?.description}</p>
+              {application.academic_programs?.description && (
+                <p className="text-sm text-blue-600">{application.academic_programs.description}</p>
+              )}
             </div>
           </div>
         </CardContent>

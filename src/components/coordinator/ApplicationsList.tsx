@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,26 +19,45 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  console.log('ApplicationsList - User ID:', user?.id);
+
   const { data: myUniversity } = useQuery({
     queryKey: ['coordinator-university', user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.id) {
+        console.log('No user ID available');
+        return null;
+      }
+      
+      console.log('Fetching university for coordinator:', user.id);
+      
       const { data, error } = await supabase
         .from('universities')
         .select('*')
         .eq('coordinator_id', user.id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching coordinator university:', error);
+        throw error;
+      }
+      
+      console.log('Coordinator university:', data);
       return data;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    retry: 1
   });
 
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ['coordinator-applications', myUniversity?.id, statusFilter, searchTerm],
     queryFn: async () => {
-      if (!myUniversity?.id) return [];
+      if (!myUniversity?.id) {
+        console.log('No university ID available');
+        return [];
+      }
+      
+      console.log('Fetching applications for university:', myUniversity.id);
       
       let query = supabase
         .from('mobility_applications')
@@ -55,18 +75,23 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
       
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching applications:', error);
+        throw error;
+      }
+      
+      console.log('Applications fetched:', data);
       
       // Filter by search term if provided
       if (searchTerm) {
-        return data.filter(app => 
+        return (data || []).filter(app => 
           app.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          app.application_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.application_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           app.profiles?.document_number?.includes(searchTerm)
         );
       }
       
-      return data;
+      return data || [];
     },
     enabled: !!myUniversity?.id
   });
@@ -79,19 +104,25 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
       const studentIds = applications.map(app => app.student_id).filter(Boolean);
       if (studentIds.length === 0) return {};
       
+      console.log('Fetching student info for IDs:', studentIds);
+      
       const { data, error } = await supabase
         .from('student_info')
         .select('*')
         .in('id', studentIds);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching student info map:', error);
+        return {};
+      }
       
       // Convert to map for easy lookup
       const infoMap: Record<string, any> = {};
-      data.forEach(info => {
+      (data || []).forEach(info => {
         infoMap[info.id] = info;
       });
       
+      console.log('Student info map:', infoMap);
       return infoMap;
     },
     enabled: applications.length > 0
@@ -99,6 +130,8 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
 
   const exportApplicationsToCSV = () => {
     if (applications.length === 0) return;
+
+    console.log('Exporting applications to CSV');
 
     const csvData = [
       [
@@ -178,6 +211,11 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
     }
   };
 
+  const handleViewApplication = (applicationId: string) => {
+    console.log('Viewing application:', applicationId);
+    onViewApplication(applicationId);
+  };
+
   const stats = {
     total: applications.length,
     pending: applications.filter(app => app.status === 'pending').length,
@@ -192,6 +230,7 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
           <div className="animate-pulse space-y-4">
             <div className="h-4 bg-gray-200 rounded w-3/4"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
           </div>
         </CardContent>
       </Card>
@@ -209,6 +248,7 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
             </CardTitle>
             <CardDescription>
               Gestiona las solicitudes de movilidad estudiantil a tu universidad
+              {myUniversity && ` - ${myUniversity.name}`}
             </CardDescription>
           </div>
           <Button onClick={exportApplicationsToCSV} variant="outline" disabled={applications.length === 0}>
@@ -291,7 +331,7 @@ export const ApplicationsList = ({ onViewApplication }: ApplicationsListProps) =
                     </div>
                     <Button
                       size="sm"
-                      onClick={() => onViewApplication(app.id)}
+                      onClick={() => handleViewApplication(app.id)}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Ver Detalles
