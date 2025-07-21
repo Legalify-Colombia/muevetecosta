@@ -25,54 +25,96 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('Setting up auth state listener');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile with better error handling
-          setTimeout(async () => {
-            try {
-              const { data: profileData, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (error) {
-                console.error('Error fetching profile:', error);
-                setProfile(null);
-              } else {
-                console.log('Profile loaded:', profileData);
-                setProfile(profileData);
-              }
-            } catch (err) {
-              console.error('Unexpected error fetching profile:', err);
+          console.log('User logged in, fetching profile');
+          // Fetch user profile
+          try {
+            const { data: profileData, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (error) {
+              console.error('Error fetching profile:', error);
               setProfile(null);
+            } else {
+              console.log('Profile loaded:', profileData);
+              setProfile(profileData);
             }
-            setLoading(false);
-          }, 0);
+          } catch (err) {
+            console.error('Unexpected error fetching profile:', err);
+            setProfile(null);
+          }
         } else {
+          console.log('User logged out');
           setProfile(null);
-          setLoading(false);
         }
+        
+        setLoading(false);
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.id);
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (!session) {
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('Initial session check:', session?.user?.id, error);
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch profile for existing session
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (profileError) {
+              console.error('Error fetching profile:', profileError);
+              setProfile(null);
+            } else {
+              console.log('Profile loaded:', profileData);
+              setProfile(profileData);
+            }
+          } catch (err) {
+            console.error('Unexpected error fetching profile:', err);
+            setProfile(null);
+          }
+        }
+        
+        setLoading(false);
+      } catch (err) {
+        console.error('Error in getInitialSession:', err);
         setLoading(false);
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    getInitialSession();
+
+    return () => {
+      console.log('Cleaning up auth listener');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, userData: any) => {
@@ -90,14 +132,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
+    console.log('Attempting to sign in with:', email);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
+    console.log('Sign in result:', error);
     return { error };
   };
 
   const signOut = async () => {
+    console.log('Signing out');
     await supabase.auth.signOut();
   };
 

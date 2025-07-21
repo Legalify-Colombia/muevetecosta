@@ -10,6 +10,9 @@ import UniversityDetail from "./pages/UniversityDetail";
 import MobilityApplication from "./pages/MobilityApplication";
 import ProfessorMobilityDetail from "./pages/ProfessorMobilityDetail";
 import ProfessorMobilityApplication from "./pages/ProfessorMobilityApplication";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import { AuthCallback } from "./components/auth/AuthCallback";
 
 export const navItems = [
   {
@@ -17,6 +20,24 @@ export const navItems = [
     to: "/",
     icon: <HomeIcon className="h-4 w-4" />,
     page: <Index />,
+  },
+  {
+    title: "Login",
+    to: "/login",
+    icon: <Users className="h-4 w-4" />,
+    page: <Login />,
+  },
+  {
+    title: "Registro",
+    to: "/register",
+    icon: <Users className="h-4 w-4" />,
+    page: <Register />,
+  },
+  {
+    title: "Auth Callback",
+    to: "/auth/callback",
+    icon: <Users className="h-4 w-4" />,
+    page: <AuthCallback />,
   },
   {
     title: "Universidades",

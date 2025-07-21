@@ -13,13 +13,16 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn, user, profile } = useAuth();
+  const { signIn, user, profile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   // Redirigir si ya está autenticado
   useEffect(() => {
-    if (user && profile) {
+    console.log('Login useEffect - user:', user?.id, 'profile:', profile?.role, 'authLoading:', authLoading);
+    
+    if (!authLoading && user && profile) {
+      console.log('Redirecting user with role:', profile.role);
       switch (profile.role) {
         case 'admin':
           navigate('/dashboard/admin');
@@ -37,22 +40,35 @@ export default function Login() {
           navigate('/');
       }
     }
-  }, [user, profile, navigate]);
+  }, [user, profile, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa tu correo electrónico y contraseña",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
+    console.log('Submitting login form');
 
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
+        console.error('Login error:', error);
         toast({
           title: "Error al iniciar sesión",
           description: error.message,
           variant: "destructive",
         });
       } else {
+        console.log('Login successful');
         toast({
           title: "Inicio de sesión exitoso",
           description: "Bienvenido de vuelta",
@@ -60,6 +76,7 @@ export default function Login() {
         // La redirección se manejará en el useEffect de arriba
       }
     } catch (error) {
+      console.error('Unexpected login error:', error);
       toast({
         title: "Error",
         description: "Ocurrió un error inesperado",
@@ -69,6 +86,18 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  // Mostrar spinner mientras se carga la autenticación
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -97,6 +126,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
             <div className="space-y-2">
@@ -107,6 +137,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
