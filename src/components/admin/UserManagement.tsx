@@ -13,9 +13,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { User, UserPlus, Search, Edit, Trash2, Users } from "lucide-react";
+import { User, UserPlus, Search, Edit, Trash2, Users, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { UniversityCoordinatorAssignment } from "./UniversityCoordinatorAssignment";
+import { CoordinatorUniversityAssignmentDialog } from "./CoordinatorUniversityAssignmentDialog";
 
 const coordinatorSchema = z.object({
   full_name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -30,16 +30,14 @@ export const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [showCreateCoordinator, setShowCreateCoordinator] = useState(false);
-  const [assignmentDialog, setAssignmentDialog] = useState<{
+  const [coordinatorAssignmentDialog, setCoordinatorAssignmentDialog] = useState<{
     isOpen: boolean;
-    universityId: string;
-    universityName: string;
-    currentCoordinatorId?: string;
+    coordinatorId: string;
+    coordinatorName: string;
   }>({
     isOpen: false,
-    universityId: "",
-    universityName: "",
-    currentCoordinatorId: undefined,
+    coordinatorId: "",
+    coordinatorName: "",
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -91,20 +89,25 @@ export const UserManagement = () => {
   // Create coordinator mutation
   const createCoordinatorMutation = useMutation({
     mutationFn: async (data: CoordinatorFormData) => {
-      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      // Crear usuario en auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: 'TempPassword123!',
-        email_confirm: true,
-        user_metadata: {
-          full_name: data.full_name,
-          document_number: data.document_number,
-          phone: data.phone,
-          role: 'coordinator'
+        options: {
+          data: {
+            full_name: data.full_name,
+            document_number: data.document_number,
+            phone: data.phone,
+            role: 'coordinator',
+            document_type: 'cc'
+          }
         }
       });
 
       if (authError) throw authError;
-      return authUser;
+
+      // Si el usuario se crea correctamente, retornar el resultado
+      return authData;
     },
     onSuccess: () => {
       toast({
@@ -149,12 +152,11 @@ export const UserManagement = () => {
     createCoordinatorMutation.mutate(data);
   };
 
-  const handleAssignCoordinator = (universityId: string, universityName: string, currentCoordinatorId?: string) => {
-    setAssignmentDialog({
+  const handleAssignUniversityToCoordinator = (coordinatorId: string, coordinatorName: string) => {
+    setCoordinatorAssignmentDialog({
       isOpen: true,
-      universityId,
-      universityName,
-      currentCoordinatorId
+      coordinatorId,
+      coordinatorName
     });
   };
 
@@ -170,44 +172,6 @@ export const UserManagement = () => {
           Crear Coordinador
         </Button>
       </div>
-
-      {/* Universities Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Universidades y Coordinadores</CardTitle>
-          <CardDescription>
-            Asigna coordinadores a las universidades
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            {universities.map((university) => (
-              <div key={university.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <h3 className="font-medium">{university.name}</h3>
-                  <p className="text-sm text-gray-500">
-                    {university.coordinator_id 
-                      ? "Coordinador asignado" 
-                      : "Sin coordinador asignado"}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAssignCoordinator(
-                    university.id, 
-                    university.name, 
-                    university.coordinator_id
-                  )}
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  {university.coordinator_id ? 'Cambiar' : 'Asignar'}
-                </Button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Filters */}
       <Card>
@@ -284,6 +248,16 @@ export const UserManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
+                          {user.role === 'coordinator' && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleAssignUniversityToCoordinator(user.id, user.full_name)}
+                              title="Asignar Universidad"
+                            >
+                              <Building2 className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          )}
                           <Button variant="ghost" size="sm">
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -377,13 +351,12 @@ export const UserManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* University Coordinator Assignment Dialog */}
-      <UniversityCoordinatorAssignment
-        universityId={assignmentDialog.universityId}
-        universityName={assignmentDialog.universityName}
-        currentCoordinatorId={assignmentDialog.currentCoordinatorId}
-        isOpen={assignmentDialog.isOpen}
-        onOpenChange={(open) => setAssignmentDialog(prev => ({ ...prev, isOpen: open }))}
+      {/* Coordinator University Assignment Dialog */}
+      <CoordinatorUniversityAssignmentDialog
+        coordinatorId={coordinatorAssignmentDialog.coordinatorId}
+        coordinatorName={coordinatorAssignmentDialog.coordinatorName}
+        isOpen={coordinatorAssignmentDialog.isOpen}
+        onOpenChange={(open) => setCoordinatorAssignmentDialog(prev => ({ ...prev, isOpen: open }))}
       />
     </div>
   );
