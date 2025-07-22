@@ -27,35 +27,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     console.log('Setting up auth state listener');
     
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
         
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Use setTimeout to avoid deadlocks when fetching profile
         if (session?.user) {
-          console.log('User logged in, fetching profile');
-          // Fetch user profile
-          try {
-            const { data: profileData, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (error) {
-              console.error('Error fetching profile:', error);
+          console.log('User logged in, scheduling profile fetch');
+          setTimeout(async () => {
+            try {
+              const { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (error) {
+                console.error('Error fetching profile:', error);
+                setProfile(null);
+              } else {
+                console.log('Profile loaded:', profileData);
+                setProfile(profileData);
+              }
+            } catch (err) {
+              console.error('Unexpected error fetching profile:', err);
               setProfile(null);
-            } else {
-              console.log('Profile loaded:', profileData);
-              setProfile(profileData);
             }
-          } catch (err) {
-            console.error('Unexpected error fetching profile:', err);
-            setProfile(null);
-          }
+          }, 0);
         } else {
           console.log('User logged out');
           setProfile(null);
@@ -65,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Check for existing session
+    // Check for existing session AFTER setting up listener
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -76,33 +78,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setLoading(false);
           return;
         }
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Fetch profile for existing session
-          try {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (profileError) {
-              console.error('Error fetching profile:', profileError);
-              setProfile(null);
-            } else {
-              console.log('Profile loaded:', profileData);
-              setProfile(profileData);
-            }
-          } catch (err) {
-            console.error('Unexpected error fetching profile:', err);
-            setProfile(null);
-          }
+
+        // Don't manually update state here - let the listener handle it
+        // This prevents duplicate state updates
+        if (!session) {
+          setLoading(false);
         }
-        
-        setLoading(false);
       } catch (err) {
         console.error('Error in getInitialSession:', err);
         setLoading(false);
@@ -143,7 +124,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     console.log('Signing out');
-    await supabase.auth.signOut();
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+      } else {
+        console.log('Successfully signed out');
+        // Clear all state immediately
+        setUser(null);
+        setSession(null);
+        setProfile(null);
+      }
+    } catch (err) {
+      console.error('Unexpected error during signout:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
