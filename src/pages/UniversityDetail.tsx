@@ -17,7 +17,11 @@ const UniversityDetail = () => {
   const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<number>(1);
 
+  console.log('UniversityDetail - ID from params:', id);
+  
   const { data: university, isLoading, error } = useUniversity(id || '');
+
+  console.log('UniversityDetail - Data state:', { university: !!university, isLoading, error, hasId: !!id });
 
   const handleApply = (programId?: string) => {
     if (!user) {
@@ -66,6 +70,7 @@ const UniversityDetail = () => {
   }
 
   if (error || !university) {
+    console.log('UniversityDetail - Error state or no university:', { error, university });
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
         <Card className="max-w-md mx-auto">
