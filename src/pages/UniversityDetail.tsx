@@ -6,109 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Globe, ArrowLeft, MapPin, Phone, Mail, BookOpen, Users, FileText, ExternalLink, Download } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useUniversity } from "@/hooks/useUniversities";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-
-interface University {
-  id: string;
-  name: string;
-  description: string;
-  city: string;
-  address: string;
-  phone: string;
-  email: string;
-  website: string;
-  logo_url: string;
-  coordinator_id: string;
-  academic_programs: AcademicProgram[];
-  profiles?: {
-    full_name: string;
-    phone: string;
-  };
-}
-
-interface AcademicProgram {
-  id: string;
-  name: string;
-  description: string;
-  duration_semesters: number;
-  courses: Course[];
-}
-
-interface Course {
-  id: string;
-  name: string;
-  code: string;
-  description: string;
-  credits: number;
-  semester: number;
-  syllabus_url: string;
-}
 
 const UniversityDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [university, setUniversity] = useState<University | null>(null);
-  const [loading, setLoading] = useState(true);
   const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<number>(1);
 
-  useEffect(() => {
-    const fetchUniversity = async () => {
-      if (!id) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('universities')
-          .select(`
-            *,
-            profiles!universities_coordinator_id_fkey (
-              full_name,
-              phone
-            ),
-            academic_programs (
-              id,
-              name,
-              description,
-              duration_semesters,
-              courses (
-                id,
-                name,
-                code,
-                description,
-                credits,
-                semester,
-                syllabus_url
-              )
-            )
-          `)
-          .eq('id', id)
-          .eq('is_active', true)
-          .single();
+  const { data: university, isLoading, error } = useUniversity(id || '');
 
-        if (error) throw error;
-        setUniversity(data);
-      } catch (error) {
-        console.error('Error fetching university:', error);
-        toast({
-          title: "Error",
-          description: "No se pudo cargar la información de la universidad",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUniversity();
-  }, [id, toast]);
-
-  const handleApply = () => {
+  const handleApply = (programId?: string) => {
     if (!user) {
-      // Not logged in - redirect to registration
       toast({
         title: "Registro requerido",
         description: "Para postularte, primero debes registrarte o iniciar sesión",
@@ -117,20 +30,32 @@ const UniversityDetail = () => {
       return;
     }
 
-    // User is logged in - redirect to application form
-    navigate(`/apply/${university?.id}`);
+    // Construir la ruta correcta para la aplicación
+    if (programId) {
+      navigate(`/apply/${university?.id}/${programId}`);
+    } else if (university?.academic_programs && university.academic_programs.length > 0) {
+      // Si no se especifica programa, usar el primero disponible
+      navigate(`/apply/${university.id}/${university.academic_programs[0].id}`);
+    } else {
+      toast({
+        title: "Error",
+        description: "No hay programas disponibles para esta universidad",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getCoursesForSemester = (program: AcademicProgram, semester: number) => {
-    return program.courses.filter(course => course.semester === semester);
+  const getCoursesForSemester = (program: any, semester: number) => {
+    return program.courses?.filter((course: any) => course.semester === semester) || [];
   };
 
-  const getSemesterNumbers = (program: AcademicProgram) => {
-    const semesters = [...new Set(program.courses.map(course => course.semester))].sort();
+  const getSemesterNumbers = (program: any) => {
+    if (!program.courses) return [];
+    const semesters = [...new Set(program.courses.map((course: any) => course.semester))].sort();
     return semesters;
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
         <div className="text-center">
@@ -141,18 +66,27 @@ const UniversityDetail = () => {
     );
   }
 
-  if (!university) {
+  if (error || !university) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
         <Card className="max-w-md mx-auto">
           <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-semibold mb-2">Universidad no encontrada</h2>
+            <h2 className="text-xl font-semibold mb-2">Error al cargar la universidad</h2>
             <p className="text-gray-600 mb-4">
-              La universidad que buscas no existe o no está disponible.
+              {error ? 'Hubo un problema al cargar la información.' : 'La universidad que buscas no existe o no está disponible.'}
             </p>
-            <Link to="/universities">
-              <Button>Ver todas las universidades</Button>
-            </Link>
+            <div className="space-y-2">
+              <Link to="/universities">
+                <Button className="w-full">Ver todas las universidades</Button>
+              </Link>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="w-full"
+              >
+                Intentar de nuevo
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -235,7 +169,6 @@ const UniversityDetail = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content - Academic Programs */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Academic Programs Section */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center text-2xl">
@@ -262,9 +195,20 @@ const UniversityDetail = () => {
                             <h3 className="font-semibold text-xl text-gray-900">
                               {program.name}
                             </h3>
-                            <Badge variant="outline" className="text-sm">
-                              {program.duration_semesters} semestres
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="text-sm">
+                                {program.duration_semesters} semestres
+                              </Badge>
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApply(program.id);
+                                }}
+                                size="sm"
+                              >
+                                Postular
+                              </Button>
+                            </div>
                           </div>
                           
                           {program.description && (
@@ -411,7 +355,7 @@ const UniversityDetail = () => {
                 <p className="text-sm text-blue-800 mb-4">
                   Inicia tu proceso de postulación para realizar movilidad estudiantil en {university.name}.
                 </p>
-                <Button onClick={handleApply} className="w-full" size="lg">
+                <Button onClick={() => handleApply()} className="w-full" size="lg">
                   {user ? 'Postularme a esta Universidad' : 'Registrarme y Postular'}
                 </Button>
                 {!user && (

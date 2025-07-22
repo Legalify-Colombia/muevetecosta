@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -137,9 +138,11 @@ const MobilityApplication = () => {
     directorEmail: '',
   });
 
-  const { data: university, isLoading: universityLoading } = useQuery({
+  const { data: university, isLoading: universityLoading, error: universityError } = useQuery({
     queryKey: ['university', universityId],
     queryFn: async () => {
+      if (!universityId) throw new Error('University ID is required');
+      
       const { data, error } = await supabase
         .from('universities')
         .select(`
@@ -175,6 +178,8 @@ const MobilityApplication = () => {
   const { data: program } = useQuery({
     queryKey: ['program', programId],
     queryFn: async () => {
+      if (!programId) throw new Error('Program ID is required');
+      
       const { data, error } = await supabase
         .from('academic_programs')
         .select('*')
@@ -233,29 +238,55 @@ const MobilityApplication = () => {
     }
   };
 
+  // Verificar parámetros de ruta al cargar
+  useEffect(() => {
+    if (!universityId || !programId) {
+      toast.error('Parámetros de aplicación inválidos');
+      navigate('/universities');
+    }
+  }, [universityId, programId, navigate]);
+
   if (universityLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Header showLogout={true} userInfo={`Estudiante: ${profile?.full_name}`} />
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Cargando información de la universidad...</p>
+          </div>
         </div>
         <Footer />
       </div>
     );
   }
 
-  if (!university) {
+  if (universityError || !university) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
         <Header showLogout={true} userInfo={`Estudiante: ${profile?.full_name}`} />
         <div className="flex-1 flex items-center justify-center">
-          <Card>
+          <Card className="max-w-md mx-auto">
             <CardContent className="p-6 text-center">
-              <h2 className="text-xl font-semibold mb-4">Universidad no encontrada</h2>
-              <Button onClick={() => navigate('/universities')}>
-                Volver a universidades
-              </Button>
+              <h2 className="text-xl font-semibold mb-4">Error al cargar</h2>
+              <p className="text-gray-600 mb-4">
+                {universityError 
+                  ? 'Hubo un problema al cargar la información de la universidad.' 
+                  : 'Universidad no encontrada'
+                }
+              </p>
+              <div className="space-y-2">
+                <Button onClick={() => navigate('/universities')} className="w-full">
+                  Volver a universidades
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => window.location.reload()}
+                  className="w-full"
+                >
+                  Intentar de nuevo
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -273,11 +304,11 @@ const MobilityApplication = () => {
           <div className="mb-6">
             <Button
               variant="ghost"
-              onClick={() => navigate('/universities')}
+              onClick={() => navigate(`/university/${universityId}`)}
               className="mb-4"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver a universidades
+              Volver a detalles de la universidad
             </Button>
             
             <Card>
