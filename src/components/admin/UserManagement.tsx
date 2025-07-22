@@ -15,6 +15,7 @@ import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { User, UserPlus, Search, Edit, Trash2, Users, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useEmail } from "@/hooks/useEmail";
 import { CoordinatorUniversityAssignmentDialog } from "./CoordinatorUniversityAssignmentDialog";
 
 const coordinatorSchema = z.object({
@@ -40,6 +41,7 @@ export const UserManagement = () => {
     coordinatorName: "",
   });
   const { toast } = useToast();
+  const { sendEmail } = useEmail();
   const queryClient = useQueryClient();
 
   const form = useForm<CoordinatorFormData>({
@@ -89,10 +91,12 @@ export const UserManagement = () => {
   // Create coordinator mutation
   const createCoordinatorMutation = useMutation({
     mutationFn: async (data: CoordinatorFormData) => {
+      const temporaryPassword = 'TempPassword123!';
+      
       // Crear usuario en auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
-        password: 'TempPassword123!',
+        password: temporaryPassword,
         options: {
           data: {
             full_name: data.full_name,
@@ -106,23 +110,44 @@ export const UserManagement = () => {
 
       if (authError) throw authError;
 
-      // Si el usuario se crea correctamente, retornar el resultado
-      return authData;
+      return { authData, temporaryPassword };
     },
-    onSuccess: () => {
-      toast({
-        title: "Coordinador creado",
-        description: "El coordinador ha sido creado exitosamente",
+    onSuccess: async (result, formData) => {
+      // Enviar email de bienvenida automáticamente
+      const emailResult = await sendEmail({
+        templateName: 'coordinator_registration',
+        recipientEmail: formData.email,
+        templateData: {
+          nombre_coordinador: formData.full_name,
+          email_coordinador: formData.email,
+          password_temporal: result.temporaryPassword,
+          link_activacion: `https://mueveteporlacosta.com.co/auth/confirm?token=${result.authData.user?.email_confirmed_at ? 'confirmed' : 'pending'}`
+        }
       });
+
+      if (emailResult.success) {
+        toast({
+          title: "Coordinador creado exitosamente",
+          description: `Se ha enviado un email de bienvenida a ${formData.email} con las instrucciones de activación`,
+        });
+      } else {
+        toast({
+          title: "Coordinador creado",
+          description: "El coordinador fue creado pero hubo un error al enviar el email de bienvenida",
+          variant: "destructive",
+        });
+      }
+
       setShowCreateCoordinator(false);
       form.reset();
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({ queryKey: ['coordinators'] });
     },
     onError: (error: any) => {
+      console.error('Error creating coordinator:', error);
       toast({
-        title: "Error",
-        description: error.message || "Error al crear el coordinador",
+        title: "Error al crear coordinador",
+        description: error.message || "Ha ocurrido un error al crear el coordinador. Por favor intenta nuevamente.",
         variant: "destructive",
       });
     }

@@ -34,6 +34,11 @@ export const EmailTestModule = () => {
       variables: ['nombre_usuario', 'link_activacion', 'link_login']
     },
     {
+      value: 'coordinator_registration',
+      label: 'Registro de Coordinador',
+      variables: ['nombre_coordinador', 'email_coordinador', 'password_temporal', 'link_activacion']
+    },
+    {
       value: 'password_reset',
       label: 'Restablecimiento de Contraseña',
       variables: ['nombre_usuario', 'link_restablecimiento']
@@ -80,8 +85,8 @@ export const EmailTestModule = () => {
 
     const sampleData: Record<string, string> = {
       nombre_usuario: 'Juan Pérez',
-      nombre_postulante: 'María González',
-      nombre_coordinador: 'Dr. Carlos Rodríguez',
+      nombre_coordinador: 'Dr. María González',
+      nombre_postulante: 'Carlos Rodríguez',
       numero_radicacion: 'MOV-' + Math.floor(Math.random() * 100000).toString().padStart(6, '0'),
       nombre_universidad_destino: 'Universidad del Caribe',
       universidad_origen: 'Universidad de la Costa',
@@ -89,6 +94,8 @@ export const EmailTestModule = () => {
       programa_destino: 'Ingeniería de Sistemas',
       estado_nuevo: 'Aprobado',
       comentario_coordinador: 'Su postulación cumple con todos los requisitos.',
+      email_coordinador: 'coordinador@ejemplo.com',
+      password_temporal: 'TempPassword123!',
       link_activacion: `https://mueveteporlacosta.com.co/auth/confirm?token=sample`,
       link_restablecimiento: `https://mueveteporlacosta.com.co/auth/reset?token=sample`,
       link_seguimiento: `https://mueveteporlacosta.com.co/dashboard/student`,
