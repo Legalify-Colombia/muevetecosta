@@ -51,7 +51,7 @@ const UniversityDetail = () => {
 
   const getSemesterNumbers = (program: any) => {
     if (!program.courses) return [];
-    const semesters = [...new Set(program.courses.map((course: any) => course.semester))].sort();
+    const semesters = [...new Set(program.courses.map((course: any) => course.semester))].sort((a, b) => a - b);
     return semesters;
   };
 
@@ -221,17 +221,17 @@ const UniversityDetail = () => {
                               
                               <Tabs value={selectedSemester.toString()} onValueChange={(value) => setSelectedSemester(parseInt(value))}>
                                 <TabsList className="grid w-full grid-cols-5 mb-4">
-                                  {getSemesterNumbers(program).map((semester) => (
+                                  {getSemesterNumbers(program).map((semester: number) => (
                                     <TabsTrigger key={semester} value={semester.toString()}>
                                       Sem {semester}
                                     </TabsTrigger>
                                   ))}
                                 </TabsList>
                                 
-                                {getSemesterNumbers(program).map((semester) => (
+                                {getSemesterNumbers(program).map((semester: number) => (
                                   <TabsContent key={semester} value={semester.toString()}>
                                     <div className="space-y-3">
-                                      {getCoursesForSemester(program, semester).map((course) => (
+                                      {getCoursesForSemester(program, semester).map((course: any) => (
                                         <div key={course.id} className="bg-gray-50 rounded-lg p-4">
                                           <div className="flex justify-between items-start mb-2">
                                             <div className="flex-1">
@@ -300,7 +300,7 @@ const UniversityDetail = () => {
               <CardContent className="space-y-4">
                 <div>
                   <p className="font-semibold text-gray-900 mb-3">
-                    {university.profiles?.full_name || 'Coordinador asignado'}
+                    Coordinador asignado
                   </p>
                   <div className="space-y-3 text-sm text-gray-600">
                     {university.email && (
@@ -311,11 +311,11 @@ const UniversityDetail = () => {
                         </a>
                       </div>
                     )}
-                    {(university.phone || university.profiles?.phone) && (
+                    {university.phone && (
                       <div className="flex items-center">
                         <Phone className="h-4 w-4 mr-2 text-blue-600" />
-                        <a href={`tel:${university.phone || university.profiles?.phone}`} className="hover:text-blue-600">
-                          {university.phone || university.profiles?.phone}
+                        <a href={`tel:${university.phone}`} className="hover:text-blue-600">
+                          {university.phone}
                         </a>
                       </div>
                     )}
