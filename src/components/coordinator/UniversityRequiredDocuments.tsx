@@ -44,7 +44,7 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
   const deleteDocumentMutation = useDeleteUniversityRequiredDocument();
   
   const { uploadFile, isUploading } = useFileUpload({ 
-    bucket: 'document-templates',
+    bucket: 'template-documents',
     folder: `university-${universityId}`
   });
 
@@ -59,43 +59,25 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
   });
 
   const onSubmit = async (data: DocumentFormData) => {
-    let templateFileUrl = '';
-    let templateFileName = '';
-
-    // Si hay un archivo seleccionado, subirlo primero
-    if (selectedFile) {
-      const fileName = `${data.document_title.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.${selectedFile.name.split('.').pop()}`;
-      const uploadedUrl = await uploadFile(selectedFile, fileName);
-      
-      if (!uploadedUrl) {
-        return; // Error en la carga, el hook ya mostró el mensaje
-      }
-      
-      templateFileUrl = uploadedUrl;
-      templateFileName = selectedFile.name;
-    } else if (editingDocument && currentTemplate) {
-      // Mantener el archivo existente si estamos editando y no se seleccionó uno nuevo
-      templateFileUrl = currentTemplate.url;
-      templateFileName = currentTemplate.name;
-    }
-
     const documentData = {
       university_id: universityId,
       document_title: data.document_title,
       is_mandatory: data.is_mandatory,
       mobility_type: data.mobility_type,
-      ...(data.description && { description: data.description }),
-      ...(templateFileUrl && { template_file_url: templateFileUrl }),
-      ...(templateFileName && { template_file_name: templateFileName })
+      ...(data.description && { description: data.description })
     };
 
     if (editingDocument) {
       updateDocumentMutation.mutate({
         id: editingDocument.id,
-        data: documentData
+        data: documentData,
+        templateFile: selectedFile || undefined
       });
     } else {
-      createDocumentMutation.mutate(documentData);
+      createDocumentMutation.mutate({
+        data: documentData,
+        templateFile: selectedFile || undefined
+      });
     }
     
     handleCloseDialog();
@@ -122,9 +104,9 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
     setSelectedFile(null);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (document: UniversityRequiredDocument) => {
     if (confirm("¿Estás seguro de que deseas eliminar este documento requerido?")) {
-      deleteDocumentMutation.mutate(id);
+      deleteDocumentMutation.mutate(document);
     }
   };
 
@@ -384,7 +366,7 @@ export const UniversityRequiredDocuments = ({ universityId }: UniversityRequired
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleDelete(document.id)}
+                          onClick={() => handleDelete(document)}
                           disabled={deleteDocumentMutation.isPending}
                         >
                           <Trash2 className="h-4 w-4" />
