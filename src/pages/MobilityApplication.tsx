@@ -304,7 +304,7 @@ const MobilityApplication = () => {
           <div className="mb-6">
             <Button
               variant="ghost"
-              onClick={() => navigate(`/university/${universityId}`)}
+              onClick={() => navigate(`/universities/${universityId}`)}
               className="mb-4"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
