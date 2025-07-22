@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,7 +50,7 @@ const UniversityDetail = () => {
 
   const getSemesterNumbers = (program: any) => {
     if (!program.courses) return [];
-    const semesters = [...new Set(program.courses.map((course: any) => course.semester))].sort((a, b) => a - b);
+    const semesters = [...new Set(program.courses.map((course: any) => Number(course.semester)).filter((sem: number) => !isNaN(sem)))].sort((a: number, b: number) => a - b);
     return semesters;
   };
 
