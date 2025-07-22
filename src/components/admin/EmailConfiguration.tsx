@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Mail, Settings, FileText, History } from 'lucide-react';
 import { EmailTemplateManager } from './EmailTemplateManager';
 import { EmailHistory } from './EmailHistory';
+import { EmailTestModule } from './EmailTestModule';
 
 interface EmailConfig {
   id: string;
@@ -141,6 +142,10 @@ export const EmailConfiguration = () => {
             <FileText className="h-4 w-4" />
             Plantillas
           </TabsTrigger>
+          <TabsTrigger value="test" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            Pruebas
+          </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-4 w-4" />
             Historial
@@ -216,13 +221,17 @@ export const EmailConfiguration = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="templates">
-          <EmailTemplateManager />
-        </TabsContent>
+          <TabsContent value="templates">
+            <EmailTemplateManager />
+          </TabsContent>
 
-        <TabsContent value="history">
-          <EmailHistory />
-        </TabsContent>
+          <TabsContent value="test">
+            <EmailTestModule />
+          </TabsContent>
+
+          <TabsContent value="history">
+            <EmailHistory />
+          </TabsContent>
       </Tabs>
     </div>
   );
