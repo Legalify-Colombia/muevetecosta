@@ -47,7 +47,7 @@ export const navItems = [
   },
   {
     title: "Universidad Detalle",
-    to: "/university/:id",
+    to: "/universities/:id",
     icon: <Building2 className="h-4 w-4" />,
     page: <UniversityDetail />,
   },
