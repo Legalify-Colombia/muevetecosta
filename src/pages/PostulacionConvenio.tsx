@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -104,21 +103,34 @@ const PostulacionConvenio = () => {
   }, [terms]);
 
   const uploadFile = async (file: File, fileName: string) => {
-    const { data, error } = await supabase.storage
-      .from('document-templates')
-      .upload(`convenios/${Date.now()}-${fileName}`, file);
+    console.log('Uploading file to template-documents bucket:', fileName);
     
-    if (error) throw error;
+    const filePath = `convenios/${Date.now()}-${fileName}`;
+    
+    const { data, error } = await supabase.storage
+      .from('template-documents')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+    
+    if (error) {
+      console.error('Storage upload error:', error);
+      throw error;
+    }
     
     const { data: { publicUrl } } = supabase.storage
-      .from('document-templates')
+      .from('template-documents')
       .getPublicUrl(data.path);
     
+    console.log('File uploaded successfully, public URL:', publicUrl);
     return publicUrl;
   };
 
   const submitMutation = useMutation({
     mutationFn: async () => {
+      console.log('Starting form submission...');
+      
       // Crear la postulación
       const { data: convenio, error: convenioError } = await supabase
         .from('convenios_universidades')
@@ -131,12 +143,19 @@ const PostulacionConvenio = () => {
         .select()
         .single();
       
-      if (convenioError) throw convenioError;
+      if (convenioError) {
+        console.error('Error creating convenio:', convenioError);
+        throw convenioError;
+      }
+
+      console.log('Convenio created successfully:', convenio.id);
 
       // Subir documentos si los hay
       for (const [templateId, file] of Object.entries(uploadedFiles)) {
         const template = templates?.find(t => t.id === templateId);
         if (template && file) {
+          console.log('Uploading document for template:', template.nombre);
+          
           const fileUrl = await uploadFile(file, file.name);
           
           await supabase
@@ -173,17 +192,18 @@ const PostulacionConvenio = () => {
       setStep(4); // Paso de confirmación
     },
     onError: (error) => {
+      console.error('Error submitting application:', error);
       toast({
         title: "Error al enviar postulación",
         description: "Por favor verifique los datos e intente nuevamente.",
         variant: "destructive",
       });
-      console.error('Error submitting application:', error);
     }
   });
 
   const handleFileUpload = (templateId: string, file: File | null) => {
     if (file) {
+      console.log('File selected for template:', templateId, file.name);
       setUploadedFiles(prev => ({ ...prev, [templateId]: file }));
     } else {
       setUploadedFiles(prev => {

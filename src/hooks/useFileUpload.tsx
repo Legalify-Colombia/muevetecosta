@@ -17,8 +17,10 @@ export const useFileUpload = ({ bucket, folder }: UseFileUploadProps) => {
       setIsUploading(true);
       
       const fileExt = file.name.split('.').pop();
-      const finalFileName = fileName || `${Date.now()}.${fileExt}`;
+      const finalFileName = fileName || `${Date.now()}-${file.name}`;
       const filePath = folder ? `${folder}/${finalFileName}` : finalFileName;
+
+      console.log('Uploading file to bucket:', bucket, 'path:', filePath);
 
       const { data, error } = await supabase.storage
         .from(bucket)
@@ -42,6 +44,8 @@ export const useFileUpload = ({ bucket, folder }: UseFileUploadProps) => {
         .from(bucket)
         .getPublicUrl(data.path);
 
+      console.log('File uploaded successfully, public URL:', publicUrl);
+
       toast({
         title: "Archivo cargado",
         description: "El archivo se ha cargado correctamente"
@@ -63,9 +67,16 @@ export const useFileUpload = ({ bucket, folder }: UseFileUploadProps) => {
 
   const deleteFile = async (filePath: string): Promise<boolean> => {
     try {
+      // Extraer el path relativo de la URL si es necesario
+      const pathToDelete = filePath.includes('/storage/v1/object/public/') 
+        ? filePath.split(`/storage/v1/object/public/${bucket}/`)[1]
+        : filePath;
+
+      console.log('Deleting file from bucket:', bucket, 'path:', pathToDelete);
+
       const { error } = await supabase.storage
         .from(bucket)
-        .remove([filePath]);
+        .remove([pathToDelete]);
 
       if (error) {
         console.error('Error deleting file:', error);

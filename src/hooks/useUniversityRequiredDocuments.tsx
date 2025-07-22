@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useFileUpload } from "@/hooks/useFileUpload";
 
 export interface UniversityRequiredDocument {
   id: string;
@@ -48,12 +49,25 @@ export const useUniversityRequiredDocuments = (universityId?: string) => {
 export const useCreateUniversityRequiredDocument = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { uploadFile } = useFileUpload({ bucket: 'template-documents', folder: 'university-requirements' });
 
   return useMutation({
-    mutationFn: async (data: CreateUniversityRequiredDocument) => {
+    mutationFn: async ({ data, templateFile }: { data: CreateUniversityRequiredDocument, templateFile?: File }) => {
+      let finalData = { ...data };
+      
+      // Si hay un archivo de plantilla, subirlo primero
+      if (templateFile) {
+        console.log('Uploading template file:', templateFile.name);
+        const fileUrl = await uploadFile(templateFile, templateFile.name);
+        if (fileUrl) {
+          finalData.template_file_url = fileUrl;
+          finalData.template_file_name = templateFile.name;
+        }
+      }
+      
       const { data: result, error } = await supabase
         .from('university_required_documents' as any)
-        .insert([data])
+        .insert([finalData])
         .select()
         .single();
       
@@ -68,6 +82,7 @@ export const useCreateUniversityRequiredDocument = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Error creating university required document:', error);
       toast({
         title: "Error",
         description: error.message || "Error al agregar el documento requerido",
@@ -80,12 +95,33 @@ export const useCreateUniversityRequiredDocument = () => {
 export const useUpdateUniversityRequiredDocument = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { uploadFile } = useFileUpload({ bucket: 'template-documents', folder: 'university-requirements' });
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string, data: Partial<CreateUniversityRequiredDocument> }) => {
+    mutationFn: async ({ 
+      id, 
+      data, 
+      templateFile 
+    }: { 
+      id: string, 
+      data: Partial<CreateUniversityRequiredDocument>, 
+      templateFile?: File 
+    }) => {
+      let finalData = { ...data };
+      
+      // Si hay un archivo de plantilla nuevo, subirlo
+      if (templateFile) {
+        console.log('Uploading new template file:', templateFile.name);
+        const fileUrl = await uploadFile(templateFile, templateFile.name);
+        if (fileUrl) {
+          finalData.template_file_url = fileUrl;
+          finalData.template_file_name = templateFile.name;
+        }
+      }
+      
       const { data: result, error } = await supabase
         .from('university_required_documents' as any)
-        .update(data)
+        .update(finalData)
         .eq('id', id)
         .select()
         .single();
@@ -101,6 +137,7 @@ export const useUpdateUniversityRequiredDocument = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Error updating university required document:', error);
       toast({
         title: "Error",
         description: error.message || "Error al actualizar el documento requerido",
@@ -113,13 +150,20 @@ export const useUpdateUniversityRequiredDocument = () => {
 export const useDeleteUniversityRequiredDocument = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { deleteFile } = useFileUpload({ bucket: 'template-documents', folder: 'university-requirements' });
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (document: UniversityRequiredDocument) => {
+      // Eliminar archivo de plantilla si existe
+      if (document.template_file_url) {
+        console.log('Deleting template file:', document.template_file_url);
+        await deleteFile(document.template_file_url);
+      }
+      
       const { error } = await supabase
         .from('university_required_documents' as any)
         .delete()
-        .eq('id', id);
+        .eq('id', document.id);
       
       if (error) throw error;
     },
@@ -131,6 +175,7 @@ export const useDeleteUniversityRequiredDocument = () => {
       });
     },
     onError: (error: any) => {
+      console.error('Error deleting university required document:', error);
       toast({
         title: "Error",
         description: error.message || "Error al eliminar el documento requerido",
