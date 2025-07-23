@@ -35,6 +35,19 @@ export const PersonalInfoSection = ({ formData, setFormData, userProfile }: Pers
             />
           </div>
           <div>
+            <Label htmlFor="email">Correo Electrónico *</Label>
+            <Input 
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="correo@ejemplo.com"
+            />
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
             <Label htmlFor="documentType">Tipo de Documento</Label>
             <Input 
               id="documentType" 
@@ -43,9 +56,6 @@ export const PersonalInfoSection = ({ formData, setFormData, userProfile }: Pers
               className="bg-gray-50"
             />
           </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="documentNumber">Número de Documento</Label>
             <Input 
@@ -55,23 +65,24 @@ export const PersonalInfoSection = ({ formData, setFormData, userProfile }: Pers
               className="bg-gray-50"
             />
           </div>
-          <div>
-            <Label>Sexo</Label>
-            <RadioGroup 
-              value={formData.gender} 
-              onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
-              className="flex space-x-4 mt-2"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="masculino" id="masculino" />
-                <Label htmlFor="masculino">Masculino</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="femenino" id="femenino" />
-                <Label htmlFor="femenino">Femenino</Label>
-              </div>
-            </RadioGroup>
-          </div>
+        </div>
+
+        <div>
+          <Label>Sexo</Label>
+          <RadioGroup 
+            value={formData.gender} 
+            onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
+            className="flex space-x-4 mt-2"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="masculino" id="masculino" />
+              <Label htmlFor="masculino">Masculino</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="femenino" id="femenino" />
+              <Label htmlFor="femenino">Femenino</Label>
+            </div>
+          </RadioGroup>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">

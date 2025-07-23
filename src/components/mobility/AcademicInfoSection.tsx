@@ -132,6 +132,17 @@ export const AcademicInfoSection = ({ formData, setFormData }: AcademicInfoSecti
             </div>
           </div>
         </div>
+
+        <div>
+          <Label htmlFor="internationalOfficeEmail">Correo Electrónico de la Oficina de Internacionalización</Label>
+          <Input 
+            id="internationalOfficeEmail"
+            type="email"
+            value={formData.internationalOfficeEmail}
+            onChange={(e) => setFormData(prev => ({ ...prev, internationalOfficeEmail: e.target.value }))}
+            placeholder="internacional@universidad.edu.co (Opcional)"
+          />
+        </div>
       </CardContent>
     </Card>
   );

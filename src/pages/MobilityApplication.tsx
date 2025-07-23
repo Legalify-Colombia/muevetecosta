@@ -77,6 +77,9 @@ interface FormData {
   academicDirector: string;
   directorPhone: string;
   directorEmail: string;
+  internationalOfficeEmail: string;
+  email: string;
+  startPeriod: { year: string; period: string };
 }
 
 const MobilityApplication = () => {
@@ -140,6 +143,9 @@ const MobilityApplication = () => {
     academicDirector: '',
     directorPhone: '',
     directorEmail: '',
+    internationalOfficeEmail: '',
+    email: '',
+    startPeriod: { year: '', period: '' },
   });
 
   const { data: university, isLoading: universityLoading, error: universityError } = useQuery({
@@ -248,20 +254,18 @@ const MobilityApplication = () => {
   const validateForm = () => {
     const errors = [];
     
-    // Validar información personal básica
-    if (!formData.personalInfo.fullName.trim()) errors.push('Nombre completo');
-    if (!formData.personalInfo.email.trim()) errors.push('Correo electrónico');
-    if (!formData.personalInfo.phone.trim()) errors.push('Teléfono');
-    if (!formData.personalInfo.documentNumber.trim()) errors.push('Número de documento');
+    // Validar información personal básica obligatoria
+    if (!formData.email?.trim()) errors.push('Correo electrónico');
+    if (!formData.gender?.trim()) errors.push('Sexo');
     
-    // Validar información académica
-    if (!formData.academicInfo.currentInstitution.trim()) errors.push('Institución actual');
-    if (!formData.academicInfo.program.trim()) errors.push('Programa académico');
-    if (formData.academicInfo.semester <= 0) errors.push('Semestre válido');
+    // Validar información académica obligatoria
+    if (!formData.originInstitution?.trim()) errors.push('Institución de origen');
+    if (!formData.originCareer?.trim()) errors.push('Carrera');
+    if (!formData.currentSemester?.trim()) errors.push('Semestre actual');
     
-    // Validar detalles de movilidad
-    if (!formData.mobilityDetails.preferredStartDate) errors.push('Fecha de inicio preferida');
-    if (!formData.mobilityDetails.academicObjectives.trim()) errors.push('Objetivos académicos');
+    // Validar detalles de movilidad obligatorios
+    if (!formData.destinationProgramId?.trim()) errors.push('Programa académico de destino');
+    if (!formData.startPeriod?.year || !formData.startPeriod?.period) errors.push('Periodo de inicio de movilidad');
     
     return errors;
   };

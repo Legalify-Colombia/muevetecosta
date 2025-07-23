@@ -12,6 +12,10 @@ interface MobilityDetailsSectionProps {
 }
 
 export const MobilityDetailsSection = ({ formData, setFormData, university, programs }: MobilityDetailsSectionProps) => {
+  // Generate years from current year to current year + 2
+  const currentYear = new Date().getFullYear();
+  const availableYears = Array.from({ length: 3 }, (_, i) => currentYear + i);
+
   return (
     <Card>
       <CardHeader>
@@ -41,6 +45,43 @@ export const MobilityDetailsSection = ({ formData, setFormData, university, prog
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div>
+          <Label>Periodo de Inicio de la Movilidad *</Label>
+          <div className="grid md:grid-cols-2 gap-4 mt-2">
+            <div>
+              <Label htmlFor="startYear">Año</Label>
+              <Select value={formData.startPeriod?.year} onValueChange={(value) => setFormData(prev => ({ 
+                ...prev, 
+                startPeriod: { ...prev.startPeriod, year: value }
+              }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar año" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="startPeriodType">Periodo</Label>
+              <Select value={formData.startPeriod?.period} onValueChange={(value) => setFormData(prev => ({ 
+                ...prev, 
+                startPeriod: { ...prev.startPeriod, period: value }
+              }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar periodo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="A">A</SelectItem>
+                  <SelectItem value="B">B</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
