@@ -8,10 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Eye, Download, Calendar, User, Building, FileText } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Eye, Download, Calendar, User, Building, FileText, FolderOpen, MessageSquare, Mail, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useEmail } from '@/hooks/useEmail';
 
 interface ProfessorMobilityApplication {
   id: string;
@@ -51,6 +54,8 @@ export const ProfessorMobilityApplications = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [statusNote, setStatusNote] = useState('');
+  const [willNotifyProfessor, setWillNotifyProfessor] = useState(false);
+  const { sendApplicationStatusUpdate } = useEmail();
 
   // Fetch applications for coordinator's university
   const { data: applications = [], isLoading } = useQuery({
@@ -81,29 +86,66 @@ export const ProfessorMobilityApplications = () => {
     }
   });
 
-  // Fetch documents for selected application (simplified - return empty for now)
+  // Fetch documents for selected application
   const { data: documents = [] } = useQuery({
     queryKey: ['professor-application-documents', selectedApplication?.id],
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
-      return [] as ApplicationDocument[];
+      
+      const { data, error } = await supabase
+        .from('professor_mobility_documents')
+        .select('*')
+        .eq('application_id', selectedApplication.id)
+        .order('uploaded_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching documents:', error);
+        return [];
+      }
+      
+      return data || [];
     },
     enabled: !!selectedApplication?.id
   });
 
-  // Fetch education levels for selected application (simplified - return empty for now)  
-  const { data: educationLevels = [] } = useQuery({
-    queryKey: ['professor-education-levels', selectedApplication?.id],
+  // Fetch notes for selected application
+  const { data: notes = [] } = useQuery({
+    queryKey: ['professor-application-notes', selectedApplication?.id],
     queryFn: async () => {
       if (!selectedApplication?.id) return [];
-      return [] as EducationLevel[];
+      
+      const { data, error } = await supabase
+        .from('professor_mobility_notes')
+        .select(`
+          *,
+          profiles!professor_mobility_notes_coordinator_id_fkey(full_name)
+        `)
+        .eq('application_id', selectedApplication.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching notes:', error);
+        return [];
+      }
+      
+      return data || [];
     },
     enabled: !!selectedApplication?.id
   });
 
   // Update application status mutation
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ applicationId, status, note }: { applicationId: string; status: string; note?: string }) => {
+    mutationFn: async ({ 
+      applicationId, 
+      status, 
+      note, 
+      shouldNotify 
+    }: { 
+      applicationId: string; 
+      status: string; 
+      note?: string; 
+      shouldNotify: boolean;
+    }) => {
       const { error: updateError } = await supabase
         .from('professor_mobility_applications' as any)
         .update({ 
@@ -114,13 +156,50 @@ export const ProfessorMobilityApplications = () => {
       
       if (updateError) throw updateError;
 
-      if (note) {
-        console.log('Note would be added:', note);
+      // Add note if provided
+      if (note && note.trim()) {
+        const { error: noteError } = await supabase
+          .from('professor_mobility_notes')
+          .insert({
+            application_id: applicationId,
+            coordinator_id: user?.id,
+            note: note.trim(),
+            is_internal: false
+          });
+        
+        if (noteError) {
+          console.error('Error adding note:', noteError);
+        }
+      }
+
+      // Send email notification if requested
+      if (shouldNotify && selectedApplication?.profiles?.full_name) {
+        try {
+          const { data: professorData } = await supabase.functions.invoke('get-coordinator-email', {
+            body: { userId: selectedApplication.professor_id, isStudent: false }
+          });
+
+          if (professorData?.email) {
+            await sendApplicationStatusUpdate(
+              professorData.email,
+              selectedApplication.profiles.full_name,
+              selectedApplication.application_number,
+              getStatusLabel(status),
+              note || 'Estado actualizado por el coordinador',
+              `${window.location.origin}/professor-dashboard`,
+              selectedApplication.professor_id
+            );
+          }
+        } catch (emailError) {
+          console.error('Error sending email notification:', emailError);
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['coordinator-professor-mobility-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['professor-application-notes', selectedApplication?.id] });
       setStatusNote('');
+      setWillNotifyProfessor(false);
       toast({
         title: 'Estado actualizado',
         description: 'El estado de la postulación se ha actualizado exitosamente.'
@@ -135,11 +214,66 @@ export const ProfessorMobilityApplications = () => {
     }
   });
 
-  const handleDownloadDocument = async (document: ApplicationDocument) => {
+  // Add note mutation
+  const addNoteMutation = useMutation({
+    mutationFn: async ({ note, isPublic }: { note: string; isPublic: boolean }) => {
+      if (!selectedApplication?.id || !user?.id) throw new Error('Missing data');
+      
+      const { error } = await supabase
+        .from('professor_mobility_notes')
+        .insert({
+          application_id: selectedApplication.id,
+          coordinator_id: user.id,
+          note,
+          is_internal: !isPublic
+        });
+      
+      if (error) throw error;
+
+      // Send email if public note
+      if (isPublic) {
+        try {
+          const { data: professorData } = await supabase.functions.invoke('get-coordinator-email', {
+            body: { userId: selectedApplication.professor_id, isStudent: false }
+          });
+
+          if (professorData?.email && selectedApplication?.profiles?.full_name) {
+            await sendApplicationStatusUpdate(
+              professorData.email,
+              selectedApplication.profiles.full_name,
+              selectedApplication.application_number,
+              getStatusLabel(selectedApplication.status),
+              note,
+              `${window.location.origin}/professor-dashboard`,
+              selectedApplication.professor_id
+            );
+          }
+        } catch (emailError) {
+          console.error('Error sending comment email:', emailError);
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['professor-application-notes', selectedApplication?.id] });
+      toast({
+        title: 'Comentario agregado',
+        description: 'El comentario se ha agregado correctamente.'
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'No se pudo agregar el comentario.',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  const handleDownloadDocument = async (document: any) => {
     try {
       const { data, error } = await supabase.storage
-        .from('professor-mobility-docs')
-        .download(document.file_path);
+        .from('professor-documents')
+        .download(document.file_url);
       
       if (error) throw error;
       
@@ -149,6 +283,11 @@ export const ProfessorMobilityApplications = () => {
       link.download = document.file_name;
       link.click();
       URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'Descarga iniciada',
+        description: `Descargando ${document.file_name}`,
+      });
     } catch (error) {
       console.error('Error downloading document:', error);
       toast({
@@ -308,70 +447,220 @@ export const ProfessorMobilityApplications = () => {
 
         {/* Detail Dialog */}
         <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                Detalle de Postulación - {selectedApplication?.application_number}
+                Gestión de Postulación - {selectedApplication?.application_number}
               </DialogTitle>
             </DialogHeader>
             
             {selectedApplication && (
-              <div className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium">Profesor</Label>
-                    <p className="text-sm">{selectedApplication.profiles?.full_name}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Estado</Label>
-                    <Badge className={getStatusColor(selectedApplication.status)} variant="secondary">
-                      {getStatusLabel(selectedApplication.status)}
-                    </Badge>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium">Tipo de Movilidad</Label>
-                    <p className="text-sm">{getTypeLabel(selectedApplication.mobility_type)}</p>
-                  </div>
-                </div>
+              <Tabs defaultValue="overview" className="space-y-6">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="overview">Información General</TabsTrigger>
+                  <TabsTrigger value="documents">Documentos</TabsTrigger>
+                  <TabsTrigger value="status">Estado</TabsTrigger>
+                  <TabsTrigger value="comments">Comentarios</TabsTrigger>
+                </TabsList>
 
-                <div className="border-t pt-4">
-                  <Label className="text-sm font-medium mb-2 block">Actualizar Estado</Label>
-                  <div className="space-y-3">
-                    <Select
-                      defaultValue={selectedApplication.status}
-                      onValueChange={(newStatus) => {
-                        updateStatusMutation.mutate({
-                          applicationId: selectedApplication.id,
-                          status: newStatus,
-                          note: statusNote
-                        });
-                      }}
-                    >
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pending">Pendiente</SelectItem>
-                        <SelectItem value="in_review">En Revisión</SelectItem>
-                        <SelectItem value="approved_origin">Aprobada (Origen)</SelectItem>
-                        <SelectItem value="approved_destination">Aprobada (Destino)</SelectItem>
-                        <SelectItem value="rejected">Rechazada</SelectItem>
-                        <SelectItem value="completed">Completada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    
+                <TabsContent value="overview" className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm font-medium">Nota al profesor (opcional)</Label>
+                      <Label className="text-sm font-medium text-gray-500">Profesor</Label>
+                      <p className="font-semibold">{selectedApplication.profiles?.full_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Documento</Label>
+                      <p>{selectedApplication.profiles?.document_number}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Estado Actual</Label>
+                      <Badge className={getStatusColor(selectedApplication.status)} variant="secondary">
+                        {getStatusLabel(selectedApplication.status)}
+                      </Badge>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Tipo de Movilidad</Label>
+                      <p>{getTypeLabel(selectedApplication.mobility_type)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-500">Fecha de Solicitud</Label>
+                      <p>{new Date(selectedApplication.created_at).toLocaleDateString('es-ES')}</p>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="documents" className="space-y-4">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Documentos Presentados</h4>
+                    {documents.length > 0 ? (
+                      <div className="space-y-3">
+                        {documents.map((document) => (
+                          <div key={document.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                            <div className="flex items-center space-x-3">
+                              <FileText className="h-8 w-8 text-blue-600" />
+                              <div>
+                                <p className="font-medium">{document.file_name}</p>
+                                <p className="text-sm text-gray-500">
+                                  Tipo: {document.document_type} • 
+                                  Subido: {new Date(document.uploaded_at).toLocaleDateString('es-ES')}
+                                </p>
+                                {document.file_size && (
+                                  <p className="text-xs text-gray-400">
+                                    Tamaño: {(document.file_size / 1024 / 1024).toFixed(2)} MB
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadDocument(document)}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Descargar
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No hay documentos cargados</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="status" className="space-y-6">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Actualizar Estado de la Postulación</h4>
+                    
+                    <div className="grid gap-4">
+                      <div>
+                        <Label>Nuevo Estado</Label>
+                        <Select 
+                          value={selectedApplication.status}
+                          onValueChange={(newStatus) => {
+                            updateStatusMutation.mutate({
+                              applicationId: selectedApplication.id,
+                              status: newStatus,
+                              note: statusNote,
+                              shouldNotify: willNotifyProfessor
+                            });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pendiente</SelectItem>
+                            <SelectItem value="in_review">En Revisión</SelectItem>
+                            <SelectItem value="approved_origin">Aprobada (Origen)</SelectItem>
+                            <SelectItem value="approved_destination">Aprobada (Destino)</SelectItem>
+                            <SelectItem value="rejected">Rechazada</SelectItem>
+                            <SelectItem value="completed">Completada</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label>Nota para el profesor (opcional)</Label>
+                        <Textarea
+                          value={statusNote}
+                          onChange={(e) => setStatusNote(e.target.value)}
+                          placeholder="Agrega una nota que será visible para el profesor..."
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="notify-professor"
+                          checked={willNotifyProfessor}
+                          onCheckedChange={(checked) => setWillNotifyProfessor(checked === true)}
+                        />
+                        <Label htmlFor="notify-professor" className="flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          Notificar al profesor por correo electrónico
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="comments" className="space-y-6">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Agregar Comentario</h4>
+                    
+                    <div className="space-y-4">
                       <Textarea
                         value={statusNote}
                         onChange={(e) => setStatusNote(e.target.value)}
-                        placeholder="Escribe una nota que será visible para el profesor..."
+                        placeholder="Escribe un comentario..."
                         rows={3}
                       />
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="public-comment"
+                            checked={willNotifyProfessor}
+                            onCheckedChange={(checked) => setWillNotifyProfessor(checked === true)}
+                          />
+                          <Label htmlFor="public-comment">Visible para el profesor</Label>
+                        </div>
+                        
+                        <Button
+                          onClick={() => {
+                            if (statusNote.trim()) {
+                              addNoteMutation.mutate({
+                                note: statusNote,
+                                isPublic: willNotifyProfessor
+                              });
+                              setStatusNote('');
+                              setWillNotifyProfessor(false);
+                            }
+                          }}
+                          disabled={!statusNote.trim() || addNoteMutation.isPending}
+                        >
+                          <Send className="h-4 w-4 mr-2" />
+                          Agregar
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <h5 className="font-medium mb-4">Historial de Comentarios</h5>
+                      <div className="space-y-3">
+                        {notes.map((note) => (
+                          <div key={note.id} className="border rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <span className="font-medium">{note.profiles?.full_name}</span>
+                                <Badge variant={note.is_internal ? "secondary" : "default"}>
+                                  {note.is_internal ? "Interno" : "Público"}
+                                </Badge>
+                              </div>
+                              <span className="text-sm text-gray-500">
+                                {new Date(note.created_at).toLocaleDateString('es-ES')}
+                              </span>
+                            </div>
+                            <p className="text-gray-700">{note.note}</p>
+                          </div>
+                        ))}
+                        
+                        {notes.length === 0 && (
+                          <div className="text-center py-8">
+                            <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-500">No hay comentarios aún</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </TabsContent>
+              </Tabs>
             )}
           </DialogContent>
         </Dialog>

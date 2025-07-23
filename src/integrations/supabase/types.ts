@@ -1042,6 +1042,102 @@ export type Database = {
           },
         ]
       }
+      professor_mobility_documents: {
+        Row: {
+          application_id: string
+          created_at: string
+          document_type: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          document_type: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          document_type?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professor_mobility_documents_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "professor_mobility_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professor_mobility_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professor_mobility_notes: {
+        Row: {
+          application_id: string
+          coordinator_id: string
+          created_at: string
+          id: string
+          is_internal: boolean | null
+          note: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          coordinator_id: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean | null
+          note: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          coordinator_id?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean | null
+          note?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professor_mobility_notes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "professor_mobility_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professor_mobility_notes_coordinator_id_fkey"
+            columns: ["coordinator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null

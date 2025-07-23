@@ -7,11 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, User, MessageSquare, Send, ArrowLeft, BookOpen, Download, GraduationCap } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FileText, User, MessageSquare, Send, ArrowLeft, Download, GraduationCap, FolderOpen, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useEmail } from "@/hooks/useEmail";
 
 interface ApplicationDetailProps {
   applicationId: string;
@@ -21,9 +23,11 @@ interface ApplicationDetailProps {
 export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { sendApplicationStatusUpdate } = useEmail();
   const queryClient = useQueryClient();
   const [newNote, setNewNote] = useState("");
   const [isPublicNote, setIsPublicNote] = useState(false);
+  const [willNotifyStudent, setWillNotifyStudent] = useState(false);
   const [newStatus, setNewStatus] = useState("");
 
   console.log('ApplicationDetail - Loading application ID:', applicationId);
@@ -85,25 +89,23 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
     retry: 1
   });
 
-  const { data: courseEquivalences = [] } = useQuery({
-    queryKey: ['course-equivalences', applicationId],
+  const { data: applicationDocuments = [] } = useQuery({
+    queryKey: ['application-documents', applicationId],
     queryFn: async () => {
-      console.log('Fetching course equivalences for application ID:', applicationId);
+      console.log('Fetching documents for application ID:', applicationId);
       
       const { data, error } = await supabase
-        .from('course_equivalences')
-        .select(`
-          *,
-          courses!course_equivalences_destination_course_id_fkey(name, code, credits)
-        `)
-        .eq('application_id', applicationId);
+        .from('application_documents')
+        .select('*')
+        .eq('application_id', applicationId)
+        .order('uploaded_at', { ascending: false });
       
       if (error) {
-        console.error('Error fetching course equivalences:', error);
+        console.error('Error fetching documents:', error);
         return [];
       }
       
-      console.log('Course equivalences fetched:', data);
+      console.log('Documents fetched:', data);
       return data || [];
     },
     enabled: !!applicationId
@@ -135,8 +137,8 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async (status: string) => {
-      console.log('Updating status to:', status);
+    mutationFn: async ({ status, shouldNotify }: { status: string; shouldNotify: boolean }) => {
+      console.log('Updating status to:', status, 'with notification:', shouldNotify);
       
       const { error } = await supabase
         .from('mobility_applications')
@@ -150,12 +152,39 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         console.error('Error updating status:', error);
         throw error;
       }
+
+      // Send email notification if requested and application data is available
+      if (shouldNotify && application?.profiles?.full_name && application?.application_number) {
+        try {
+          // Get student email from auth.users via edge function
+          const { data: coordinatorData } = await supabase.functions.invoke('get-coordinator-email', {
+            body: { userId: application.student_id, isStudent: true }
+          });
+
+          if (coordinatorData?.email) {
+            await sendApplicationStatusUpdate(
+              coordinatorData.email,
+              application.profiles.full_name,
+              application.application_number,
+              getStatusText(status),
+              newNote || 'Estado actualizado por el coordinador',
+              `${window.location.origin}/student-dashboard`,
+              application.student_id
+            );
+            console.log('Email notification sent successfully');
+          }
+        } catch (emailError) {
+          console.error('Error sending email notification:', emailError);
+          // Don't fail the entire operation if email fails
+        }
+      }
       
       console.log('Status updated successfully');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['application-detail', applicationId] });
       queryClient.invalidateQueries({ queryKey: ['coordinator-applications'] });
+      setWillNotifyStudent(false);
       toast({
         title: "Estado actualizado",
         description: "El estado de la postulación se ha actualizado correctamente.",
@@ -191,6 +220,8 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
 
       if (isPublic && application?.student_id) {
         console.log('Creating notification for student');
+        
+        // Create in-app notification
         await supabase
           .from('notifications')
           .insert({
@@ -200,6 +231,28 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
             type: 'info',
             related_application_id: applicationId
           });
+
+        // Send email notification
+        try {
+          const { data: studentData } = await supabase.functions.invoke('get-coordinator-email', {
+            body: { userId: application.student_id, isStudent: true }
+          });
+
+          if (studentData?.email && application?.profiles?.full_name && application?.application_number) {
+            await sendApplicationStatusUpdate(
+              studentData.email,
+              application.profiles.full_name,
+              application.application_number,
+              getStatusText(application.status),
+              note,
+              `${window.location.origin}/student-dashboard`,
+              application.student_id
+            );
+          }
+        } catch (emailError) {
+          console.error('Error sending comment email:', emailError);
+          // Don't fail if email fails
+        }
       }
       
       console.log('Note added successfully');
@@ -281,8 +334,41 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
 
   const handleStatusUpdate = () => {
     if (newStatus) {
-      updateStatusMutation.mutate(newStatus);
+      updateStatusMutation.mutate({ 
+        status: newStatus, 
+        shouldNotify: willNotifyStudent 
+      });
       setNewStatus("");
+      setWillNotifyStudent(false);
+    }
+  };
+
+  const handleDownloadDocument = async (document: any) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('student-documents')
+        .download(document.file_url);
+      
+      if (error) throw error;
+      
+      const url = URL.createObjectURL(data);
+      const link = window.document.createElement('a');
+      link.href = url;
+      link.download = document.file_name;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Descarga iniciada",
+        description: `Descargando ${document.file_name}`,
+      });
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      toast({
+        title: "Error de descarga",
+        description: "No se pudo descargar el documento.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -529,148 +615,243 @@ export const ApplicationDetail = ({ applicationId, onBack }: ApplicationDetailPr
         </CardContent>
       </Card>
 
-      {/* Course Homologation */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <BookOpen className="h-5 w-5 mr-2" />
-            Cursos a Homologar
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {courseEquivalences.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Curso de Origen</TableHead>
-                  <TableHead>Código Origen</TableHead>
-                  <TableHead>Curso de Destino</TableHead>
-                  <TableHead>Código Destino</TableHead>
-                  <TableHead>Créditos</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {courseEquivalences.map((equivalence) => (
-                  <TableRow key={equivalence.id}>
-                    <TableCell className="font-medium">{equivalence.origin_course_name}</TableCell>
-                    <TableCell>{equivalence.origin_course_code || 'N/A'}</TableCell>
-                    <TableCell>{equivalence.courses?.name || 'No disponible'}</TableCell>
-                    <TableCell>{equivalence.courses?.code || 'N/A'}</TableCell>
-                    <TableCell>{equivalence.courses?.credits || 'N/A'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-gray-500 text-center py-8">No hay cursos para homologar registrados</p>
-          )}
-        </CardContent>
-      </Card>
+      {/* Documents and Management Tabs */}
+      <Tabs defaultValue="documents" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="documents" className="flex items-center gap-2">
+            <FolderOpen className="h-4 w-4" />
+            Documentos del Estudiante
+          </TabsTrigger>
+          <TabsTrigger value="status" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Actualizar Estado
+          </TabsTrigger>
+          <TabsTrigger value="comments" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Comentarios
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Status Update */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Actualizar Estado</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-4">
-            <Select value={newStatus} onValueChange={setNewStatus}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Seleccionar estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pending">Pendiente</SelectItem>
-                <SelectItem value="in_review">En Revisión</SelectItem>
-                <SelectItem value="approved">Aprobado</SelectItem>
-                <SelectItem value="rejected">Rechazado</SelectItem>
-                <SelectItem value="completed">Completado</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button 
-              onClick={handleStatusUpdate} 
-              disabled={!newStatus || updateStatusMutation.isPending}
-            >
-              {updateStatusMutation.isPending ? "Actualizando..." : "Actualizar Estado"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notes and Comments */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <MessageSquare className="h-5 w-5 mr-2" />
-            Comentarios y Notas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="newNote">Agregar Comentario</Label>
-              <Textarea
-                id="newNote"
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                placeholder="Escribe tu comentario..."
-                rows={3}
-              />
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isPublic"
-                  checked={isPublicNote}
-                  onChange={(e) => setIsPublicNote(e.target.checked)}
-                  className="rounded"
-                />
-                <Label htmlFor="isPublic" className="text-sm">
-                  Visible para el estudiante
-                </Label>
-              </div>
-              <Button 
-                onClick={handleAddNote} 
-                disabled={!newNote.trim() || addNoteMutation.isPending}
-              >
-                <Send className="h-4 w-4 mr-2" />
-                {addNoteMutation.isPending ? "Enviando..." : "Agregar Comentario"}
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {notes.map((note) => (
-              <div key={note.id} className="border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-2">
-                    <p className="font-medium">{note.profiles?.full_name}</p>
-                    <Badge variant={note.is_internal ? "secondary" : "default"}>
-                      {note.is_internal ? "Interno" : "Público"}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-500">
-                    {new Date(note.created_at).toLocaleDateString('es-ES', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
+        <TabsContent value="documents">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FolderOpen className="h-5 w-5 mr-2" />
+                Documentos Presentados por el Estudiante
+              </CardTitle>
+              <CardDescription>
+                Documentos cargados por el estudiante para esta postulación
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {applicationDocuments.length > 0 ? (
+                <div className="space-y-3">
+                  {applicationDocuments.map((document) => (
+                    <div key={document.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                      <div className="flex items-center space-x-3">
+                        <FileText className="h-8 w-8 text-blue-600" />
+                        <div>
+                          <p className="font-medium">{document.file_name}</p>
+                          <p className="text-sm text-gray-500">
+                            Tipo: {document.document_type} • 
+                            Subido: {new Date(document.uploaded_at).toLocaleDateString('es-ES')}
+                          </p>
+                          {document.file_size && (
+                            <p className="text-xs text-gray-400">
+                              Tamaño: {(document.file_size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadDocument(document)}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Descargar
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-gray-700">{note.note}</p>
+              ) : (
+                <div className="text-center py-8">
+                  <FolderOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">No hay documentos cargados</p>
+                  <p className="text-sm text-gray-400">El estudiante aún no ha subido documentos</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="status">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FileText className="h-5 w-5 mr-2" />
+                Gestión de Estado de la Postulación
+              </CardTitle>
+              <CardDescription>
+                Actualiza el estado de la postulación y notifica al estudiante
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4">
+                <div>
+                  <Label htmlFor="status-select" className="text-base font-medium">Nuevo Estado</Label>
+                  <Select value={newStatus} onValueChange={setNewStatus}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar nuevo estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendiente</SelectItem>
+                      <SelectItem value="in_review">En Revisión</SelectItem>
+                      <SelectItem value="approved">Aprobado</SelectItem>
+                      <SelectItem value="rejected">Rechazado</SelectItem>
+                      <SelectItem value="completed">Completado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="notify-student"
+                    checked={willNotifyStudent}
+                    onCheckedChange={(checked) => setWillNotifyStudent(checked === true)}
+                  />
+                  <Label htmlFor="notify-student" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Notificar al estudiante por correo electrónico
+                  </Label>
+                </div>
+
+                {willNotifyStudent && (
+                  <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                    <p className="text-sm text-blue-800">
+                      <strong>Notificación automática:</strong> Se enviará un correo electrónico al estudiante 
+                      informando sobre el cambio de estado de su postulación.
+                    </p>
+                  </div>
+                )}
+
+                <Button 
+                  onClick={handleStatusUpdate} 
+                  disabled={!newStatus || updateStatusMutation.isPending}
+                  className="w-full"
+                  size="lg"
+                >
+                  {updateStatusMutation.isPending ? (
+                    "Actualizando..."
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Actualizar Estado
+                    </>
+                  )}
+                </Button>
               </div>
-            ))}
-            
-            {notes.length === 0 && (
-              <p className="text-gray-500 text-center py-4">
-                No hay comentarios aún
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="comments">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <MessageSquare className="h-5 w-5 mr-2" />
+                Comentarios y Notas
+              </CardTitle>
+              <CardDescription>
+                Agrega comentarios internos o públicos para el seguimiento de la postulación
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="newNote" className="text-base font-medium">Agregar Comentario</Label>
+                  <Textarea
+                    id="newNote"
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    placeholder="Escribe tu comentario aquí..."
+                    rows={4}
+                    className="mt-2"
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isPublic"
+                    checked={isPublicNote}
+                    onCheckedChange={(checked) => setIsPublicNote(checked === true)}
+                  />
+                  <Label htmlFor="isPublic" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Visible para el estudiante (enviará notificación por email)
+                  </Label>
+                </div>
+
+                {isPublicNote && (
+                  <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
+                    <p className="text-sm text-green-800">
+                      <strong>Comentario público:</strong> Este comentario será visible para el estudiante 
+                      y se enviará una notificación por correo electrónico.
+                    </p>
+                  </div>
+                )}
+                
+                <Button 
+                  onClick={handleAddNote} 
+                  disabled={!newNote.trim() || addNoteMutation.isPending}
+                  className="w-full"
+                  size="lg"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {addNoteMutation.isPending ? "Enviando..." : "Agregar Comentario"}
+                </Button>
+              </div>
+
+              <div className="border-t pt-6">
+                <h4 className="font-medium mb-4">Historial de Comentarios</h4>
+                <div className="space-y-4">
+                  {notes.map((note) => (
+                    <div key={note.id} className="border rounded-lg p-4 bg-white">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <p className="font-medium">{note.profiles?.full_name}</p>
+                          <Badge variant={note.is_internal ? "secondary" : "default"}>
+                            {note.is_internal ? "Interno" : "Público"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {new Date(note.created_at).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      <p className="text-gray-700">{note.note}</p>
+                    </div>
+                  ))}
+                  
+                  {notes.length === 0 && (
+                    <div className="text-center py-8">
+                      <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">No hay comentarios aún</p>
+                      <p className="text-sm text-gray-400">Los comentarios aparecerán aquí una vez agregados</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
