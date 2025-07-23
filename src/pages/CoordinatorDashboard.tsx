@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { UniversityProfile } from '@/components/coordinator/UniversityProfile';
 import { ProgramManagement } from '@/components/coordinator/ProgramManagement';
 import { ApplicationsList } from '@/components/coordinator/ApplicationsList';
+import { ApplicationDetail } from '@/components/coordinator/ApplicationDetail';
 import { ProfessorMobilityApplications } from '@/components/coordinator/ProfessorMobilityApplications';
 import { ProjectManagement } from '@/components/coordinator/ProjectManagement';
 import { UniversityRequiredDocuments } from '@/components/coordinator/UniversityRequiredDocuments';
@@ -22,6 +23,7 @@ import {
 const CoordinatorDashboard = () => {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
 
   // Fetch coordinator's university
   const { data: myUniversity } = useQuery({
@@ -42,6 +44,11 @@ const CoordinatorDashboard = () => {
 
   const handleViewApplication = (applicationId: string) => {
     console.log('Viewing application:', applicationId);
+    setSelectedApplicationId(applicationId);
+  };
+
+  const handleBackToApplicationsList = () => {
+    setSelectedApplicationId(null);
   };
 
   const renderContent = () => {
@@ -117,7 +124,14 @@ const CoordinatorDashboard = () => {
           </div>
         );
       case 'students':
-        return <ApplicationsList onViewApplication={handleViewApplication} />;
+        return selectedApplicationId ? (
+          <ApplicationDetail 
+            applicationId={selectedApplicationId} 
+            onBack={handleBackToApplicationsList}
+          />
+        ) : (
+          <ApplicationsList onViewApplication={handleViewApplication} />
+        );
       case 'professors':
         return <ProfessorMobilityApplications />;
       case 'projects':
