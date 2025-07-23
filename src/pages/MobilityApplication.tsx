@@ -8,13 +8,15 @@ import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Send } from 'lucide-react';
+import { ArrowLeft, Save, Send, AlertCircle } from 'lucide-react';
 import { PersonalInfoSection } from '@/components/mobility/PersonalInfoSection';
 import { AcademicInfoSection } from '@/components/mobility/AcademicInfoSection';
 import { CourseHomologationSection } from '@/components/mobility/CourseHomologationSection';
 import { DocumentUploadSection } from '@/components/mobility/DocumentUploadSection';
 import { MobilityDetailsSection } from '@/components/mobility/MobilityDetailsSection';
 import { toast } from 'sonner';
+import { useEmail } from '@/hooks/useEmail';
+import { useUniversityRequiredDocuments } from '@/hooks/useUniversityRequiredDocuments';
 
 interface FormData {
   personalInfo: {
@@ -80,7 +82,9 @@ interface FormData {
 const MobilityApplication = () => {
   const { universityId, programId } = useParams();
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const { sendApplicationConfirmation, sendNewApplicationNotification, sending: emailSending } = useEmail();
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     personalInfo: {
@@ -192,6 +196,13 @@ const MobilityApplication = () => {
     enabled: !!programId
   });
 
+  const { data: requiredDocuments = [] } = useUniversityRequiredDocuments(universityId);
+
+  // Filtrar documentos obligatorios para estudiantes
+  const mandatoryDocuments = requiredDocuments.filter(doc => 
+    doc.is_mandatory && (doc.mobility_type === 'student' || doc.mobility_type === 'both')
+  );
+
   const handleAddCourse = () => {
     const newCourse = {
       id: Date.now().toString(),
@@ -221,20 +232,247 @@ const MobilityApplication = () => {
     }));
   };
 
+  const validateRequiredDocuments = () => {
+    const missingDocuments = [];
+    
+    for (const doc of mandatoryDocuments) {
+      const docKey = `document_${doc.id}`;
+      if (!formData[docKey]) {
+        missingDocuments.push(doc.document_title);
+      }
+    }
+    
+    return missingDocuments;
+  };
+
+  const validateForm = () => {
+    const errors = [];
+    
+    // Validar información personal básica
+    if (!formData.personalInfo.fullName.trim()) errors.push('Nombre completo');
+    if (!formData.personalInfo.email.trim()) errors.push('Correo electrónico');
+    if (!formData.personalInfo.phone.trim()) errors.push('Teléfono');
+    if (!formData.personalInfo.documentNumber.trim()) errors.push('Número de documento');
+    
+    // Validar información académica
+    if (!formData.academicInfo.currentInstitution.trim()) errors.push('Institución actual');
+    if (!formData.academicInfo.program.trim()) errors.push('Programa académico');
+    if (formData.academicInfo.semester <= 0) errors.push('Semestre válido');
+    
+    // Validar detalles de movilidad
+    if (!formData.mobilityDetails.preferredStartDate) errors.push('Fecha de inicio preferida');
+    if (!formData.mobilityDetails.academicObjectives.trim()) errors.push('Objetivos académicos');
+    
+    return errors;
+  };
+
   const handleSaveDraft = async () => {
     try {
+      setSubmitting(true);
+      
+      // Solo actualizar información del estudiante sin crear la aplicación
+      const { error: studentError } = await supabase
+        .from('student_info')
+        .update({
+          origin_university: formData.academicInfo.currentInstitution,
+          academic_program: formData.academicInfo.program,
+          current_semester: formData.academicInfo.semester,
+          cumulative_gpa: formData.academicInfo.gpa || null,
+          origin_faculty: formData.originFaculty || null,
+          student_code: formData.studentCode || null,
+          academic_director_name: formData.academicDirector || null,
+          academic_director_phone: formData.directorPhone || null,
+          academic_director_email: formData.directorEmail || null,
+          gender: formData.gender || null,
+          birth_date: formData.personalInfo.birthDate || null,
+          birth_place: formData.birthPlace || null,
+          birth_country: formData.birthCountry || null,
+          blood_type: formData.bloodType || null,
+          health_insurance: formData.healthInsurance || null,
+          origin_institution_campus: formData.originCampus || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user?.id);
+
+      if (studentError) {
+        console.error('Error updating student info:', studentError);
+        throw new Error('Error al actualizar información del estudiante');
+      }
+
       toast.success('Borrador guardado exitosamente');
-    } catch (error) {
-      toast.error('Error al guardar el borrador');
+    } catch (error: any) {
+      console.error('Error saving draft:', error);
+      toast.error(error.message || 'Error al guardar el borrador');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleSubmit = async () => {
     try {
-      toast.success('Aplicación enviada exitosamente');
+      setSubmitting(true);
+      
+      // Validar formulario
+      const formErrors = validateForm();
+      if (formErrors.length > 0) {
+        toast.error(`Faltan campos obligatorios: ${formErrors.join(', ')}`);
+        return;
+      }
+      
+      // Validar documentos obligatorios
+      const missingDocs = validateRequiredDocuments();
+      if (missingDocs.length > 0) {
+        toast.error(`Faltan documentos obligatorios: ${missingDocs.join(', ')}`);
+        return;
+      }
+
+      // 1. Crear la aplicación de movilidad
+      const { data: applicationData, error: applicationError } = await supabase
+        .from('mobility_applications')
+        .insert({
+          student_id: user?.id,
+          destination_university_id: universityId,
+          destination_program_id: programId,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (applicationError) {
+        console.error('Error creating application:', applicationError);
+        throw new Error('Error al crear la aplicación');
+      }
+
+      // 2. Actualizar información del estudiante
+      const { error: studentError } = await supabase
+        .from('student_info')
+        .update({
+          origin_university: formData.academicInfo.currentInstitution,
+          academic_program: formData.academicInfo.program,
+          current_semester: formData.academicInfo.semester,
+          cumulative_gpa: formData.academicInfo.gpa || null,
+          origin_faculty: formData.originFaculty || null,
+          student_code: formData.studentCode || null,
+          academic_director_name: formData.academicDirector || null,
+          academic_director_phone: formData.directorPhone || null,
+          academic_director_email: formData.directorEmail || null,
+          gender: formData.gender || null,
+          birth_date: formData.personalInfo.birthDate || null,
+          birth_place: formData.birthPlace || null,
+          birth_country: formData.birthCountry || null,
+          blood_type: formData.bloodType || null,
+          health_insurance: formData.healthInsurance || null,
+          origin_institution_campus: formData.originCampus || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user?.id);
+
+      if (studentError) {
+        console.error('Error updating student info:', studentError);
+        // No cancelar la aplicación por esto, solo loguearlo
+      }
+
+      // 3. Guardar documentos si existen
+      const documentPromises = [];
+      for (const doc of requiredDocuments) {
+        const docKey = `document_${doc.id}`;
+        if (formData[docKey]) {
+          documentPromises.push(
+            supabase
+              .from('application_documents')
+              .insert({
+                application_id: applicationData.id,
+                document_type: doc.document_title,
+                file_name: `${doc.document_title}_${user?.id}`,
+                file_url: formData[docKey],
+                file_size: null
+              })
+          );
+        }
+      }
+
+      if (documentPromises.length > 0) {
+        const results = await Promise.allSettled(documentPromises);
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            console.error(`Error saving document ${index}:`, result.reason);
+          }
+        });
+      }
+
+      // 4. Guardar equivalencias de cursos si existen
+      if (formData.courseEquivalences.length > 0) {
+        const courseEquivalencePromises = formData.courseEquivalences.map(course => 
+          supabase
+            .from('course_equivalences')
+            .insert({
+              application_id: applicationData.id,
+              destination_course_id: course.destinationCourseId || null,
+              origin_course_name: course.originCourseName,
+              origin_course_code: course.originCourseCode || null
+            })
+        );
+
+        const courseResults = await Promise.allSettled(courseEquivalencePromises);
+        courseResults.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            console.error(`Error saving course equivalence ${index}:`, result.reason);
+          }
+        });
+      }
+
+      // 5. Enviar email de confirmación al estudiante
+      try {
+        await sendApplicationConfirmation(
+          formData.personalInfo.email,
+          formData.personalInfo.fullName,
+          applicationData.application_number,
+          university?.name || 'Universidad de destino',
+          program?.name || 'Programa seleccionado',
+          user?.id
+        );
+      } catch (emailError) {
+        console.error('Error sending confirmation email:', emailError);
+        // No cancelar la aplicación por error de email
+      }
+
+      // 6. Enviar notificación al coordinador si existe
+      if (university?.coordinator_id) {
+        try {
+          // Obtener información del coordinador
+          const { data: coordinatorProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', university.coordinator_id)
+            .single();
+
+          if (coordinatorProfile) {
+            // Para obtener el email del coordinador, usaremos una función edge o por ahora 
+            // notificaremos al correo del sistema con la información del coordinador
+            await sendNewApplicationNotification(
+              'notificaciones@mobicaribe.com', // Email temporal para notificaciones
+              coordinatorProfile.full_name,
+              formData.personalInfo.fullName,
+              applicationData.application_number,
+              formData.academicInfo.currentInstitution,
+              program?.name || 'Programa seleccionado',
+              `${window.location.origin}/dashboard/coordinator`
+            );
+          }
+        } catch (coordinatorEmailError) {
+          console.error('Error sending coordinator notification:', coordinatorEmailError);
+          // No cancelar la aplicación por error de email
+        }
+      }
+
+      toast.success('¡Aplicación enviada exitosamente! Recibirás una confirmación por correo electrónico.');
       navigate('/dashboard/student');
-    } catch (error) {
-      toast.error('Error al enviar la aplicación');
+      
+    } catch (error: any) {
+      console.error('Error submitting application:', error);
+      toast.error(error.message || 'Error al enviar la aplicación');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -349,6 +587,28 @@ const MobilityApplication = () => {
               mobilityType="student"
             />
 
+            {/* Mostrar documentos faltantes si los hay */}
+            {mandatoryDocuments.length > 0 && (
+              <Card className="border-orange-200 bg-orange-50">
+                <CardContent className="p-4">
+                  <div className="flex items-start space-x-2">
+                    <AlertCircle className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-orange-800">Documentos Obligatorios</h4>
+                      <p className="text-sm text-orange-700 mt-1">
+                        Asegúrate de cargar todos los documentos obligatorios antes de enviar tu aplicación.
+                      </p>
+                      <ul className="text-sm text-orange-700 mt-2 list-disc list-inside">
+                        {mandatoryDocuments.map(doc => (
+                          <li key={doc.id}>{doc.document_title}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardContent className="p-6">
                 <div className="flex justify-between gap-4">
@@ -356,18 +616,28 @@ const MobilityApplication = () => {
                     variant="outline"
                     onClick={handleSaveDraft}
                     className="flex-1"
+                    disabled={submitting}
                   >
                     <Save className="h-4 w-4 mr-2" />
-                    Guardar Borrador
+                    {submitting ? 'Guardando...' : 'Guardar Borrador'}
                   </Button>
                   <Button
                     onClick={handleSubmit}
                     className="flex-1"
+                    disabled={submitting || emailSending}
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    Enviar Aplicación
+                    {submitting ? 'Enviando...' : 'Enviar Aplicación'}
                   </Button>
                 </div>
+                {submitting && (
+                  <div className="mt-4 text-center">
+                    <div className="inline-flex items-center space-x-2 text-sm text-muted-foreground">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      <span>Procesando aplicación...</span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
