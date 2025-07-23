@@ -78,7 +78,6 @@ interface FormData {
   directorPhone: string;
   directorEmail: string;
   internationalOfficeEmail: string;
-  email: string;
   startPeriod: { year: string; period: string };
 }
 
@@ -92,7 +91,7 @@ const MobilityApplication = () => {
   const [formData, setFormData] = useState<FormData>({
     personalInfo: {
       fullName: profile?.full_name || '',
-      email: '',
+      email: user?.email || '',
       phone: profile?.phone || '',
       documentType: profile?.document_type || '',
       documentNumber: profile?.document_number || '',
@@ -144,7 +143,6 @@ const MobilityApplication = () => {
     directorPhone: '',
     directorEmail: '',
     internationalOfficeEmail: '',
-    email: '',
     startPeriod: { year: '', period: '' },
   });
 
@@ -255,7 +253,7 @@ const MobilityApplication = () => {
     const errors = [];
     
     // Validar información personal básica obligatoria
-    if (!formData.email?.trim()) errors.push('Correo electrónico');
+    if (!user?.email?.trim()) errors.push('Usuario sin correo electrónico válido');
     if (!formData.gender?.trim()) errors.push('Sexo');
     
     // Validar información académica obligatoria
@@ -427,9 +425,10 @@ const MobilityApplication = () => {
 
       // 5. Enviar email de confirmación al estudiante
       try {
+        console.log('Sending confirmation email to:', user?.email);
         await sendApplicationConfirmation(
-          formData.personalInfo.email,
-          formData.personalInfo.fullName,
+          user?.email || '',
+          profile?.full_name || '',
           applicationData.application_number,
           university?.name || 'Universidad de destino',
           program?.name || 'Programa seleccionado',
@@ -443,25 +442,26 @@ const MobilityApplication = () => {
       // 6. Enviar notificación al coordinador si existe
       if (university?.coordinator_id) {
         try {
-          // Obtener información del coordinador
-          const { data: coordinatorProfile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', university.coordinator_id)
-            .single();
+          // Obtener información del coordinador usando la función edge
+          const { data: coordinatorData, error: coordinatorError } = await supabase.functions.invoke('get-coordinator-email', {
+            body: { coordinatorId: university.coordinator_id }
+          });
 
-          if (coordinatorProfile) {
-            // Para obtener el email del coordinador, usaremos una función edge o por ahora 
-            // notificaremos al correo del sistema con la información del coordinador
+          if (coordinatorError) {
+            console.error('Error getting coordinator info:', coordinatorError);
+          } else if (coordinatorData?.success && coordinatorData?.coordinator?.email) {
+            console.log('Sending coordinator notification to:', coordinatorData.coordinator.email);
             await sendNewApplicationNotification(
-              'notificaciones@mobicaribe.com', // Email temporal para notificaciones
-              coordinatorProfile.full_name,
-              formData.personalInfo.fullName,
+              coordinatorData.coordinator.email,
+              coordinatorData.coordinator.fullName || 'Coordinador',
+              profile?.full_name || '',
               applicationData.application_number,
-              formData.academicInfo.currentInstitution,
+              formData.originInstitution || '',
               program?.name || 'Programa seleccionado',
               `${window.location.origin}/dashboard/coordinator`
             );
+          } else {
+            console.log('Coordinator email not found, skipping notification');
           }
         } catch (coordinatorEmailError) {
           console.error('Error sending coordinator notification:', coordinatorEmailError);
@@ -566,11 +566,12 @@ const MobilityApplication = () => {
           </div>
 
           <div className="space-y-6">
-            <PersonalInfoSection
-              formData={formData}
-              setFormData={setFormData}
-              userProfile={profile}
-            />
+        <PersonalInfoSection 
+          formData={formData} 
+          setFormData={setFormData} 
+          userProfile={profile} 
+          userEmail={user?.email || ''}
+        />
 
             <AcademicInfoSection
               formData={formData}

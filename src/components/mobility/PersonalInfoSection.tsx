@@ -9,9 +9,10 @@ interface PersonalInfoSectionProps {
   formData: any;
   setFormData: (data: any) => void;
   userProfile: any;
+  userEmail: string;
 }
 
-export const PersonalInfoSection = ({ formData, setFormData, userProfile }: PersonalInfoSectionProps) => {
+export const PersonalInfoSection = ({ formData, setFormData, userProfile, userEmail }: PersonalInfoSectionProps) => {
   const countries = [
     "Colombia", "Argentina", "Brasil", "Chile", "Ecuador", "Perú", "Venezuela", "México", "España", "Estados Unidos"
   ];
@@ -35,13 +36,13 @@ export const PersonalInfoSection = ({ formData, setFormData, userProfile }: Pers
             />
           </div>
           <div>
-            <Label htmlFor="email">Correo Electrónico *</Label>
+            <Label htmlFor="email">Correo Electrónico</Label>
             <Input 
               id="email"
               type="email"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              placeholder="correo@ejemplo.com"
+              value={userEmail}
+              disabled
+              className="bg-gray-50"
             />
           </div>
         </div>
