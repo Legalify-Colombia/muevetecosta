@@ -50,6 +50,13 @@ export type Database = {
             foreignKeyName: "academic_programs_university_id_fkey"
             columns: ["university_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["origin_university_id"]
+          },
+          {
+            foreignKeyName: "academic_programs_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
           },
@@ -84,6 +91,13 @@ export type Database = {
           uploaded_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "application_documents_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["application_id"]
+          },
           {
             foreignKeyName: "application_documents_application_id_fkey"
             columns: ["application_id"]
@@ -126,8 +140,22 @@ export type Database = {
             foreignKeyName: "application_notes_application_id_fkey"
             columns: ["application_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "application_notes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
             referencedRelation: "mobility_applications"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_notes_coordinator_id_fkey"
+            columns: ["coordinator_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "application_notes_coordinator_id_fkey"
@@ -529,6 +557,13 @@ export type Database = {
             foreignKeyName: "course_equivalences_application_id_fkey"
             columns: ["application_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "course_equivalences_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
             referencedRelation: "mobility_applications"
             referencedColumns: ["id"]
           },
@@ -627,6 +662,13 @@ export type Database = {
             foreignKeyName: "email_configuration_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "email_configuration_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -667,6 +709,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "email_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
           {
             foreignKeyName: "email_history_user_id_fkey"
             columns: ["user_id"]
@@ -714,6 +763,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "email_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
           {
             foreignKeyName: "email_templates_updated_by_fkey"
             columns: ["updated_by"]
@@ -766,8 +822,22 @@ export type Database = {
             foreignKeyName: "mobility_applications_destination_university_id_fkey"
             columns: ["destination_university_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["origin_university_id"]
+          },
+          {
+            foreignKeyName: "mobility_applications_destination_university_id_fkey"
+            columns: ["destination_university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mobility_applications_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "mobility_applications_student_id_fkey"
@@ -814,8 +884,22 @@ export type Database = {
             foreignKeyName: "notifications_related_application_id_fkey"
             columns: ["related_application_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "notifications_related_application_id_fkey"
+            columns: ["related_application_id"]
+            isOneToOne: false
             referencedRelation: "mobility_applications"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "notifications_user_id_fkey"
@@ -864,6 +948,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "terms_content_last_updated_by_fkey"
+            columns: ["last_updated_by"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
           {
             foreignKeyName: "terms_content_last_updated_by_fkey"
             columns: ["last_updated_by"]
@@ -918,6 +1009,13 @@ export type Database = {
             foreignKeyName: "professor_info_id_fkey"
             columns: ["id"]
             isOneToOne: true
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "professor_info_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -968,8 +1066,22 @@ export type Database = {
             foreignKeyName: "professor_mobility_applications_destination_university_id_fkey"
             columns: ["destination_university_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["origin_university_id"]
+          },
+          {
+            foreignKeyName: "professor_mobility_applications_destination_university_id_fkey"
+            columns: ["destination_university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professor_mobility_applications_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "professor_mobility_applications_professor_id_fkey"
@@ -1037,6 +1149,13 @@ export type Database = {
             foreignKeyName: "professor_mobility_calls_host_university_id_fkey"
             columns: ["host_university_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["origin_university_id"]
+          },
+          {
+            foreignKeyName: "professor_mobility_calls_host_university_id_fkey"
+            columns: ["host_university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
           },
@@ -1088,6 +1207,13 @@ export type Database = {
             foreignKeyName: "professor_mobility_documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "professor_mobility_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1128,6 +1254,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "professor_mobility_applications"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professor_mobility_notes_coordinator_id_fkey"
+            columns: ["coordinator_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "professor_mobility_notes_coordinator_id_fkey"
@@ -1201,6 +1334,13 @@ export type Database = {
             foreignKeyName: "project_comments_professor_id_fkey"
             columns: ["professor_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "project_comments_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1259,6 +1399,13 @@ export type Database = {
             foreignKeyName: "project_documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "project_documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1299,6 +1446,13 @@ export type Database = {
           title?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "project_milestones_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
           {
             foreignKeyName: "project_milestones_professor_id_fkey"
             columns: ["professor_id"]
@@ -1348,6 +1502,13 @@ export type Database = {
             foreignKeyName: "project_participants_professor_id_fkey"
             columns: ["professor_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "project_participants_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1357,6 +1518,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "research_projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_participants_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["origin_university_id"]
           },
           {
             foreignKeyName: "project_participants_university_id_fkey"
@@ -1393,6 +1561,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "research_projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_universities_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["origin_university_id"]
           },
           {
             foreignKeyName: "project_universities_university_id_fkey"
@@ -1448,6 +1623,13 @@ export type Database = {
             foreignKeyName: "research_projects_lead_university_id_fkey"
             columns: ["lead_university_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["origin_university_id"]
+          },
+          {
+            foreignKeyName: "research_projects_lead_university_id_fkey"
+            columns: ["lead_university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
           },
@@ -1472,6 +1654,7 @@ export type Database = {
           origin_faculty: string | null
           origin_institution_campus: string | null
           origin_university: string
+          origin_university_id: string | null
           student_code: string | null
           updated_at: string | null
         }
@@ -1493,6 +1676,7 @@ export type Database = {
           origin_faculty?: string | null
           origin_institution_campus?: string | null
           origin_university: string
+          origin_university_id?: string | null
           student_code?: string | null
           updated_at?: string | null
         }
@@ -1514,6 +1698,7 @@ export type Database = {
           origin_faculty?: string | null
           origin_institution_campus?: string | null
           origin_university?: string
+          origin_university_id?: string | null
           student_code?: string | null
           updated_at?: string | null
         }
@@ -1522,7 +1707,28 @@ export type Database = {
             foreignKeyName: "student_info_id_fkey"
             columns: ["id"]
             isOneToOne: true
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "student_info_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_info_origin_university_id_fkey"
+            columns: ["origin_university_id"]
+            isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["origin_university_id"]
+          },
+          {
+            foreignKeyName: "student_info_origin_university_id_fkey"
+            columns: ["origin_university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
             referencedColumns: ["id"]
           },
         ]
@@ -1578,6 +1784,13 @@ export type Database = {
             foreignKeyName: "universities_coordinator_id_fkey"
             columns: ["coordinator_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["student_id"]
+          },
+          {
+            foreignKeyName: "universities_coordinator_id_fkey"
+            columns: ["coordinator_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1628,6 +1841,13 @@ export type Database = {
             foreignKeyName: "university_required_documents_university_id_fkey"
             columns: ["university_id"]
             isOneToOne: false
+            referencedRelation: "coordinator_students_view"
+            referencedColumns: ["origin_university_id"]
+          },
+          {
+            foreignKeyName: "university_required_documents_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
             referencedRelation: "universities"
             referencedColumns: ["id"]
           },
@@ -1635,7 +1855,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      coordinator_students_view: {
+        Row: {
+          academic_program: string | null
+          application_date: string | null
+          application_id: string | null
+          application_number: string | null
+          application_status:
+            | Database["public"]["Enums"]["application_status"]
+            | null
+          current_semester: number | null
+          destination_program_name: string | null
+          destination_university_name: string | null
+          document_number: string | null
+          origin_university_id: string | null
+          origin_university_name: string | null
+          student_id: string | null
+          student_name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       assign_coordinator_to_university: {
