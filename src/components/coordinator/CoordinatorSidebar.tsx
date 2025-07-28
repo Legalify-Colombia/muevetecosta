@@ -45,9 +45,15 @@ const CoordinatorSidebar = ({ activeTab, onTabChange }: CoordinatorSidebarProps)
     },
     {
       id: 'students',
-      label: 'Estudiantes',
+      label: 'Postulaciones',
       icon: Users,
       description: 'Postulaciones de estudiantes'
+    },
+    {
+      id: 'my-students',
+      label: 'Mis Estudiantes',
+      icon: Users,
+      description: 'Estudiantes de mi universidad'
     },
     {
       id: 'professors',

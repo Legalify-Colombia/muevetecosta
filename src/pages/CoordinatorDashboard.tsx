@@ -8,6 +8,7 @@ import { ApplicationDetail } from '@/components/coordinator/ApplicationDetail';
 import { ProfessorMobilityApplications } from '@/components/coordinator/ProfessorMobilityApplications';
 import { ProjectManagement } from '@/components/coordinator/ProjectManagement';
 import { UniversityRequiredDocuments } from '@/components/coordinator/UniversityRequiredDocuments';
+import { MyStudents } from '@/components/coordinator/MyStudents';
 import Header from '@/components/common/Header';
 import CoordinatorSidebar from '@/components/coordinator/CoordinatorSidebar';
 import { useAuth } from '@/hooks/useAuth';
@@ -132,6 +133,8 @@ const CoordinatorDashboard = () => {
         ) : (
           <ApplicationsList onViewApplication={handleViewApplication} />
         );
+      case 'my-students':
+        return <MyStudents />;
       case 'professors':
         return <ProfessorMobilityApplications />;
       case 'projects':
@@ -179,7 +182,8 @@ const CoordinatorDashboard = () => {
               { id: 'university', label: 'Universidad', icon: '🏫' },
               { id: 'programs', label: 'Programas', icon: '🎓' },
               { id: 'courses', label: 'Cursos', icon: '📚' },
-              { id: 'students', label: 'Estudiantes', icon: '🧑‍🎓' },
+              { id: 'students', label: 'Postulaciones', icon: '📝' },
+              { id: 'my-students', label: 'Mis Estudiantes', icon: '🧑‍🎓' },
               { id: 'professors', label: 'Profesores', icon: '👨‍🏫' },
               { id: 'projects', label: 'Proyectos', icon: '💼' },
               { id: 'documents', label: 'Documentos', icon: '📄' },

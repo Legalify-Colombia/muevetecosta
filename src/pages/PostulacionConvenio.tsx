@@ -102,29 +102,52 @@ const PostulacionConvenio = () => {
     }
   }, [terms]);
 
-  const uploadFile = async (file: File, fileName: string) => {
+  const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+  const [uploadErrors, setUploadErrors] = useState<{ [key: string]: string }>({});
+
+  const uploadFile = async (file: File, fileName: string, templateId: string) => {
     console.log('Uploading file to template-documents bucket:', fileName);
+    
+    // Validar tipo de archivo
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Tipo de archivo no permitido. Solo se permiten archivos PDF, DOC y DOCX.');
+    }
+    
+    // Validar tamaño (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('El archivo es demasiado grande. El tamaño máximo es 10MB.');
+    }
+    
+    setUploadProgress(prev => ({ ...prev, [templateId]: 0 }));
+    setUploadErrors(prev => ({ ...prev, [templateId]: '' }));
     
     const filePath = `convenios/${Date.now()}-${fileName}`;
     
-    const { data, error } = await supabase.storage
-      .from('template-documents')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-    
-    if (error) {
-      console.error('Storage upload error:', error);
+    try {
+      const { data, error } = await supabase.storage
+        .from('template-documents')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (error) {
+        console.error('Storage upload error:', error);
+        throw new Error(`Error de subida: ${error.message}`);
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('template-documents')
+        .getPublicUrl(data.path);
+      
+      setUploadProgress(prev => ({ ...prev, [templateId]: 100 }));
+      console.log('File uploaded successfully, public URL:', publicUrl);
+      return publicUrl;
+    } catch (error) {
+      setUploadErrors(prev => ({ ...prev, [templateId]: error.message }));
       throw error;
     }
-    
-    const { data: { publicUrl } } = supabase.storage
-      .from('template-documents')
-      .getPublicUrl(data.path);
-    
-    console.log('File uploaded successfully, public URL:', publicUrl);
-    return publicUrl;
   };
 
   const submitMutation = useMutation({
@@ -156,7 +179,7 @@ const PostulacionConvenio = () => {
         if (template && file) {
           console.log('Uploading document for template:', template.nombre);
           
-          const fileUrl = await uploadFile(file, file.name);
+          const fileUrl = await uploadFile(file, file.name, templateId);
           
           await supabase
             .from('convenio_documentos_universidad')
@@ -201,16 +224,32 @@ const PostulacionConvenio = () => {
     }
   });
 
-  const handleFileUpload = (templateId: string, file: File | null) => {
+  const handleFileUpload = async (templateId: string, file: File | null) => {
     if (file) {
       console.log('File selected for template:', templateId, file.name);
+      
+      // Validación inmediata
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        setUploadErrors(prev => ({ ...prev, [templateId]: 'Tipo de archivo no permitido. Solo se permiten archivos PDF, DOC y DOCX.' }));
+        return;
+      }
+      
+      if (file.size > 10 * 1024 * 1024) {
+        setUploadErrors(prev => ({ ...prev, [templateId]: 'El archivo es demasiado grande. El tamaño máximo es 10MB.' }));
+        return;
+      }
+      
       setUploadedFiles(prev => ({ ...prev, [templateId]: file }));
+      setUploadErrors(prev => ({ ...prev, [templateId]: '' }));
     } else {
       setUploadedFiles(prev => {
         const newFiles = { ...prev };
         delete newFiles[templateId];
         return newFiles;
       });
+      setUploadProgress(prev => ({ ...prev, [templateId]: 0 }));
+      setUploadErrors(prev => ({ ...prev, [templateId]: '' }));
     }
   };
 
@@ -612,17 +651,50 @@ const PostulacionConvenio = () => {
                         onChange={(e) => handleFileUpload(template.id, e.target.files?.[0] || null)}
                         className="cursor-pointer"
                       />
-                      {uploadedFiles[template.id] && (
-                        <div className="flex items-center text-sm text-green-600">
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Archivo cargado: {uploadedFiles[template.id].name}
+                      
+                      {/* Error de validación */}
+                      {uploadErrors[template.id] && (
+                        <div className="flex items-center text-sm text-red-600 bg-red-50 p-2 rounded">
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          {uploadErrors[template.id]}
                         </div>
                       )}
+                      
+                      {/* Progreso de subida */}
+                      {uploadProgress[template.id] > 0 && uploadProgress[template.id] < 100 && (
+                        <div className="space-y-2">
+                          <div className="text-sm text-blue-600">Subiendo archivo...</div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                              style={{ width: `${uploadProgress[template.id]}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Archivo cargado exitosamente */}
+                      {uploadedFiles[template.id] && !uploadErrors[template.id] && (
+                        <div className="flex items-center text-sm text-green-600 bg-green-50 p-2 rounded">
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          <span>Archivo cargado: {uploadedFiles[template.id].name}</span>
+                          <span className="ml-auto text-xs">
+                            ({(uploadedFiles[template.id].size / 1024 / 1024).toFixed(2)} MB)
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Mensaje de obligatorio */}
                       {template.es_obligatoria && !uploadedFiles[template.id] && (
                         <div className="text-sm text-red-600">
                           Este documento es obligatorio
                         </div>
                       )}
+                      
+                      {/* Información de tipos permitidos */}
+                      <div className="text-xs text-muted-foreground">
+                        Tipos permitidos: PDF, DOC, DOCX (máx. 10MB)
+                      </div>
                     </div>
                   </div>
                 ))}

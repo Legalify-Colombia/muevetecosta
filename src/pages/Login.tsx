@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
 export default function Login() {
@@ -146,12 +147,42 @@ export default function Login() {
             </Button>
           </form>
           <div className="mt-4 text-center space-y-2">
-            <Link
-              to="/reset-password"
-              className="text-sm text-blue-600 hover:underline"
+            <Button
+              variant="link"
+              className="text-sm p-0 h-auto"
+              onClick={async () => {
+                const emailInput = email;
+                if (!emailInput) {
+                  toast({
+                    title: "Email requerido",
+                    description: "Por favor ingresa tu email para restablecer la contraseña",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                try {
+                  const { error } = await supabase.auth.resetPasswordForEmail(emailInput, {
+                    redirectTo: `${window.location.origin}/reset-password`,
+                  });
+
+                  if (error) throw error;
+
+                  toast({
+                    title: "Email enviado",
+                    description: "Se ha enviado un enlace para restablecer tu contraseña",
+                  });
+                } catch (error: any) {
+                  toast({
+                    title: "Error",
+                    description: error.message || "No se pudo enviar el email",
+                    variant: "destructive",
+                  });
+                }
+              }}
             >
               ¿Olvidaste tu contraseña?
-            </Link>
+            </Button>
             <div>
               <span className="text-sm text-gray-600">¿No tienes cuenta? </span>
               <Link

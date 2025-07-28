@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
-import { ProfessorMobilityApplicationForm } from '@/components/professor/mobility/ProfessorMobilityApplicationForm';
+import { ProfessorMobilityApplicationFormEnhanced } from '@/components/professor/mobility/ProfessorMobilityApplicationFormEnhanced';
 import { useAuth } from '@/hooks/useAuth';
 
 const ProfessorMobilityApplication = () => {
@@ -73,7 +73,7 @@ const ProfessorMobilityApplication = () => {
           </Button>
         </div>
 
-        <ProfessorMobilityApplicationForm 
+        <ProfessorMobilityApplicationFormEnhanced 
           callId={callId} 
           onSuccess={handleSuccess}
         />
