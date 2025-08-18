@@ -108,7 +108,7 @@ export const useCoilProjectApplications = () => {
         .select(`
           *,
           project:coil_projects(*),
-          professor:profiles!professor_id(full_name, document_number)
+          professor:profiles!professor_id(full_name)
         `)
         .order('created_at', { ascending: false });
       

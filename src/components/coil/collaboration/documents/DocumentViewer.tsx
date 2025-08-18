@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useProjectDocuments } from "@/hooks/useCoilDocuments";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -29,10 +30,61 @@ interface DocumentViewerProps {
 export function DocumentViewer({ documentId, onClose }: DocumentViewerProps) {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   
-  // Aquí normalmente buscarías el documento específico
-  // Por ahora simulamos obtenerlo de la lista general
-  const { data: allDocuments = [] } = useProjectDocuments("", null);
-  const document = allDocuments.find(doc => doc.id === documentId);
+  // Cargar documento por ID
+  const { data: document, isLoading } = useQuery({
+    queryKey: ['coil-document', documentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('coil_project_documents')
+        .select('*')
+        .eq('id', documentId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as any;
+    },
+    enabled: !!documentId
+  });
+  const parseStorageFromUrl = (url: string): { bucket: string; path: string } | null => {
+    try {
+      const u = new URL(url);
+      const parts = u.pathname.split('/');
+      const idx = parts.indexOf('object');
+      if (idx !== -1) {
+        const bucket = parts[idx + 2];
+        const path = parts.slice(idx + 3).join('/');
+        if (bucket && path) return { bucket, path };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const { data: signedData } = useQuery({
+    queryKey: ['coil-document-signed-url', document?.id, document?.file_url],
+    queryFn: async () => {
+      if (!document?.file_url) return null;
+      const info = parseStorageFromUrl(document.file_url);
+      if (!info) return { signedUrl: document.file_url };
+      const { data } = await supabase.storage
+        .from(info.bucket)
+        .createSignedUrl(info.path, 60 * 60);
+      return { signedUrl: data?.signedUrl || document.file_url };
+    },
+    enabled: !!document?.file_url
+  });
+
+  if (isLoading) {
+    return (
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cargando documento...</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (!document) {
     return (
@@ -106,11 +158,11 @@ export function DocumentViewer({ documentId, onClose }: DocumentViewerProps) {
                     <div className="flex items-center justify-between">
                       <span className="font-medium">Vista Previa</span>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => window.open(document.file_url, '_blank')}>
+                        <Button size="sm" variant="outline" onClick={() => window.open(signedData?.signedUrl || document.file_url, '_blank')}>
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Original
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => window.open(document.file_url, '_blank')}>
+                        <Button size="sm" variant="outline" onClick={() => window.open(signedData?.signedUrl || document.file_url, '_blank')}>
                           <Download className="h-4 w-4 mr-2" />
                           Descargar
                         </Button>
@@ -121,7 +173,7 @@ export function DocumentViewer({ documentId, onClose }: DocumentViewerProps) {
                   <div className="h-96 overflow-auto">
                     {document.file_name.toLowerCase().endsWith('.pdf') && (
                       <iframe
-                        src={document.file_url}
+                        src={signedData?.signedUrl || document.file_url}
                         className="w-full h-full"
                         title="Vista previa PDF"
                       />
@@ -131,7 +183,7 @@ export function DocumentViewer({ documentId, onClose }: DocumentViewerProps) {
                       document.file_name.toLowerCase().endsWith(ext)
                     ) && (
                       <img
-                        src={document.file_url}
+                        src={signedData?.signedUrl || document.file_url}
                         alt={document.file_name}
                         className="w-full h-full object-contain"
                       />
@@ -147,11 +199,11 @@ export function DocumentViewer({ documentId, onClose }: DocumentViewerProps) {
                       Este tipo de archivo no se puede previsualizar
                     </p>
                     <div className="flex gap-2 justify-center">
-                      <Button variant="outline" onClick={() => window.open(document.file_url, '_blank')}>
+                      <Button variant="outline" onClick={() => window.open(signedData?.signedUrl || document.file_url, '_blank')}>
                         <Eye className="h-4 w-4 mr-2" />
                         Abrir
                       </Button>
-                      <Button onClick={() => window.open(document.file_url, '_blank')}>
+                      <Button onClick={() => window.open(signedData?.signedUrl || document.file_url, '_blank')}>
                         <Download className="h-4 w-4 mr-2" />
                         Descargar
                       </Button>
@@ -185,12 +237,12 @@ export function DocumentViewer({ documentId, onClose }: DocumentViewerProps) {
                     </div>
                   </div>
                   
-                  {document.folder && (
-                    <div>
-                      <span className="text-muted-foreground">Carpeta:</span>
-                      <div className="font-medium">{document.folder.name}</div>
-                    </div>
-                  )}
+                    {document.folder && (
+                      <div>
+                        <span className="text-muted-foreground">Carpeta:</span>
+                        <div className="font-medium">{document.folder?.name || '-'}</div>
+                      </div>
+                    )}
                   
                   <div>
                     <span className="text-muted-foreground">Tamaño:</span>

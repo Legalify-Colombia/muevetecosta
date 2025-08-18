@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DocumentLibraryProps {
   projectId: string;
@@ -48,6 +49,35 @@ export default function DocumentLibrary({ projectId }: DocumentLibraryProps) {
     doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     doc.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const parseStorageFromUrl = (url: string): { bucket: string; path: string } | null => {
+    try {
+      const u = new URL(url);
+      const parts = u.pathname.split('/');
+      const idx = parts.indexOf('object');
+      if (idx !== -1) {
+        const bucket = parts[idx + 2];
+        const path = parts.slice(idx + 3).join('/');
+        if (bucket && path) return { bucket, path };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const downloadDocument = async (url: string) => {
+    const info = parseStorageFromUrl(url);
+    if (!info) {
+      window.open(url, '_blank');
+      return;
+    }
+    const { data } = await supabase.storage
+      .from(info.bucket)
+      .createSignedUrl(info.path, 60 * 60);
+    const signedUrl = data?.signedUrl || url;
+    window.open(signedUrl, '_blank');
+  };
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase();
@@ -108,7 +138,7 @@ export default function DocumentLibrary({ projectId }: DocumentLibraryProps) {
                     <Eye className="h-4 w-4 mr-2" />
                     Ver
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.open(doc.file_url, '_blank')}>
+                  <DropdownMenuItem onClick={() => downloadDocument(doc.file_url)}>
                     <Download className="h-4 w-4 mr-2" />
                     Descargar
                   </DropdownMenuItem>
@@ -203,7 +233,7 @@ export default function DocumentLibrary({ projectId }: DocumentLibraryProps) {
                     <Eye className="h-4 w-4 mr-2" />
                     Ver
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => window.open(doc.file_url, '_blank')}>
+                  <DropdownMenuItem onClick={() => downloadDocument(doc.file_url)}>
                     <Download className="h-4 w-4 mr-2" />
                     Descargar
                   </DropdownMenuItem>
