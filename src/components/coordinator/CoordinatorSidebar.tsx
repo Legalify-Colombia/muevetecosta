@@ -9,7 +9,8 @@ import {
   Users, 
   Briefcase,
   Settings,
-  BarChart3
+  BarChart3,
+  Globe
 } from 'lucide-react';
 
 interface CoordinatorSidebarProps {
@@ -64,7 +65,7 @@ const CoordinatorSidebar = ({ activeTab, onTabChange }: CoordinatorSidebarProps)
     {
       id: 'coil-projects',
       label: 'Proyectos COIL',
-      icon: Briefcase,
+      icon: Globe,
       description: 'Proyectos colaborativos internacionales'
     },
     {
