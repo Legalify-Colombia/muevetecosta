@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import Header from "@/components/common/Header";
+import Footer from "@/components/common/Footer";
 
 interface Professor {
   id: string;
@@ -35,6 +38,9 @@ export default function Investigadores() {
   const [selectedUniversity, setSelectedUniversity] = useState("");
   const [selectedExpertise, setSelectedExpertise] = useState("");
   const { toast } = useToast();
+  const { user, profile } = useAuth();
+
+  const userInfo = user && profile ? `${profile.full_name} (${profile.role})` : undefined;
 
   const { data: professors = [], isLoading } = useQuery({
     queryKey: ['public-professors'],
@@ -95,103 +101,109 @@ export default function Investigadores() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground py-16">
-        <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold text-center mb-4">
-            Perfiles de Investigadores
-          </h1>
-          <p className="text-xl text-center opacity-90 max-w-2xl mx-auto">
-            Descubre y conecta con investigadores de toda la región. 
-            Encuentra expertos en tu área de interés y establece colaboraciones académicas.
-          </p>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Search and Filters */}
-        <div className="mb-8 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Buscar por nombre, área de investigación o especialidad..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select
-              value={selectedUniversity}
-              onChange={(e) => setSelectedUniversity(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-md bg-background"
-            >
-              <option value="">Todas las universidades</option>
-              {universities.map(university => (
-                <option key={university} value={university}>{university}</option>
-              ))}
-            </select>
-            
-            <select
-              value={selectedExpertise}
-              onChange={(e) => setSelectedExpertise(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-md bg-background"
-            >
-              <option value="">Todas las especialidades</option>
-              {allExpertiseAreas.map(area => (
-                <option key={area} value={area}>{area}</option>
-              ))}
-            </select>
+    <div className="min-h-screen flex flex-col">
+      <Header showAuthButtons={!user} showLogout={!!user} userInfo={userInfo} />
+      
+      <div className="flex-1 bg-background">
+        {/* Hero Section */}
+        <div className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground py-16">
+          <div className="container mx-auto px-4">
+            <h1 className="text-4xl font-bold text-center mb-4">
+              Perfiles de Investigadores
+            </h1>
+            <p className="text-xl text-center opacity-90 max-w-2xl mx-auto">
+              Descubre y conecta con investigadores de toda la región. 
+              Encuentra expertos en tu área de interés y establece colaboraciones académicas.
+            </p>
           </div>
         </div>
 
-        {/* Results */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-20 bg-muted rounded mb-4"></div>
-                  <div className="h-4 bg-muted rounded mb-2"></div>
-                  <div className="h-4 bg-muted rounded w-3/4"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="mb-4 text-muted-foreground">
-              {filteredProfessors.length} investigador{filteredProfessors.length !== 1 ? 'es' : ''} encontrado{filteredProfessors.length !== 1 ? 's' : ''}
+        <div className="container mx-auto px-4 py-8">
+          {/* Search and Filters */}
+          <div className="mb-8 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Buscar por nombre, área de investigación o especialidad..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
             
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <select
+                value={selectedUniversity}
+                onChange={(e) => setSelectedUniversity(e.target.value)}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background"
+              >
+                <option value="">Todas las universidades</option>
+                {universities.map(university => (
+                  <option key={university} value={university}>{university}</option>
+                ))}
+              </select>
+              
+              <select
+                value={selectedExpertise}
+                onChange={(e) => setSelectedExpertise(e.target.value)}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background"
+              >
+                <option value="">Todas las especialidades</option>
+                {allExpertiseAreas.map(area => (
+                  <option key={area} value={area}>{area}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Results */}
+          {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProfessors.map(professor => (
-                <ProfessorCard key={professor.id} professor={professor} onContact={sendContactEmail} />
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="p-6">
+                    <div className="h-20 bg-muted rounded mb-4"></div>
+                    <div className="h-4 bg-muted rounded mb-2"></div>
+                    <div className="h-4 bg-muted rounded w-3/4"></div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
-          </>
-        )}
+          ) : (
+            <>
+              <div className="mb-4 text-muted-foreground">
+                {filteredProfessors.length} investigador{filteredProfessors.length !== 1 ? 'es' : ''} encontrado{filteredProfessors.length !== 1 ? 's' : ''}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProfessors.map(professor => (
+                  <ProfessorCard key={professor.id} professor={professor} onContact={sendContactEmail} />
+                ))}
+              </div>
+            </>
+          )}
 
-        {filteredProfessors.length === 0 && !isLoading && (
-          <div className="text-center py-12">
-            <div className="text-muted-foreground text-lg mb-4">
-              No se encontraron investigadores que coincidan con tu búsqueda
+          {filteredProfessors.length === 0 && !isLoading && (
+            <div className="text-center py-12">
+              <div className="text-muted-foreground text-lg mb-4">
+                No se encontraron investigadores que coincidan con tu búsqueda
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedUniversity("");
+                  setSelectedExpertise("");
+                }}
+              >
+                Limpiar filtros
+              </Button>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setSearchTerm("");
-                setSelectedUniversity("");
-                setSelectedExpertise("");
-              }}
-            >
-              Limpiar filtros
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+      
+      <Footer />
     </div>
   );
 }

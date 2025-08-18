@@ -14,6 +14,8 @@ import CoilProjectDetail from "@/components/coil/CoilProjectDetail";
 import CoilProjectForm from "@/components/coil/CoilProjectForm";
 import CoilApplicationForm from "@/components/coil/CoilApplicationForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import Header from "@/components/common/Header";
+import Footer from "@/components/common/Footer";
 
 export default function CoilProjects() {
   const { user, profile } = useAuth();
@@ -32,6 +34,7 @@ export default function CoilProjects() {
 
   const isCoordinator = profile?.role === 'coordinator' || profile?.role === 'admin';
   const isProfessor = profile?.role === 'professor';
+  const userInfo = user && profile ? `${profile.full_name} (${profile.role})` : undefined;
 
   const hasAppliedToProject = (projectId: string) => {
     return myApplications.some(app => app.project_id === projectId);
@@ -47,95 +50,101 @@ export default function CoilProjects() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground py-16">
-        <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold text-center mb-4">
-            Proyectos COIL
-          </h1>
-          <p className="text-xl text-center opacity-90 max-w-2xl mx-auto">
-            Collaborative Online International Learning - Conecta con profesores de todo el mundo 
-            y desarrolla proyectos educativos innovadores.
-          </p>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Search and Actions */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder="Buscar proyectos COIL..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+    <div className="min-h-screen flex flex-col">
+      <Header showAuthButtons={!user} showLogout={!!user} userInfo={userInfo} />
+      
+      <div className="flex-1 bg-background">
+        {/* Hero Section */}
+        <div className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground py-16">
+          <div className="container mx-auto px-4">
+            <h1 className="text-4xl font-bold text-center mb-4">
+              Proyectos COIL
+            </h1>
+            <p className="text-xl text-center opacity-90 max-w-2xl mx-auto">
+              Collaborative Online International Learning - Conecta con profesores de todo el mundo 
+              y desarrolla proyectos educativos innovadores.
+            </p>
           </div>
-          
-          {isCoordinator && (
-            <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear Proyecto COIL
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        </div>
+
+        <div className="container mx-auto px-4 py-8">
+          {/* Search and Actions */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Buscar proyectos COIL..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            {isCoordinator && (
+              <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear Proyecto COIL
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Crear Nuevo Proyecto COIL</DialogTitle>
+                  </DialogHeader>
+                  <CoilProjectForm onSuccess={() => setShowCreateForm(false)} />
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+
+          {user ? (
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="all">Todos los Proyectos</TabsTrigger>
+                <TabsTrigger value="my-applications">Mis Postulaciones</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="all" className="space-y-4">
+                <ProjectsList 
+                  projects={filteredProjects}
+                  isLoading={isLoading}
+                  onSelectProject={setSelectedProject}
+                  onApplyToProject={isProfessor ? setShowApplicationForm : undefined}
+                  hasAppliedToProject={hasAppliedToProject}
+                />
+              </TabsContent>
+              
+              <TabsContent value="my-applications" className="space-y-4">
+                <ApplicationsList applications={myApplications} />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <ProjectsList 
+              projects={filteredProjects}
+              isLoading={isLoading}
+              onSelectProject={setSelectedProject}
+            />
+          )}
+
+          {/* Application Form Dialog */}
+          {showApplicationForm && (
+            <Dialog open={!!showApplicationForm} onOpenChange={() => setShowApplicationForm(null)}>
+              <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Crear Nuevo Proyecto COIL</DialogTitle>
+                  <DialogTitle>Postular a Proyecto COIL</DialogTitle>
                 </DialogHeader>
-                <CoilProjectForm onSuccess={() => setShowCreateForm(false)} />
+                <CoilApplicationForm 
+                  projectId={showApplicationForm}
+                  onSuccess={() => setShowApplicationForm(null)}
+                />
               </DialogContent>
             </Dialog>
           )}
         </div>
-
-        {user ? (
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="all">Todos los Proyectos</TabsTrigger>
-              <TabsTrigger value="my-applications">Mis Postulaciones</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all" className="space-y-4">
-              <ProjectsList 
-                projects={filteredProjects}
-                isLoading={isLoading}
-                onSelectProject={setSelectedProject}
-                onApplyToProject={isProfessor ? setShowApplicationForm : undefined}
-                hasAppliedToProject={hasAppliedToProject}
-              />
-            </TabsContent>
-            
-            <TabsContent value="my-applications" className="space-y-4">
-              <ApplicationsList applications={myApplications} />
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <ProjectsList 
-            projects={filteredProjects}
-            isLoading={isLoading}
-            onSelectProject={setSelectedProject}
-          />
-        )}
-
-        {/* Application Form Dialog */}
-        {showApplicationForm && (
-          <Dialog open={!!showApplicationForm} onOpenChange={() => setShowApplicationForm(null)}>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Postular a Proyecto COIL</DialogTitle>
-              </DialogHeader>
-              <CoilApplicationForm 
-                projectId={showApplicationForm}
-                onSuccess={() => setShowApplicationForm(null)}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
+      
+      <Footer />
     </div>
   );
 }
