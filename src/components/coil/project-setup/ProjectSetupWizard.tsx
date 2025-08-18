@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import ProjectBasicInfoForm, { ProjectBasicInfo } from "./ProjectBasicInfoForm";
 import ProjectConnectionSetup, { ProjectConnectionInfo } from "./ProjectConnectionSetup";
 import ProjectRolesConfiguration, { ProjectRolesInfo } from "./ProjectRolesConfiguration";
-import ProjectDocumentStructureComponent, { ProjectDocumentStructure } from "./ProjectDocumentStructure";
+import ProjectDocumentStructureComponent, { ProjectDocumentStructure as DocumentStructureData } from "./ProjectDocumentStructure";
 
 interface ProjectSetupWizardProps {
   onSuccess: () => void;
@@ -20,7 +20,7 @@ interface WizardData {
   basicInfo: ProjectBasicInfo;
   connections: ProjectConnectionInfo;
   roles: ProjectRolesInfo;
-  documentStructure: ProjectDocumentStructure;
+  documentStructure: DocumentStructureData;
 }
 
 const INITIAL_DATA: WizardData = {
@@ -90,7 +90,7 @@ export default function ProjectSetupWizard({ onSuccess, onCancel }: ProjectSetup
     setWizardData(prev => ({ ...prev, roles: data }));
   };
 
-  const updateDocumentStructure = (data: ProjectDocumentStructure) => {
+  const updateDocumentStructure = (data: DocumentStructureData) => {
     setWizardData(prev => ({ ...prev, documentStructure: data }));
   };
 
