@@ -42,6 +42,16 @@ const Header = ({ showAuthButtons = false, showLogout = false, userInfo, navigat
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">
+            <Link to="/universities" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Universidades
+            </Link>
+            <Link to="/investigadores" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Investigadores
+            </Link>
+            <Link to="/coil" className="text-gray-600 hover:text-blue-600 transition-colors">
+              COIL
+            </Link>
+            
             {navigationLinks.map((link, index) => (
               <Link 
                 key={index}
@@ -100,6 +110,28 @@ const Header = ({ showAuthButtons = false, showLogout = false, userInfo, navigat
         {isMobileMenuOpen && (
           <div className="md:hidden absolute top-16 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
             <div className="px-4 py-3 space-y-3">
+              <Link 
+                to="/universities" 
+                className="block text-gray-600 hover:text-blue-600 py-2 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Universidades
+              </Link>
+              <Link 
+                to="/investigadores" 
+                className="block text-gray-600 hover:text-blue-600 py-2 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Investigadores
+              </Link>
+              <Link 
+                to="/coil" 
+                className="block text-gray-600 hover:text-blue-600 py-2 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                COIL
+              </Link>
+              
               {navigationLinks.map((link, index) => (
                 <Link 
                   key={index}

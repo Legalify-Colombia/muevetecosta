@@ -12,6 +12,11 @@ import ProfessorMobilityDetail from "./pages/ProfessorMobilityDetail";
 import ProfessorMobilityApplication from "./pages/ProfessorMobilityApplication";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import { EmailVerification } from "./pages/EmailVerification";
+import Investigadores from "./pages/Investigadores";
+import CoilProjects from "./pages/CoilProjects";
+import ProfessorProfile from "./components/professor/ProfessorProfile";
 import { AuthCallback } from "./components/auth/AuthCallback";
 
 export const navItems = [
@@ -106,5 +111,37 @@ export const navItems = [
     page: <ProfessorMobilityApplication />,
     requiresAuth: true,
     allowedRoles: ["professor"]
+  },
+  {
+    title: "Perfil Profesor",
+    to: "/dashboard/professor/profile",
+    icon: <Users className="h-4 w-4" />,
+    page: <ProfessorProfile />,
+    requiresAuth: true,
+    allowedRoles: ["professor"]
+  },
+  {
+    to: "/terms",
+    page: <TermsAndConditions />,
+    requiresAuth: false,
+    allowedRoles: []
+  },
+  {
+    to: "/email-verification",
+    page: <EmailVerification />,
+    requiresAuth: false,
+    allowedRoles: []
+  },
+  {
+    to: "/investigadores",
+    page: <Investigadores />,
+    requiresAuth: false,
+    allowedRoles: []
+  },
+  {
+    to: "/coil",
+    page: <CoilProjects />,
+    requiresAuth: false,
+    allowedRoles: []
   }
 ];

@@ -36,6 +36,16 @@ const Index = () => {
                 Explorar Universidades
               </Button>
             </Link>
+            <Link to="/investigadores">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                Ver Investigadores
+              </Button>
+            </Link>
+            <Link to="/coil">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto">
+                Proyectos COIL
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

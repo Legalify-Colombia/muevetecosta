@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Search, Users, GraduationCap, School } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Search, Users, GraduationCap, School, Download } from 'lucide-react';
 
 interface MobilityApplication {
   id: string;
@@ -34,6 +35,7 @@ interface StudentInfo {
 
 export const MyStudents = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
 
   // Fetch coordinator's university
@@ -82,6 +84,71 @@ export const MyStudents = () => {
     },
     enabled: !!myUniversity?.id
   });
+
+  const handleDownloadDocument = async (fileUrl: string, fileName: string) => {
+    try {
+      // Handle different bucket URLs and file formats
+      let downloadUrl = fileUrl;
+      
+      if (fileUrl.includes('supabase.co/storage')) {
+        // If it's already a full Supabase storage URL, use as is
+        downloadUrl = fileUrl;
+      } else if (fileUrl.startsWith('/')) {
+        // If it's a relative path, construct the full URL
+        const buckets = ['student-documents', 'professor-documents', 'template-documents'];
+        let foundUrl = null;
+        
+        for (const bucket of buckets) {
+          try {
+            const { data } = await supabase.storage
+              .from(bucket)
+              .getPublicUrl(fileUrl.replace('/', ''));
+            
+            // Test if the URL is accessible
+            const testResponse = await fetch(data.publicUrl, { method: 'HEAD' });
+            if (testResponse.ok) {
+              foundUrl = data.publicUrl;
+              break;
+            }
+          } catch (error) {
+            // Continue to next bucket
+            continue;
+          }
+        }
+        
+        if (foundUrl) {
+          downloadUrl = foundUrl;
+        } else {
+          throw new Error('Document not found in any bucket');
+        }
+      }
+      
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = fileName || 'document';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      console.log('Document downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        title: "Error al descargar",
+        description: "No se pudo descargar el archivo. Verifica que el archivo existe.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredStudents = myStudents?.filter(student =>
     student.profiles?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
