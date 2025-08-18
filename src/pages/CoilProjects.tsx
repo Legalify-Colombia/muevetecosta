@@ -88,12 +88,16 @@ export default function CoilProjects() {
                     Crear Proyecto COIL
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Crear Nuevo Proyecto COIL</DialogTitle>
-                  </DialogHeader>
-                  <CoilProjectForm onSuccess={() => setShowCreateForm(false)} />
-                </DialogContent>
+                 <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                   <DialogHeader>
+                     <DialogTitle>Crear Nuevo Proyecto COIL</DialogTitle>
+                   </DialogHeader>
+                   <CoilProjectForm 
+                     open={showCreateForm} 
+                     onOpenChange={setShowCreateForm}
+                     onSuccess={() => setShowCreateForm(false)} 
+                   />
+                 </DialogContent>
               </Dialog>
             )}
           </div>

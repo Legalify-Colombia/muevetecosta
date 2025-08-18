@@ -7,6 +7,8 @@ export interface CoilProject {
   title: string;
   description: string;
   objectives: string;
+  purpose?: string;
+  host_university_name?: string;
   start_date: string;
   end_date: string;
   coordinator_id: string;
@@ -17,6 +19,12 @@ export interface CoilProject {
   is_public: boolean;
   requirements: string;
   benefits: string;
+  meeting_platform?: string;
+  meeting_links?: any;
+  project_phase?: string;
+  academic_level?: string;
+  subject_area?: string;
+  project_type?: string;
   coordinator?: {
     full_name: string;
     document_number: string;
