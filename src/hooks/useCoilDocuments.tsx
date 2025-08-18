@@ -61,10 +61,12 @@ export const useCreateDocumentFolder = () => {
 
       const { data, error } = await supabase
         .from('coil_document_folders')
-        .insert({
+        .insert([{
           ...folderData,
-          created_by: user.data.user.id
-        })
+          created_by: user.data.user.id,
+          project_id: folderData.project_id!,
+          name: folderData.name!
+        }])
         .select()
         .single();
       
@@ -112,7 +114,7 @@ export const useProjectDocuments = (projectId: string, folderId?: string) => {
       const { data, error } = await query;
       
       if (error) throw error;
-      return data as (ProjectDocument & { 
+      return (data || []) as unknown as (ProjectDocument & { 
         uploaded_by_profile?: { full_name: string },
         folder?: { name: string }
       })[];

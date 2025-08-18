@@ -112,10 +112,13 @@ export const useCreateAssignment = () => {
 
       const { data, error } = await supabase
         .from('coil_project_assignments')
-        .insert({
+        .insert([{
           ...assignmentData,
-          created_by: user.data.user.id
-        })
+          created_by: user.data.user.id,
+          project_id: assignmentData.project_id!,
+          title: assignmentData.title!,
+          max_points: assignmentData.max_points || 100
+        }])
         .select()
         .single();
       
@@ -305,7 +308,7 @@ export const useUpdateSubmission = () => {
 
       if (fetchError) throw fetchError;
 
-      let attachmentUrls = currentSubmission.attachments || [];
+      let attachmentUrls: any[] = Array.isArray(currentSubmission.attachments) ? currentSubmission.attachments : [];
 
       // Agregar nuevos archivos si los hay
       if (attachments && attachments.length > 0) {
@@ -323,7 +326,7 @@ export const useUpdateSubmission = () => {
             .from('coil-submission-files')
             .getPublicUrl(fileName);
 
-          attachmentUrls = [...attachmentUrls];
+          attachmentUrls.push({
             name: file.name,
             url: publicUrl,
             size: file.size,

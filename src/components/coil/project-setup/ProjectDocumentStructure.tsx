@@ -269,14 +269,14 @@ export default function ProjectDocumentStructure({ data, onChange }: ProjectDocu
             <div className="space-y-2">
               <Label>Carpeta Padre</Label>
               <Select 
-                value={newFolder.parent_folder_id || ""} 
-                onValueChange={(value) => setNewFolder({ ...newFolder, parent_folder_id: value || undefined })}
+                value={newFolder.parent_folder_id || "root"} 
+                onValueChange={(value) => setNewFolder({ ...newFolder, parent_folder_id: value === "root" ? undefined : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Carpeta raíz" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Carpeta raíz</SelectItem>
+                  <SelectItem value="root">Carpeta raíz</SelectItem>
                   {data.folders.map(folder => (
                     <SelectItem key={folder.id} value={folder.id}>
                       {folder.name}

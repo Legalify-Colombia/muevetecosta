@@ -122,7 +122,7 @@ export function DocumentUpload({ projectId, folderId, onClose }: DocumentUploadP
           {/* Selección de carpeta */}
           <div className="space-y-2">
             <Label>Carpeta de Destino</Label>
-            <Select value={selectedFolderId || ""} onValueChange={(value) => setSelectedFolderId(value || undefined)}>
+            <Select value={selectedFolderId || "root"} onValueChange={(value) => setSelectedFolderId(value === "root" ? undefined : value)}>
               <SelectTrigger>
                 <SelectValue>
                   <div className="flex items-center gap-2">
@@ -132,7 +132,7 @@ export function DocumentUpload({ projectId, folderId, onClose }: DocumentUploadP
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">
+                <SelectItem value="root">
                   <div className="flex items-center gap-2">
                     <FolderIcon className="h-4 w-4" />
                     Documentos Raíz
