@@ -8,6 +8,7 @@ import { ApplicationDetail } from '@/components/coordinator/ApplicationDetail';
 import { ProfessorMobilityApplications } from '@/components/coordinator/ProfessorMobilityApplications';
 import { ProjectManagement } from '@/components/coordinator/ProjectManagement';
 import { UniversityRequiredDocuments } from '@/components/coordinator/UniversityRequiredDocuments';
+import { CoilProjectManagement } from '@/components/coordinator/CoilProjectManagement';
 import { MyStudents } from '@/components/coordinator/MyStudents';
 import Header from '@/components/common/Header';
 import CoordinatorSidebar from '@/components/coordinator/CoordinatorSidebar';
@@ -138,15 +139,7 @@ const CoordinatorDashboard = () => {
       case 'professors':
         return <ProfessorMobilityApplications />;
       case 'coil-projects':
-        return (
-          <div className="space-y-6">
-            <iframe 
-              src="/coil" 
-              className="w-full h-[calc(100vh-8rem)] border-0 rounded-lg"
-              title="Proyectos COIL"
-            />
-          </div>
-        );
+        return <CoilProjectManagement />;
       case 'projects':
         return <ProjectManagement />;
       case 'documents':

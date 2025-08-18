@@ -73,43 +73,28 @@ export const useCoilProject = (id: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('coil_projects')
-        .select(`
-          *,
-          coordinator:profiles!coordinator_id(full_name, document_number),
-          participants:coil_project_participants(
-            id,
-            status,
-            role,
-            joined_at,
-            professor:profiles!professor_id(full_name, document_number)
-          ),
-          documents:coil_project_documents(*)
-        `)
+        .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
       
       if (error) throw error;
       return data;
     },
-    enabled: !!id
+    enabled: !!id,
   });
 };
-
 export const useMyCoilProjects = () => {
   return useQuery({
     queryKey: ['my-coil-projects'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('coil_projects')
-        .select(`
-          *,
-          coordinator:profiles!coordinator_id(full_name, document_number),
-          participants_count:coil_project_participants(count)
-        `)
+        .select('*')
+        .eq('coordinator_id', (await supabase.auth.getUser()).data.user?.id)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as any[];
+      return data as CoilProject[];
     }
   });
 };
