@@ -56,17 +56,13 @@ export const useCoilProjects = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('coil_projects')
-        .select(`
-          *,
-          coordinator:profiles!coordinator_id(full_name, document_number),
-          participants_count:coil_project_participants(count)
-        `)
+        .select('*')
         .eq('is_public', true)
         .eq('status', 'active')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as any[];
+      return data as CoilProject[];
     }
   });
 };
@@ -161,9 +157,17 @@ export const useCreateCoilProject = () => {
 
   return useMutation({
     mutationFn: async (projectData: any) => {
+      // Get current user to set as coordinator
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data, error } = await supabase
         .from('coil_projects')
-        .insert(projectData)
+        .insert({
+          ...projectData,
+          coordinator_id: user?.id,
+          is_public: true, // Ensure projects are public by default
+          status: 'active'
+        })
         .select()
         .single();
       

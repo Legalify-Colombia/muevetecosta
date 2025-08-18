@@ -62,6 +62,12 @@ const CoordinatorSidebar = ({ activeTab, onTabChange }: CoordinatorSidebarProps)
       description: 'Movilidad de profesores'
     },
     {
+      id: 'coil-projects',
+      label: 'Proyectos COIL',
+      icon: Briefcase,
+      description: 'Proyectos colaborativos internacionales'
+    },
+    {
       id: 'projects',
       label: 'Proyectos',
       icon: Briefcase,

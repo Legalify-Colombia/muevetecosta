@@ -137,6 +137,16 @@ const CoordinatorDashboard = () => {
         return <MyStudents />;
       case 'professors':
         return <ProfessorMobilityApplications />;
+      case 'coil-projects':
+        return (
+          <div className="space-y-6">
+            <iframe 
+              src="/coil" 
+              className="w-full h-[calc(100vh-8rem)] border-0 rounded-lg"
+              title="Proyectos COIL"
+            />
+          </div>
+        );
       case 'projects':
         return <ProjectManagement />;
       case 'documents':
@@ -185,6 +195,7 @@ const CoordinatorDashboard = () => {
               { id: 'students', label: 'Postulaciones', icon: '📝' },
               { id: 'my-students', label: 'Mis Estudiantes', icon: '🧑‍🎓' },
               { id: 'professors', label: 'Profesores', icon: '👨‍🏫' },
+              { id: 'coil-projects', label: 'Proyectos COIL', icon: '🌍' },
               { id: 'projects', label: 'Proyectos', icon: '💼' },
               { id: 'documents', label: 'Documentos', icon: '📄' },
             ].map((item) => (
