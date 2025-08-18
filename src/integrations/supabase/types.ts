@@ -138,6 +138,189 @@ export type Database = {
           },
         ]
       }
+      coil_project_applications: {
+        Row: {
+          created_at: string
+          experience: string | null
+          id: string
+          motivation: string
+          professor_id: string
+          project_id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          experience?: string | null
+          id?: string
+          motivation: string
+          professor_id: string
+          project_id: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          experience?: string | null
+          id?: string
+          motivation?: string
+          professor_id?: string
+          project_id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coil_project_applications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "coil_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coil_project_documents: {
+        Row: {
+          document_type: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          is_public: boolean | null
+          project_id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          document_type?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          is_public?: boolean | null
+          project_id: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          document_type?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          is_public?: boolean | null
+          project_id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coil_project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "coil_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coil_project_participants: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          id: string
+          joined_at: string | null
+          professor_id: string
+          project_id: string
+          role: string | null
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          id?: string
+          joined_at?: string | null
+          professor_id: string
+          project_id: string
+          role?: string | null
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          id?: string
+          joined_at?: string | null
+          professor_id?: string
+          project_id?: string
+          role?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coil_project_participants_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "coil_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coil_projects: {
+        Row: {
+          benefits: string | null
+          coordinator_id: string | null
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          is_public: boolean | null
+          max_participants: number | null
+          objectives: string | null
+          requirements: string | null
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          benefits?: string | null
+          coordinator_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_public?: boolean | null
+          max_participants?: number | null
+          objectives?: string | null
+          requirements?: string | null
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          benefits?: string | null
+          coordinator_id?: string | null
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_public?: boolean | null
+          max_participants?: number | null
+          objectives?: string | null
+          requirements?: string | null
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       convenio_configuracion: {
         Row: {
           beneficios: string | null
@@ -875,43 +1058,64 @@ export type Database = {
       }
       professor_info: {
         Row: {
+          bio: string | null
+          contact_email: string | null
           created_at: string | null
           cv_url: string | null
           expertise_areas: string[] | null
           faculty_department: string | null
+          google_scholar_url: string | null
           id: string
+          is_public_profile: boolean | null
+          linkedin_url: string | null
+          orcid_id: string | null
           profile_photo_url: string | null
           project_experience: string | null
           relevant_publications: Json | null
           research_interests: string | null
           university: string
           updated_at: string | null
+          website_url: string | null
         }
         Insert: {
+          bio?: string | null
+          contact_email?: string | null
           created_at?: string | null
           cv_url?: string | null
           expertise_areas?: string[] | null
           faculty_department?: string | null
+          google_scholar_url?: string | null
           id: string
+          is_public_profile?: boolean | null
+          linkedin_url?: string | null
+          orcid_id?: string | null
           profile_photo_url?: string | null
           project_experience?: string | null
           relevant_publications?: Json | null
           research_interests?: string | null
           university: string
           updated_at?: string | null
+          website_url?: string | null
         }
         Update: {
+          bio?: string | null
+          contact_email?: string | null
           created_at?: string | null
           cv_url?: string | null
           expertise_areas?: string[] | null
           faculty_department?: string | null
+          google_scholar_url?: string | null
           id?: string
+          is_public_profile?: boolean | null
+          linkedin_url?: string | null
+          orcid_id?: string | null
           profile_photo_url?: string | null
           project_experience?: string | null
           relevant_publications?: Json | null
           research_interests?: string | null
           university?: string
           updated_at?: string | null
+          website_url?: string | null
         }
         Relationships: [
           {
