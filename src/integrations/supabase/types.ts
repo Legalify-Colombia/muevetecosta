@@ -2313,6 +2313,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      has_project_access: {
+        Args: { project_id: string; user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       application_status:
