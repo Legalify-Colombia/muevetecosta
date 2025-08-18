@@ -40,14 +40,7 @@ export default function CoilProjects() {
     return myApplications.some(app => app.project_id === projectId);
   };
 
-  if (selectedProject) {
-    return (
-      <CoilProjectDetail 
-        projectId={selectedProject}
-        onBack={() => setSelectedProject(null)}
-      />
-    );
-  }
+  // Removed the early return to keep the topbar and footer
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -102,7 +95,12 @@ export default function CoilProjects() {
             )}
           </div>
 
-          {user ? (
+          {selectedProject ? (
+            <CoilProjectDetail 
+              projectId={selectedProject}
+              onBack={() => setSelectedProject(null)}
+            />
+          ) : user ? (
             <Tabs defaultValue="all" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="all">Todos los Proyectos</TabsTrigger>
