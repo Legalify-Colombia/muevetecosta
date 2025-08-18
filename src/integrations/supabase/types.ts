@@ -138,6 +138,218 @@ export type Database = {
           },
         ]
       }
+      coil_assignment_grades: {
+        Row: {
+          feedback: string | null
+          graded_at: string | null
+          graded_by: string
+          id: string
+          points_earned: number | null
+          rubric_scores: Json | null
+          submission_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          feedback?: string | null
+          graded_at?: string | null
+          graded_by: string
+          id?: string
+          points_earned?: number | null
+          rubric_scores?: Json | null
+          submission_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          feedback?: string | null
+          graded_at?: string | null
+          graded_by?: string
+          id?: string
+          points_earned?: number | null
+          rubric_scores?: Json | null
+          submission_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coil_assignment_grades_graded_by_fkey"
+            columns: ["graded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coil_assignment_grades_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "coil_assignment_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coil_assignment_submissions: {
+        Row: {
+          assignment_id: string
+          attachments: Json | null
+          content: string | null
+          id: string
+          is_late: boolean | null
+          participant_id: string
+          status: string | null
+          submitted_at: string | null
+        }
+        Insert: {
+          assignment_id: string
+          attachments?: Json | null
+          content?: string | null
+          id?: string
+          is_late?: boolean | null
+          participant_id: string
+          status?: string | null
+          submitted_at?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          attachments?: Json | null
+          content?: string | null
+          id?: string
+          is_late?: boolean | null
+          participant_id?: string
+          status?: string | null
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coil_assignment_submissions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "coil_project_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coil_assignment_submissions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coil_document_folders: {
+        Row: {
+          access_permissions: Json | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          parent_folder_id: string | null
+          project_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          access_permissions?: Json | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          parent_folder_id?: string | null
+          project_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          access_permissions?: Json | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          parent_folder_id?: string | null
+          project_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coil_document_folders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coil_document_folders_parent_folder_id_fkey"
+            columns: ["parent_folder_id"]
+            isOneToOne: false
+            referencedRelation: "coil_document_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coil_document_folders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "coil_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coil_forum_posts: {
+        Row: {
+          attachments: Json | null
+          author_id: string
+          content: string
+          created_at: string | null
+          edited_at: string | null
+          forum_id: string
+          id: string
+          is_edited: boolean | null
+          parent_post_id: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          author_id: string
+          content: string
+          created_at?: string | null
+          edited_at?: string | null
+          forum_id: string
+          id?: string
+          is_edited?: boolean | null
+          parent_post_id?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          author_id?: string
+          content?: string
+          created_at?: string | null
+          edited_at?: string | null
+          forum_id?: string
+          id?: string
+          is_edited?: boolean | null
+          parent_post_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coil_forum_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coil_forum_posts_forum_id_fkey"
+            columns: ["forum_id"]
+            isOneToOne: false
+            referencedRelation: "coil_project_forums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coil_forum_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "coil_forum_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coil_project_applications: {
         Row: {
           created_at: string
@@ -185,43 +397,192 @@ export type Database = {
           },
         ]
       }
+      coil_project_assignments: {
+        Row: {
+          assignment_type: string | null
+          created_at: string | null
+          created_by: string
+          description: string | null
+          due_date: string | null
+          id: string
+          instructions: string | null
+          max_points: number | null
+          project_id: string
+          rubric: Json | null
+          status: string | null
+          target_participants: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assignment_type?: string | null
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          instructions?: string | null
+          max_points?: number | null
+          project_id: string
+          rubric?: Json | null
+          status?: string | null
+          target_participants?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assignment_type?: string | null
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          instructions?: string | null
+          max_points?: number | null
+          project_id?: string
+          rubric?: Json | null
+          status?: string | null
+          target_participants?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coil_project_assignments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coil_project_assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "coil_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coil_project_documents: {
         Row: {
+          access_permissions: Json | null
+          description: string | null
           document_type: string | null
           file_name: string
           file_size: number | null
           file_url: string
+          folder_id: string | null
           id: string
           is_public: boolean | null
+          previous_version_id: string | null
           project_id: string
+          tags: string[] | null
           uploaded_at: string
           uploaded_by: string
+          version_number: number | null
         }
         Insert: {
+          access_permissions?: Json | null
+          description?: string | null
           document_type?: string | null
           file_name: string
           file_size?: number | null
           file_url: string
+          folder_id?: string | null
           id?: string
           is_public?: boolean | null
+          previous_version_id?: string | null
           project_id: string
+          tags?: string[] | null
           uploaded_at?: string
           uploaded_by: string
+          version_number?: number | null
         }
         Update: {
+          access_permissions?: Json | null
+          description?: string | null
           document_type?: string | null
           file_name?: string
           file_size?: number | null
           file_url?: string
+          folder_id?: string | null
           id?: string
           is_public?: boolean | null
+          previous_version_id?: string | null
           project_id?: string
+          tags?: string[] | null
           uploaded_at?: string
           uploaded_by?: string
+          version_number?: number | null
         }
         Relationships: [
           {
+            foreignKeyName: "coil_project_documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "coil_document_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coil_project_documents_previous_version_id_fkey"
+            columns: ["previous_version_id"]
+            isOneToOne: false
+            referencedRelation: "coil_project_documents"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "coil_project_documents_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "coil_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coil_project_forums: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_pinned: boolean | null
+          project_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_pinned?: boolean | null
+          project_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_pinned?: boolean | null
+          project_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coil_project_forums_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coil_project_forums_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "coil_projects"
@@ -233,31 +594,37 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          custom_permissions: Json | null
           id: string
           joined_at: string | null
           professor_id: string
           project_id: string
           role: string | null
+          role_id: string | null
           status: string
         }
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          custom_permissions?: Json | null
           id?: string
           joined_at?: string | null
           professor_id: string
           project_id: string
           role?: string | null
+          role_id?: string | null
           status?: string
         }
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          custom_permissions?: Json | null
           id?: string
           joined_at?: string | null
           professor_id?: string
           project_id?: string
           role?: string | null
+          role_id?: string | null
           status?: string
         }
         Relationships: [
@@ -268,54 +635,132 @@ export type Database = {
             referencedRelation: "coil_projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "coil_project_participants_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "coil_project_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coil_project_roles: {
+        Row: {
+          can_create_assignments: boolean | null
+          can_grade_assignments: boolean | null
+          can_manage_documents: boolean | null
+          can_manage_participants: boolean | null
+          can_moderate_forums: boolean | null
+          created_at: string | null
+          id: string
+          permissions: Json
+          project_id: string
+          role_name: string
+        }
+        Insert: {
+          can_create_assignments?: boolean | null
+          can_grade_assignments?: boolean | null
+          can_manage_documents?: boolean | null
+          can_manage_participants?: boolean | null
+          can_moderate_forums?: boolean | null
+          created_at?: string | null
+          id?: string
+          permissions?: Json
+          project_id: string
+          role_name: string
+        }
+        Update: {
+          can_create_assignments?: boolean | null
+          can_grade_assignments?: boolean | null
+          can_manage_documents?: boolean | null
+          can_manage_participants?: boolean | null
+          can_moderate_forums?: boolean | null
+          created_at?: string | null
+          id?: string
+          permissions?: Json
+          project_id?: string
+          role_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coil_project_roles_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "coil_projects"
+            referencedColumns: ["id"]
+          },
         ]
       }
       coil_projects: {
         Row: {
+          academic_level: string | null
           benefits: string | null
           coordinator_id: string | null
           created_at: string
           description: string | null
           end_date: string | null
+          host_university_name: string | null
           id: string
           is_public: boolean | null
           max_participants: number | null
+          meeting_links: Json | null
+          meeting_platform: string | null
           objectives: string | null
+          project_phase: string | null
+          project_type: string | null
+          purpose: string | null
           requirements: string | null
           start_date: string | null
           status: string
+          subject_area: string | null
           title: string
           updated_at: string
         }
         Insert: {
+          academic_level?: string | null
           benefits?: string | null
           coordinator_id?: string | null
           created_at?: string
           description?: string | null
           end_date?: string | null
+          host_university_name?: string | null
           id?: string
           is_public?: boolean | null
           max_participants?: number | null
+          meeting_links?: Json | null
+          meeting_platform?: string | null
           objectives?: string | null
+          project_phase?: string | null
+          project_type?: string | null
+          purpose?: string | null
           requirements?: string | null
           start_date?: string | null
           status?: string
+          subject_area?: string | null
           title: string
           updated_at?: string
         }
         Update: {
+          academic_level?: string | null
           benefits?: string | null
           coordinator_id?: string | null
           created_at?: string
           description?: string | null
           end_date?: string | null
+          host_university_name?: string | null
           id?: string
           is_public?: boolean | null
           max_participants?: number | null
+          meeting_links?: Json | null
+          meeting_platform?: string | null
           objectives?: string | null
+          project_phase?: string | null
+          project_type?: string | null
+          purpose?: string | null
           requirements?: string | null
           start_date?: string | null
           status?: string
+          subject_area?: string | null
           title?: string
           updated_at?: string
         }
