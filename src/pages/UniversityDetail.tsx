@@ -112,7 +112,7 @@ const UniversityDetail = () => {
             <div className="flex items-center space-x-2">
               <img 
                 src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
-                alt="Muévete por la Costa" 
+                alt="Muévete por el Caribe" 
                 className="h-8 md:h-10 w-auto"
               />
             </div>

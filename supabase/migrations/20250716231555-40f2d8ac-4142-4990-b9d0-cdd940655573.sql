@@ -19,9 +19,9 @@ WHERE slug = 'terms' OR id = (SELECT id FROM public.terms_content LIMIT 1);
 -- Insert sample pages
 INSERT INTO public.terms_content (title, content, slug, meta_description, sort_order) VALUES
 (
-  '¿Qué es Muévete por la Costa?',
-  '<h2>¿Qué es Muévete por la Costa?</h2>
-  <p>Muévete por la Costa es una iniciativa de movilidad estudiantil que conecta las principales universidades de la región Caribe colombiana.</p>
+  '¿Qué es Muévete por el Caribe?',
+  '<h2>¿Qué es Muévete por el Caribe?</h2>
+  <p>Muévete por el Caribe es una iniciativa de movilidad estudiantil que conecta las principales universidades de la región Caribe colombiana.</p>
   
   <h3>Nuestra Misión</h3>
   <p>Facilitar el intercambio académico entre estudiantes de las universidades participantes, promoviendo la diversidad cultural y académica.</p>
@@ -34,12 +34,12 @@ INSERT INTO public.terms_content (title, content, slug, meta_description, sort_o
     <li>Promover el desarrollo académico y personal</li>
   </ul>',
   'que-es-muevete',
-  'Conoce qué es Muévete por la Costa y cómo funciona nuestro programa de movilidad estudiantil',
+  'Conoce qué es Muévete por el Caribe y cómo funciona nuestro programa de movilidad estudiantil',
   1
 ),
 (
   'Cómo Participar',
-  '<h2>Cómo Participar en Muévete por la Costa</h2>
+  '<h2>Cómo Participar en Muévete por el Caribe</h2>
   <p>Participar en nuestro programa de movilidad es un proceso sencillo que te abrirá las puertas a nuevas experiencias académicas.</p>
   
   <h3>Requisitos</h3>
@@ -67,7 +67,7 @@ INSERT INTO public.terms_content (title, content, slug, meta_description, sort_o
     <li>Documento de identidad</li>
   </ul>',
   'como-participar',
-  'Guía completa sobre cómo participar en el programa Muévete por la Costa',
+  'Guía completa sobre cómo participar en el programa Muévete por el Caribe',
   2
 );
 

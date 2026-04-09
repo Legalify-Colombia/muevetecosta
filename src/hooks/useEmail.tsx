@@ -17,13 +17,19 @@ export const useEmail = () => {
   const sendEmail = async ({ templateName, recipientEmail, templateData, userId }: SendEmailParams) => {
     setSending(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
           templateName,
           recipientEmail,
           templateData,
           userId
-        }
+        },
+        headers: accessToken
+          ? { Authorization: `Bearer ${accessToken}` }
+          : undefined,
       });
 
       if (error) {

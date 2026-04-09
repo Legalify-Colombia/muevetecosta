@@ -1,1 +1,7 @@
-project_id = "fersyiflbjuxfrbjhmai"
+project_id = "hgikvbgceqfcwchgjbrg"
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.get-coordinator-email]
+verify_jwt = false

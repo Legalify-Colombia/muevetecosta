@@ -187,7 +187,7 @@ USING (
     JOIN coil_project_documents cpd ON cpd.project_id = cpp.project_id
     WHERE cpp.professor_id = auth.uid() 
     AND cpp.status = 'approved'
-    AND storage.foldername(name) = cpd.project_id::text
+    AND (storage.foldername(name))[1] = cpd.project_id::text
   )
 );
 

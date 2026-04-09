@@ -63,10 +63,10 @@ const Universities = () => {
             <div className="flex items-center space-x-2">
               <img 
                 src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
-                alt="Muévete por la Costa" 
+                alt="Muévete por el Caribe" 
                 className="h-8 w-auto"
               />
-              <span className="text-xl font-bold text-gray-900">Muévete por la Costa</span>
+              <span className="text-xl font-bold text-gray-900">Muévete por el Caribe</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link to="/login">
@@ -88,7 +88,7 @@ const Universities = () => {
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Descubre las instituciones que forman parte del programa 
-            <span className="font-semibold text-blue-600"> "Muévete por la Costa"</span>
+            <span className="font-semibold text-blue-600"> "Muévete por el Caribe"</span>
           </p>
         </div>
 

@@ -8,13 +8,13 @@ INSERT INTO email_templates (
   is_active
 ) VALUES (
   'coordinator_registration',
-  'Bienvenido como Coordinador - Muévete por la Costa',
+  'Bienvenido como Coordinador - Muévete por el Caribe',
   '<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido como Coordinador - Muévete por la Costa</title>
+    <title>Bienvenido como Coordinador - Muévete por el Caribe</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -108,11 +108,11 @@ INSERT INTO email_templates (
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://mueveteporlacosta.com.co/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" alt="Logo Muévete por la Costa">
+            <img src="https://mueveteporlacosta.com.co/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" alt="Logo Muévete por el Caribe">
         </div>
         <h1>¡Bienvenido como <span class="highlight">Coordinador</span>!</h1>
         <p>Estimado(a) <strong>{{nombre_coordinador}}</strong>,</p>
-        <p>¡Es un placer darte la bienvenida al equipo de Muévete por la Costa! Has sido designado(a) como <span class="highlight">Coordinador Académico</span> en nuestra plataforma de movilidad estudiantil.</p>
+        <p>¡Es un placer darte la bienvenida al equipo de Muévete por el Caribe! Has sido designado(a) como <span class="highlight">Coordinador Académico</span> en nuestra plataforma de movilidad estudiantil.</p>
         
         <div class="coordinator-info">
             <h3 style="margin-top: 0; color: #1976d2;">Tu Rol como Coordinador</h3>
@@ -145,7 +145,7 @@ INSERT INTO email_templates (
         <p>¡Esperamos trabajar contigo para impulsar la movilidad académica en la región!</p>
 
         <div class="footer">
-            <p>Saludos cordiales,<br><strong>El equipo de Muévete por la Costa</strong></p>
+            <p>Saludos cordiales,<br><strong>El equipo de Muévete por el Caribe</strong></p>
             <p style="font-size: 0.8em; color: #999; margin-top: 20px;">
                 Este correo fue enviado automáticamente. Si no solicitaste ser coordinador, por favor contacta a soporte.
             </p>

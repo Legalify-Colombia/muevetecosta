@@ -37,7 +37,7 @@ CREATE TABLE public.professor_mobility_applications (
   -- Información académica/laboral
   origin_institution TEXT,
   faculty_department TEXT,
-  current_role TEXT,
+  "current_role" TEXT,
   expertise_area TEXT,
   years_experience INTEGER,
   employee_code TEXT,

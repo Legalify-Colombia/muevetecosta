@@ -138,7 +138,7 @@ export default function Register() {
             <div className="flex justify-center mb-4">
               <img 
                 src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
-                alt="Muévete por la Costa" 
+                alt="Muévete por el Caribe" 
                 className="h-12 w-auto"
               />
             </div>

@@ -35,7 +35,7 @@ const Header = ({ showAuthButtons = false, showLogout = false, userInfo, navigat
           <Link to="/" className="flex items-center space-x-3 flex-shrink-0">
             <img 
               src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
-              alt="Muévete por la Costa" 
+              alt="Muévete por el Caribe" 
               className="h-8 md:h-10 w-auto"
             />
           </Link>

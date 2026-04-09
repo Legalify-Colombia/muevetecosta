@@ -54,18 +54,18 @@ INSERT INTO email_templates (
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://mueveteporlacosta.com.co/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" alt="Logo Muévete por la Costa">
+            <img src="https://mueveteporlacosta.com.co/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" alt="Logo Muévete por el Caribe">
         </div>
         <div class="content">
             {{content}}
         </div>
         <div class="footer">
-            <p>Saludos,<br>El equipo de Muévete por la Costa</p>
+            <p>Saludos,<br>El equipo de Muévete por el Caribe</p>
         </div>
     </div>
 </body>
 </html>',
-  ARRAY['subject', 'content'],
+  to_jsonb(ARRAY['subject', 'content']),
   'Plantilla para correos personalizados enviados desde el panel de administración',
   true
 ) ON CONFLICT (template_name) DO UPDATE SET
