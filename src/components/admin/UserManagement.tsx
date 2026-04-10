@@ -25,12 +25,21 @@ const coordinatorSchema = z.object({
   phone: z.string().optional(),
 });
 
+const adminSchema = z.object({
+  full_name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+  email: z.string().email("Email inválido"),
+  document_number: z.string().min(5, "Número de documento requerido"),
+  phone: z.string().optional(),
+});
+
 type CoordinatorFormData = z.infer<typeof coordinatorSchema>;
+type AdminFormData = z.infer<typeof adminSchema>;
 
 export const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("all");
   const [showCreateCoordinator, setShowCreateCoordinator] = useState(false);
+  const [showCreateAdmin, setShowCreateAdmin] = useState(false);
   const [coordinatorAssignmentDialog, setCoordinatorAssignmentDialog] = useState<{
     isOpen: boolean;
     coordinatorId: string;
@@ -46,6 +55,10 @@ export const UserManagement = () => {
 
   const form = useForm<CoordinatorFormData>({
     resolver: zodResolver(coordinatorSchema),
+  });
+
+  const adminForm = useForm<AdminFormData>({
+    resolver: zodResolver(adminSchema),
   });
 
   // Fetch users with profiles
@@ -153,6 +166,41 @@ export const UserManagement = () => {
     }
   });
 
+  // Create admin mutation
+  const createAdminMutation = useMutation({
+    mutationFn: async (data: AdminFormData) => {
+      const response = await supabase.functions.invoke('create-admin', {
+        body: {
+          full_name: data.full_name,
+          email: data.email,
+          document_number: data.document_number,
+          phone: data.phone
+        }
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      return response.data;
+    },
+    onSuccess: async (result) => {
+      toast({
+        title: "Administrador creado exitosamente",
+        description: `Se ha enviado un email de bienvenida a ${result.email} con las credenciales temporales`,
+      });
+
+      setShowCreateAdmin(false);
+      adminForm.reset();
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+    onError: (error: any) => {
+      console.error('Error creating admin:', error);
+      toast({
+        title: "Error al crear administrador",
+        description: error.message || "Ha ocurrido un error al crear el administrador. Por favor intenta nuevamente.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
@@ -177,6 +225,10 @@ export const UserManagement = () => {
     createCoordinatorMutation.mutate(data);
   };
 
+  const onSubmitAdmin = (data: AdminFormData) => {
+    createAdminMutation.mutate(data);
+  };
+
   const handleAssignUniversityToCoordinator = (coordinatorId: string, coordinatorName: string) => {
     setCoordinatorAssignmentDialog({
       isOpen: true,
@@ -190,12 +242,18 @@ export const UserManagement = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold">Gestión de Usuarios</h2>
-          <p className="text-gray-600">Administra coordinadores y usuarios del sistema</p>
+          <p className="text-gray-600">Administra coordinadores, administradores y usuarios del sistema</p>
         </div>
-        <Button onClick={() => setShowCreateCoordinator(true)}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Crear Coordinador
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowCreateCoordinator(true)} variant="outline">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Crear Coordinador
+          </Button>
+          <Button onClick={() => setShowCreateAdmin(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Crear Admin
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -369,6 +427,82 @@ export const UserManagement = () => {
                   disabled={createCoordinatorMutation.isPending}
                 >
                   {createCoordinatorMutation.isPending ? "Creando..." : "Crear Coordinador"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Admin Dialog */}
+      <Dialog open={showCreateAdmin} onOpenChange={setShowCreateAdmin}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Crear Nuevo Administrador</DialogTitle>
+            <DialogDescription>
+              Crea una cuenta de administrador con acceso total al sistema
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...adminForm}>
+            <form onSubmit={adminForm.handleSubmit(onSubmitAdmin)} className="space-y-4">
+              <FormField
+                control={adminForm.control}
+                name="full_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre Completo</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nombre completo" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={adminForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="email@ejemplo.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={adminForm.control}
+                name="document_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número de Documento</FormLabel>
+                    <FormControl>
+                      <Input placeholder="12345678" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={adminForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+57 300 123 4567" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button 
+                  type="submit" 
+                  disabled={createAdminMutation.isPending}
+                >
+                  {createAdminMutation.isPending ? "Creando..." : "Crear Administrador"}
                 </Button>
               </DialogFooter>
             </form>

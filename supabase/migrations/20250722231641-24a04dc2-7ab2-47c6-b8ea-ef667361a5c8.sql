@@ -108,7 +108,7 @@ INSERT INTO email_templates (
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://mueveteporlacosta.com.co/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" alt="Logo Muévete por el Caribe">
+            <img src="https://mueveteporlacosta.com.co/lovable-uploads/LogoM.png" alt="Logo Muévete por el Caribe">
         </div>
         <h1>¡Bienvenido como <span class="highlight">Coordinador</span>!</h1>
         <p>Estimado(a) <strong>{{nombre_coordinador}}</strong>,</p>

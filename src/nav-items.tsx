@@ -1,4 +1,3 @@
-
 import { HomeIcon, GraduationCap, Users, Settings, BarChart3, Building2 } from "lucide-react";
 import Index from "./pages/Index";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -16,6 +15,8 @@ import TermsAndConditions from "./pages/TermsAndConditions";
 import { EmailVerification } from "./pages/EmailVerification";
 import Investigadores from "./pages/Investigadores";
 import CoilProjects from "./pages/CoilProjects";
+import ClasesEspejo from "./pages/ClasesEspejo";
+import PasswordRecovery from "./pages/PasswordRecovery";
 import ProfessorProfile from "./components/professor/ProfessorProfile";
 import { AuthCallback } from "./components/auth/AuthCallback";
 
@@ -89,7 +90,7 @@ export const navItems = [
     allowedRoles: ["admin"]
   },
   {
-    title: "Aplicación de Movilidad",
+    title: "Aplicacion de Movilidad",
     to: "/apply/:universityId/:programId",
     icon: <GraduationCap className="h-4 w-4" />,
     page: <MobilityApplication />,
@@ -105,7 +106,7 @@ export const navItems = [
     allowedRoles: ["professor"]
   },
   {
-    title: "Aplicación Movilidad Profesor",
+    title: "Aplicacion Movilidad Profesor",
     to: "/professor/mobility/apply/:callId",
     icon: <Users className="h-4 w-4" />,
     page: <ProfessorMobilityApplication />,
@@ -141,6 +142,19 @@ export const navItems = [
   {
     to: "/coil",
     page: <CoilProjects />,
+    requiresAuth: false,
+    allowedRoles: []
+  },
+  {
+    title: "Clases Espejo y Masterclasses",
+    to: "/clases",
+    page: <ClasesEspejo />,
+    requiresAuth: false,
+    allowedRoles: []
+  },
+  {
+    to: "/password-recovery",
+    page: <PasswordRecovery />,
     requiresAuth: false,
     allowedRoles: []
   }

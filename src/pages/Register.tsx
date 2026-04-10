@@ -95,18 +95,23 @@ export default function Register() {
         setError(error.message);
         toast({
           title: "Error en el registro",
-          description: error.message,
+          description: error.message || "No se pudo completar el registro",
           variant: "destructive",
         });
         return;
       }
 
-      // Send welcome email
+      // Send welcome email - don't block if it fails
       try {
-        await sendWelcomeEmail(values.email, values.fullName);
+        const emailResult = await sendWelcomeEmail(values.email, values.fullName);
+        if (emailResult.success) {
+          console.log('Welcome email sent successfully');
+        } else {
+          console.warn('Welcome email was not sent:', emailResult.error);
+        }
       } catch (emailError) {
-        console.error('Error sending welcome email:', emailError);
-        // Don't block registration if email fails
+        console.warn('Warning: Could not send welcome email (non-critical):', emailError);
+        // Email failure is not critical - user can still use the platform
       }
 
       console.log('Registration successful');
@@ -137,7 +142,7 @@ export default function Register() {
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <img 
-                src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+                src="/lovable-uploads/LogoM.png" 
                 alt="Muévete por el Caribe" 
                 className="h-12 w-auto"
               />
@@ -323,3 +328,4 @@ export default function Register() {
     </div>
   )
 }
+

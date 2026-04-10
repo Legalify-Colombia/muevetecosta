@@ -8,15 +8,15 @@ import Header from '@/components/common/Header';
 import Footer from '@/components/common/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Save, Send, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Send } from 'lucide-react';
 import { PersonalInfoSection } from '@/components/mobility/PersonalInfoSection';
 import { AcademicInfoSection } from '@/components/mobility/AcademicInfoSection';
 import { CourseHomologationSection } from '@/components/mobility/CourseHomologationSection';
 import { DocumentUploadSection } from '@/components/mobility/DocumentUploadSection';
 import { MobilityDetailsSection } from '@/components/mobility/MobilityDetailsSection';
+import { RequiredDocumentsDisplay } from '@/components/common/RequiredDocumentsDisplay';
 import { toast } from 'sonner';
 import { useEmail } from '@/hooks/useEmail';
-import { useUniversityRequiredDocuments } from '@/hooks/useUniversityRequiredDocuments';
 
 interface FormData {
   personalInfo: {
@@ -199,13 +199,6 @@ const MobilityApplication = () => {
     },
     enabled: !!programId
   });
-
-  const { data: requiredDocuments = [] } = useUniversityRequiredDocuments(universityId);
-
-  // Filtrar documentos obligatorios para estudiantes
-  const mandatoryDocuments = requiredDocuments.filter(doc => 
-    doc.is_mandatory && (doc.mobility_type === 'student' || doc.mobility_type === 'both')
-  );
 
   const handleAddCourse = () => {
     const newCourse = {
@@ -592,27 +585,14 @@ const MobilityApplication = () => {
               mobilityType="student"
             />
 
-            {/* Mostrar documentos faltantes si los hay */}
-            {mandatoryDocuments.length > 0 && (
-              <Card className="border-orange-200 bg-orange-50">
-                <CardContent className="p-4">
-                  <div className="flex items-start space-x-2">
-                    <AlertCircle className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h4 className="font-medium text-orange-800">Documentos Obligatorios</h4>
-                      <p className="text-sm text-orange-700 mt-1">
-                        Asegúrate de cargar todos los documentos obligatorios antes de enviar tu aplicación.
-                      </p>
-                      <ul className="text-sm text-orange-700 mt-2 list-disc list-inside">
-                        {mandatoryDocuments.map(doc => (
-                          <li key={doc.id}>{doc.document_title}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Mostrar documentos requeridos */}
+            <RequiredDocumentsDisplay
+              universityId={universityId || ''}
+              universityName={university?.name || 'la universidad'}
+              variant="inline"
+              mobilityType="student"
+              onlyMandatory={true}
+            />
 
             <Card>
               <CardContent className="p-6">

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
@@ -23,9 +23,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const recoveringProfileIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     console.log('Setting up auth state listener');
+
+    const loadProfile = async (userId: string) => {
+      try {
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Error fetching profile:', error);
+          setProfile(null);
+          return;
+        }
+
+        if (profileData) {
+          console.log('Profile loaded:', profileData);
+          setProfile(profileData);
+          recoveringProfileIds.current.delete(userId);
+          return;
+        }
+
+        if (recoveringProfileIds.current.has(userId)) {
+          setProfile(null);
+          return;
+        }
+
+        console.warn('Profile not found for user, attempting to create...');
+        recoveringProfileIds.current.add(userId);
+
+        try {
+          const { data: result, error: createError } = await supabase
+            .rpc('create_missing_profile', { p_user_id: userId });
+
+          if (createError) {
+            console.error('Error creating missing profile:', createError);
+            setProfile(null);
+            return;
+          }
+
+          console.log('Profile recovery result:', result);
+
+          const { data: retryData, error: retryError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+
+          if (retryError) {
+            console.error('Error fetching recovered profile:', retryError);
+            setProfile(null);
+            return;
+          }
+
+          setProfile(retryData ?? null);
+        } catch (rpcErr) {
+          console.error('Error calling create_missing_profile RPC:', rpcErr);
+          setProfile(null);
+        } finally {
+          recoveringProfileIds.current.delete(userId);
+        }
+      } catch (err) {
+        console.error('Unexpected error fetching profile:', err);
+        setProfile(null);
+        recoveringProfileIds.current.delete(userId);
+      }
+    };
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -39,28 +107,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session?.user) {
           console.log('User logged in, scheduling profile fetch');
           setTimeout(async () => {
-            try {
-              const { data: profileData, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (error) {
-                console.error('Error fetching profile:', error);
-                setProfile(null);
-              } else {
-                console.log('Profile loaded:', profileData);
-                setProfile(profileData);
-              }
-            } catch (err) {
-              console.error('Unexpected error fetching profile:', err);
-              setProfile(null);
-            }
-          }, 0);
+            await loadProfile(session.user.id);
+          }, 100);
         } else {
           console.log('User logged out');
           setProfile(null);
+          recoveringProfileIds.current.clear();
         }
         
         setLoading(false);
@@ -101,7 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signUp = async (email: string, password: string, userData: any) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -109,6 +161,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         data: userData
       }
     });
+    
+    // If signup was successful, update profile with full data and populate student_info
+    if (!error && data.user) {
+      try {
+        // Update profile with complete metadata
+        const { error: updateError } = await supabase.rpc('update_profile_from_auth_user', {
+          p_user_id: data.user.id
+        });
+        
+        if (updateError) {
+          console.warn('Warning: Could not update profile metadata:', updateError);
+        } else {
+          console.log('Profile updated with full metadata');
+        }
+        
+        // If user is a student, also populate student_info
+        if (userData.role === 'student') {
+          try {
+            const { error: populateError } = await supabase.rpc('populate_student_info', {
+              p_user_id: data.user.id,
+              p_origin_university: userData.origin_university || 'Not specified',
+              p_academic_program: userData.academic_program || 'Not specified',
+              p_current_semester: parseInt(userData.current_semester || '1')
+            });
+            
+            if (populateError) {
+              console.warn('Warning: Could not populate student info:', populateError);
+            } else {
+              console.log('Student info populated successfully');
+            }
+          } catch (err) {
+            console.warn('Warning: Exception populating student info:', err);
+          }
+        }
+      } catch (err) {
+        console.warn('Warning: Exception updating profile:', err);
+      }
+    }
+    
     return { error };
   };
 

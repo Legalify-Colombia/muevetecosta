@@ -54,7 +54,7 @@ INSERT INTO email_templates (
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://mueveteporlacosta.com.co/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" alt="Logo Muévete por el Caribe">
+            <img src="https://mueveteporlacosta.com.co/lovable-uploads/LogoM.png" alt="Logo Muévete por el Caribe">
         </div>
         <div class="content">
             {{content}}

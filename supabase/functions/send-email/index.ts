@@ -16,6 +16,21 @@ interface SendEmailRequest {
   userId?: string;
 }
 
+const getConfiguredSender = (emailConfig: any) => {
+  const defaultSenderEmail = Deno.env.get('DEFAULT_SENDER_EMAIL')
+    ?? emailConfig?.default_sender_email
+    ?? 'noreply@mueveteporlacosta.com';
+
+  const defaultSenderName = Deno.env.get('DEFAULT_SENDER_NAME')
+    ?? emailConfig?.default_sender_name
+    ?? 'Muévete por el Caribe';
+
+  return {
+    defaultSenderEmail,
+    defaultSenderName,
+  };
+};
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -37,8 +52,8 @@ const handler = async (req: Request): Promise<Response> => {
       .eq('is_active', true)
       .single();
 
-    if (configError || !emailConfig?.resend_api_key) {
-      throw new Error('Email configuration not found or Resend API key not configured');
+    if (configError && configError.code !== 'PGRST116') {
+      throw new Error(`Email configuration lookup failed: ${configError.message}`);
     }
 
     // Get email template
@@ -63,8 +78,18 @@ const handler = async (req: Request): Promise<Response> => {
       htmlContent = htmlContent.replace(regex, value);
     }
 
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+      ?? emailConfig?.resend_api_key
+      ?? '';
+
+    if (!resendApiKey) {
+      throw new Error('Resend API key not configured in function secrets or email_configuration');
+    }
+
+    const { defaultSenderEmail, defaultSenderName } = getConfiguredSender(emailConfig);
+
     // Initialize Resend
-    const resend = new Resend(emailConfig.resend_api_key);
+    const resend = new Resend(resendApiKey);
 
     // Create email history record
     const { data: historyRecord, error: historyError } = await supabase
@@ -85,7 +110,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: `${emailConfig.default_sender_name} <${emailConfig.default_sender_email}>`,
+      from: `${defaultSenderName} <${defaultSenderEmail}>`,
       to: [recipientEmail],
       subject: subject,
       html: htmlContent,

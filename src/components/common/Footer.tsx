@@ -25,7 +25,7 @@ const Footer = () => {
           {/* Logo y descripción */}
           <div className="flex flex-col items-center md:items-start">
             <img 
-              src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+              src="/lovable-uploads/LogoM.png" 
               alt="RCI Nodo Norte" 
               className="h-12 w-auto mb-2"
             />
@@ -70,3 +70,4 @@ const Footer = () => {
 };
 
 export default Footer;
+

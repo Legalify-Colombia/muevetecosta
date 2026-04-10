@@ -34,7 +34,7 @@ const Header = ({ showAuthButtons = false, showLogout = false, userInfo, navigat
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 flex-shrink-0">
             <img 
-              src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+              src="/lovable-uploads/LogoM.png" 
               alt="Muévete por el Caribe" 
               className="h-8 md:h-10 w-auto"
             />
@@ -51,6 +51,9 @@ const Header = ({ showAuthButtons = false, showLogout = false, userInfo, navigat
             <Link to="/coil" className="text-gray-600 hover:text-blue-600 transition-colors">
               COIL
             </Link>
+              <Link to="/clases" className="text-gray-600 hover:text-blue-600 transition-colors">
+                Clases
+              </Link>
             
             {navigationLinks.map((link, index) => (
               <Link 
@@ -131,6 +134,13 @@ const Header = ({ showAuthButtons = false, showLogout = false, userInfo, navigat
               >
                 COIL
               </Link>
+                <Link 
+                  to="/clases" 
+                  className="block text-gray-600 hover:text-blue-600 py-2 transition-colors"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Clases
+                </Link>
               
               {navigationLinks.map((link, index) => (
                 <Link 
@@ -181,3 +191,4 @@ const Header = ({ showAuthButtons = false, showLogout = false, userInfo, navigat
 };
 
 export default Header;
+

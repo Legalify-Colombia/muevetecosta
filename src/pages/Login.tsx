@@ -106,7 +106,7 @@ export default function Login() {
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <img 
-              src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+              src="/lovable-uploads/LogoM.png" 
               alt="Muévete por el Caribe" 
               className="h-12 w-auto"
             />
@@ -147,42 +147,12 @@ export default function Login() {
             </Button>
           </form>
           <div className="mt-4 text-center space-y-2">
-            <Button
-              variant="link"
-              className="text-sm p-0 h-auto"
-              onClick={async () => {
-                const emailInput = email;
-                if (!emailInput) {
-                  toast({
-                    title: "Email requerido",
-                    description: "Por favor ingresa tu email para restablecer la contraseña",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-
-                try {
-                  const { error } = await supabase.auth.resetPasswordForEmail(emailInput, {
-                    redirectTo: `${window.location.origin}/reset-password`,
-                  });
-
-                  if (error) throw error;
-
-                  toast({
-                    title: "Email enviado",
-                    description: "Se ha enviado un enlace para restablecer tu contraseña",
-                  });
-                } catch (error: any) {
-                  toast({
-                    title: "Error",
-                    description: error.message || "No se pudo enviar el email",
-                    variant: "destructive",
-                  });
-                }
-              }}
+            <Link
+              to="/password-recovery"
+              className="text-sm text-blue-600 hover:underline block"
             >
               ¿Olvidaste tu contraseña?
-            </Button>
+            </Link>
             <div>
               <span className="text-sm text-gray-600">¿No tienes cuenta? </span>
               <Link
@@ -198,3 +168,4 @@ export default function Login() {
     </div>
   );
 }
+

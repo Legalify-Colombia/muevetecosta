@@ -63,7 +63,8 @@ export const useEmail = () => {
       templateData: {
         nombre_usuario: userName,
         link_activacion: activationLink || '#',
-        link_login: `${window.location.origin}/login`
+        link_login: `${window.location.origin}/login`,
+        email_usuario: userEmail
       }
     });
   };

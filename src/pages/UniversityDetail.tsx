@@ -8,6 +8,7 @@ import { Globe, ArrowLeft, MapPin, Phone, Mail, BookOpen, Users, FileText, Exter
 import { useUniversity } from "@/hooks/useUniversities";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { RequiredDocumentsDisplay } from "@/components/common/RequiredDocumentsDisplay";
 
 const UniversityDetail = () => {
   const { id } = useParams();
@@ -111,7 +112,7 @@ const UniversityDetail = () => {
             </div>
             <div className="flex items-center space-x-2">
               <img 
-                src="/lovable-uploads/df25e485-5dd4-485d-958a-b48ea880cc0f.png" 
+                src="/lovable-uploads/LogoM.png" 
                 alt="Muévete por el Caribe" 
                 className="h-8 md:h-10 w-auto"
               />
@@ -164,13 +165,21 @@ const UniversityDetail = () => {
           </div>
           
           {university.description && (
-            <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h2 className="text-xl font-semibold mb-3">Acerca de la Universidad</h2>
-              <p className="text-gray-700 leading-relaxed text-lg">
-                {university.description}
-              </p>
+            <div className="bg-white rounded-lg p-8 shadow-sm border border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Acerca de la Universidad</h2>
+              <div className="prose prose-lg max-w-none">
+                <p className="text-gray-700 leading-relaxed text-justify whitespace-pre-wrap">
+                  {university.description}
+                </p>
+              </div>
             </div>
           )}
+
+          {/* Required Documents Section */}
+          <RequiredDocumentsDisplay 
+            universityId={id || ''} 
+            universityName={university.name || 'la universidad'}
+          />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -198,28 +207,40 @@ const UniversityDetail = () => {
                         onClick={() => setSelectedProgram(selectedProgram === program.id ? null : program.id)}
                       >
                         <CardContent className="p-6">
-                          <div className="flex justify-between items-start mb-3">
-                            <h3 className="font-semibold text-xl text-gray-900">
-                              {program.name}
-                            </h3>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-sm">
-                                {program.duration_semesters} semestres
-                              </Badge>
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleApply(program.id);
-                                }}
-                                size="sm"
-                              >
-                                Postular
-                              </Button>
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex-1">
+                              <h3 className="font-bold text-2xl text-gray-900 mb-2">
+                                {program.name}
+                              </h3>
+                              <div className="flex items-center gap-3">
+                                <Badge variant="outline" className="text-sm font-medium">
+                                  {program.duration_semesters} semestres
+                                </Badge>
+                                {program.credits && (
+                                  <Badge variant="secondary" className="text-sm font-medium">
+                                    {program.credits} créditos
+                                  </Badge>
+                                )}
+                              </div>
                             </div>
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleApply(program.id);
+                              }}
+                              size="lg"
+                              className="whitespace-nowrap ml-4"
+                            >
+                              Postular
+                            </Button>
                           </div>
                           
                           {program.description && (
-                            <p className="text-gray-600 mb-4">{program.description}</p>
+                            <div className="mb-6 py-4 border-y border-gray-200">
+                              <p className="text-gray-700 leading-relaxed text-justify">
+                                {program.description}
+                              </p>
+                            </div>
                           )}
                           
                           {selectedProgram === program.id && program.courses && program.courses.length > 0 && (
@@ -257,7 +278,9 @@ const UniversityDetail = () => {
                                           </div>
                                           
                                           {course.description && (
-                                            <p className="text-sm text-gray-600 mb-3">{course.description}</p>
+                                            <p className="text-sm text-gray-600 mb-3 text-justify leading-relaxed">
+                                              {course.description}
+                                            </p>
                                           )}
                                           
                                           {course.syllabus_url && (
@@ -380,3 +403,4 @@ const UniversityDetail = () => {
 };
 
 export default UniversityDetail;
+
